@@ -17,7 +17,7 @@ const corseOptions = {
 app.use(cors(corseOptions));
 app.use(cookieParser());
 
-//* this is router handling
+
 app.use("/api/v1", router);
 
 app.get("/", (req, res) => {
