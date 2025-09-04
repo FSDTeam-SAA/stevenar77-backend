@@ -1,0 +1,30 @@
+import { StatusCodes } from "http-status-codes";
+import catchAsync from "../../utils/catchAsync";
+import sendResponse from "../../utils/sendResponse";
+import userService from "./user.service";
+import config from "../../config";
+
+const registerUser = catchAsync(async (req, res) => {
+  const result = await userService.registerUser(req.body);
+
+  const { refreshToken, accessToken, user } = result;
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: config.NODE_ENV === "production",
+    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User created successfully, please verify your email",
+    data: result,
+  });
+});
+
+const userController = {
+  registerUser,
+};
+
+export default userController;

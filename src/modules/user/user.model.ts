@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { IUser } from "./user.interface";
+import { IUser, userModel } from "./user.interface";
 import config from "../../config";
 import bcrypt from "bcrypt";
 
@@ -50,6 +50,14 @@ const userSchema = new Schema<IUser>(
         type: String,
       },
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: { type: String, default: null },
+    otpExpires: { type: Date, default: null },
+    resetPasswordOtp: { type: String, default: null },
+    resetPasswordOtpExpires: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -78,4 +86,16 @@ userSchema.statics.isPasswordMatch = async function (
   return await bcrypt.compare(password, hashedPassword);
 };
 
-export const User = model<IUser>("User", userSchema);
+userSchema.statics.isUserExistByEmail = async function (
+  email: string
+): Promise<IUser | null> {
+  return await User.findOne({ email });
+};
+
+userSchema.statics.isUserExistById = async function (
+  _id: string
+): Promise<IUser | null> {
+  return await User.findOne({ _id });
+};
+
+export const User = model<IUser, userModel>("User", userSchema);
