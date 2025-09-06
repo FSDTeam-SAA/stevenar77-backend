@@ -8,7 +8,6 @@ import handleCastError from "../errors/handleCastError";
 import handleDuplicateError from "../errors/handleDuplicateError";
 import AppError from "../errors/AppError";
 
-
 const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
   // setting default status code and message
   let statusCode = 500;
@@ -69,6 +68,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
   // ultimate return
   res.status(statusCode).json({
     success: false,
+    statusCode,
     message: message,
     errorSource,
     error,
