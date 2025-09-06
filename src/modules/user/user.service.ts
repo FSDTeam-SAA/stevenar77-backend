@@ -91,8 +91,43 @@ const registerUser = async (payload: IUser) => {
   };
 };
 
+const verifyEmail = async (email: string, payload: string) => {
+  const { otp }: any = payload;
+  if (!otp) throw new Error("OTP is required");
+
+  const existingUser = await User.findOne({ email });
+  if (!existingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  if (!existingUser.otp || !existingUser.otpExpires) {
+    throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
+  }
+
+  if (existingUser.otpExpires < new Date()) {
+    throw new AppError("OTP has expired", StatusCodes.BAD_REQUEST);
+  }
+
+  if (existingUser.isVerified === true) {
+    throw new AppError("User already verified", StatusCodes.CONFLICT);
+  }
+
+  const isOtpMatched = await bcrypt.compare(otp.toString(), existingUser.otp);
+  if (!isOtpMatched) throw new AppError("Invalid OTP", StatusCodes.BAD_REQUEST);
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      isVerified: true,
+      $unset: { otp: "", otpExpires: "" },
+    },
+    { new: true }
+  ).select("username email role");
+  return result;
+};
+
 const userService = {
   registerUser,
+  verifyEmail,
 };
 
 export default userService;

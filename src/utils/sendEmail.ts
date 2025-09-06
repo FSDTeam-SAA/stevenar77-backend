@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 import config from "../config";
 
 interface SendEmailParams {
@@ -39,6 +39,9 @@ const sendEmail = async ({
     };
 
     await transporter.sendMail(mailOptions);
+
+    // console.log("Email sent successfully", mailOptions.from, mailOptions.to);
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
