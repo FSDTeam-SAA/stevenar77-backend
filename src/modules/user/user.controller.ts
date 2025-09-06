@@ -35,9 +35,22 @@ const verifyEmail = catchAsync(async (req, res) => {
   });
 });
 
+const resendOtpCode = catchAsync(async (req, res) => {
+  const { email } = req.user;
+  const result = await userService.resendOtpCode(email);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "OTP code sent successfully",
+    data: result,
+  });
+});
+
 const userController = {
   registerUser,
   verifyEmail,
+  resendOtpCode,
 };
 
 export default userController;

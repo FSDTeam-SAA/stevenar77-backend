@@ -19,5 +19,11 @@ router.post(
   userController.verifyEmail
 );
 
+router.post(
+  "/resend-otp",
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  userController.resendOtpCode
+);
+
 const userRouter = router;
 export default userRouter;

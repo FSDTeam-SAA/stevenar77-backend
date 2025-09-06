@@ -125,9 +125,40 @@ const verifyEmail = async (email: string, payload: string) => {
   return result;
 };
 
+const resendOtpCode = async (email: string) => {
+  const existingUser = await User.findOne({ email });
+  if (!existingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  if (existingUser.isVerified === true) {
+    throw new AppError("User already verified", StatusCodes.CONFLICT);
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      otp: hashedOtp,
+      otpExpires,
+    },
+    { new: true }
+  ).select("username email role");
+
+  await sendEmail({
+    to: existingUser.email,
+    subject: "Verify your email",
+    html: verificationCodeTemplate(otp),
+  });
+  return result;
+};
+
 const userService = {
   registerUser,
   verifyEmail,
+  resendOtpCode,
 };
 
 export default userService;
