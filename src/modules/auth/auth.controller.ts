@@ -23,8 +23,47 @@ const login = catchAsync(async (req, res) => {
   });
 });
 
+const refreshToken = catchAsync(async (req, res) => {
+  const { refreshToken } = req.cookies;
+  const result = await authService.refreshToken(refreshToken);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User logged in successfully",
+    data: result,
+  });
+});
+
+const forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const result = await authService.forgotPassword(email);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User logged in successfully",
+    data: result,
+  });
+});
+
+const resendForgotOtpCode = catchAsync(async (req, res) => {
+  const { email } = req.user;
+  const result = await authService.resendForgotOtpCode(email);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User logged in successfully",
+    data: result,
+  });
+});
+
 const authController = {
   login,
+  refreshToken,
+  forgotPassword,
+  resendForgotOtpCode,
 };
 
 export default authController;

@@ -2,6 +2,8 @@ import { Router } from "express";
 import authController from "./auth.controller";
 import validateRequest from "../../middleware/validateRequest";
 import { authValidationSchema } from "./auth.validation";
+import auth from "../../middleware/auth";
+import { USER_ROLE } from "../user/user.constant";
 
 const router = Router();
 
@@ -11,6 +13,14 @@ router.post(
   authController.login
 );
 
-const authRouter = router;
+router.post("/refresh-token", authController.refreshToken);
+router.post("/forgot-password", authController.forgotPassword);
 
+router.post(
+  "/resend-forgot-otp",
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  authController.resendForgotOtpCode
+);
+
+const authRouter = router;
 export default authRouter;
