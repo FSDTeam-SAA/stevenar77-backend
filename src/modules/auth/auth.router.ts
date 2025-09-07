@@ -22,5 +22,11 @@ router.post(
   authController.resendForgotOtpCode
 );
 
+router.post(
+  "/verify-token",
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  authController.verifyOtp
+);
+
 const authRouter = router;
 export default authRouter;

@@ -160,11 +160,68 @@ const resendForgotOtpCode = async (email: string) => {
   return result;
 };
 
+const verifyOtp = async (email: string, otp: string) => {
+  if (otp) {
+    throw new AppError("OTP is required", StatusCodes.BAD_REQUEST);
+  }
+
+  const isExistingUser = await User.isUserExistByEmail(email);
+  if (!isExistingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  if (
+    !isExistingUser.resetPasswordOtp ||
+    !isExistingUser.resetPasswordOtpExpires
+  ) {
+    throw new AppError(
+      "Password reset OTP not requested or has expired",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  if (isExistingUser.resetPasswordOtpExpires < new Date()) {
+    throw new AppError(
+      "Password reset OTP has expired",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  const isOtpMatched = await bcrypt.compare(
+    otp.toString(),
+    isExistingUser.resetPasswordOtp
+  );
+  if (!isOtpMatched) throw new Error("Invalid OTP");
+
+  await User.findByIdAndUpdate(
+    isExistingUser._id,
+    {
+      resetPasswordOtp: "",
+      resetPasswordOtpExpires: "",
+    },
+    { new: true }
+  );
+
+  const JwtToken = {
+    userId: isExistingUser._id,
+    email: isExistingUser.email,
+    role: isExistingUser.role,
+  };
+
+  const accessToken = createToken(
+    JwtToken,
+    config.JWT_SECRET as string,
+    config.JWT_EXPIRES_IN as string
+  );
+
+  return { accessToken };
+};
+
 const authService = {
   login,
   refreshToken,
   forgotPassword,
   resendForgotOtpCode,
+  verifyOtp,
 };
 
 export default authService;

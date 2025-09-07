@@ -59,11 +59,25 @@ const resendForgotOtpCode = catchAsync(async (req, res) => {
   });
 });
 
+const verifyOtp = catchAsync(async (req, res) => {
+  const { otp } = req.body;
+  const { email } = req.user;
+  const result = await authService.verifyOtp(email, otp);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User logged in successfully",
+    data: result,
+  });
+});
+
 const authController = {
   login,
   refreshToken,
   forgotPassword,
   resendForgotOtpCode,
+  verifyOtp,
 };
 
 export default authController;
