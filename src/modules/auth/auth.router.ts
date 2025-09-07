@@ -23,7 +23,7 @@ router.post(
 );
 
 router.post(
-  "/verify-token",
+  "/verify-otp",
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   authController.verifyOtp
 );
@@ -32,6 +32,12 @@ router.post(
   "/reset-password",
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   authController.resetPassword
+);
+
+router.post(
+  "/change-password",
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  authController.changePassword
 );
 
 const authRouter = router;
