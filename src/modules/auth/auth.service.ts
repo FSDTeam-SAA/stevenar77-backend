@@ -143,7 +143,7 @@ const resendForgotOtpCode = async (email: string) => {
   const hashedOtp = await bcrypt.hash(otp, 10);
   const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-  const result = await User.findOneAndUpdate(
+  await User.findOneAndUpdate(
     { email },
     {
       resetPasswordOtp: hashedOtp,
@@ -157,11 +157,11 @@ const resendForgotOtpCode = async (email: string) => {
     subject: `${companyName} - Password Reset OTP`,
     html: verificationCodeTemplate(otp),
   });
-  return result;
+  // return result;
 };
 
 const verifyOtp = async (email: string, otp: string) => {
-  if (otp) {
+  if (!otp) {
     throw new AppError("OTP is required", StatusCodes.BAD_REQUEST);
   }
 

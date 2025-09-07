@@ -30,7 +30,7 @@ const refreshToken = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
+    message: "Access token refreshed successfully",
     data: result,
   });
 });
@@ -42,20 +42,20 @@ const forgotPassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
+    message: "OTP sent to your email",
     data: result,
   });
 });
 
 const resendForgotOtpCode = catchAsync(async (req, res) => {
   const { email } = req.user;
-  const result = await authService.resendForgotOtpCode(email);
+  await authService.resendForgotOtpCode(email);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
-    data: result,
+    message: "OTP resent successfully",
+    // data: result,
   });
 });
 
@@ -67,7 +67,7 @@ const verifyOtp = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
+    message: "OTP verified successfully",
     data: result,
   });
 });
@@ -79,7 +79,7 @@ const resetPassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
+    message: "Password reset successfully",
     data: result,
   });
 });
@@ -91,7 +91,7 @@ const changePassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "User logged in successfully",
+    message: "Password changed successfully",
     data: result,
   });
 });
