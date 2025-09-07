@@ -216,12 +216,93 @@ const verifyOtp = async (email: string, otp: string) => {
   return { accessToken };
 };
 
+const resetPassword = async (
+  payload: { newPassword: string },
+  email: string
+) => {
+  if (!payload.newPassword)
+    throw new AppError("Password is required", StatusCodes.BAD_REQUEST);
+
+  const isExistingUser = await User.isUserExistByEmail(email);
+  if (!isExistingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  const hashedPassword = await bcrypt.hash(
+    payload.newPassword,
+    Number(config.bcryptSaltRounds)
+  );
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      password: hashedPassword,
+      otp: undefined,
+      otpExpires: undefined,
+    },
+    { new: true }
+  ).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires"
+  );
+
+  return result;
+};
+
+const changePassword = async (
+  payload: {
+    currentPassword: string;
+    newPassword: string;
+  },
+  email: string
+) => {
+  const { currentPassword, newPassword } = payload;
+  if (!currentPassword || !newPassword) {
+    throw new AppError(
+      "Current and new passwords are required",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  const isExistingUser = await User.isUserExistByEmail(email);
+  if (!isExistingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  const isPasswordMatched = await User.isPasswordMatch(
+    currentPassword,
+    isExistingUser.password
+  );
+
+  if (!isPasswordMatched)
+    throw new AppError(
+      "Current password is incorrect",
+      StatusCodes.BAD_REQUEST
+    );
+
+  const hashedPassword = await bcrypt.hash(
+    newPassword,
+    Number(config.bcryptSaltRounds)
+  );
+
+  const result = await User.findOneAndUpdate(
+    { email },
+    {
+      password: hashedPassword,
+    },
+    { new: true }
+  ).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires"
+  );
+
+  return result;
+};
+
 const authService = {
   login,
   refreshToken,
   forgotPassword,
   resendForgotOtpCode,
   verifyOtp,
+  resetPassword,
+  changePassword,
 };
 
 export default authService;
