@@ -7,6 +7,10 @@ import sendEmail from "../../utils/sendEmail";
 import verificationCodeTemplate from "../../utils/verificationCodeTemplate";
 import { createToken } from "../../utils/tokenGenerate";
 import config from "../../config";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../../utils/cloudinary";
 
 const registerUser = async (payload: IUser) => {
   const existingUser = await User.isUserExistByEmail(payload.email);
@@ -168,12 +172,39 @@ const getMyProfile = async (email: string) => {
     throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
   const result = await User.findOne({ email }).select(
-    "username firstName lastName email role"
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires"
   );
+
   return result;
 };
 
-const updateUserProfile = async (payload: any, email: string, file: any) => {};
+const updateUserProfile = async (payload: any, email: string, file: any) => {
+  const user = await User.findOne({ email }).select("image");
+  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  let updateData: any = { ...payload };
+  let oldImagePublicId: string | undefined;
+
+  if (file) {
+    const uploadResult = await uploadToCloudinary(file.path, "users");
+    oldImagePublicId = user.image?.public_id;
+
+    updateData.image = {
+      public_id: uploadResult.public_id,
+      url: uploadResult.url, 
+    };
+  }
+
+  const result = await User.findOneAndUpdate({ email }, updateData, {
+    new: true,
+  });
+
+  if (file && oldImagePublicId) {
+    await deleteFromCloudinary(oldImagePublicId);
+  }
+
+  return result;
+};
 
 const userService = {
   registerUser,

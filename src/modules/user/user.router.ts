@@ -4,6 +4,7 @@ import validateRequest from "../../middleware/validateRequest";
 import { userValidation } from "./user.validation";
 import auth from "../../middleware/auth";
 import { USER_ROLE } from "./user.constant";
+import { upload } from "../../middleware/multer.middleware";
 
 const router = Router();
 
@@ -26,6 +27,18 @@ router.post(
 );
 
 router.get("/all-users", userController.getAllUsers);
+router.get(
+  "/my-profile",
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  userController.getMyProfile
+);
+
+router.put(
+  "/update-profile",
+  upload.single("image"),
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  userController.updateUserProfile
+);
 
 const userRouter = router;
 export default userRouter;
