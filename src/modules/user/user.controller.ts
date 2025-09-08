@@ -19,7 +19,10 @@ const registerUser = catchAsync(async (req, res) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: "User created successfully, please verify your email",
-    data: result,
+    data: {
+      accessToken,
+      user,
+    },
   });
 });
 
@@ -47,10 +50,35 @@ const resendOtpCode = catchAsync(async (req, res) => {
   });
 });
 
+const getAllUsers = catchAsync(async (req, res) => {
+  const result = await userService.getAllUsers();
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Users fetched successfully",
+    data: result,
+  });
+});
+
+const getMyProfile = catchAsync(async (req, res) => {
+  const { email } = req.user;
+
+  const result = await userService.getMyProfile(email);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User fetched successfully",
+    data: result,
+  });
+});
+
 const userController = {
   registerUser,
   verifyEmail,
   resendOtpCode,
+  getAllUsers,
+  getMyProfile,
 };
 
 export default userController;

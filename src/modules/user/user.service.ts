@@ -155,10 +155,30 @@ const resendOtpCode = async (email: string) => {
   return result;
 };
 
+const getAllUsers = async () => {
+  const result = await User.find().select(
+    "username firstName lastName email role"
+  );
+  return result;
+};
+
+const getMyProfile = async (email: string) => {
+  const existingUser = await User.findOne({ email });
+  if (!existingUser)
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  const result = await User.findOne({ email }).select(
+    "username firstName lastName email role"
+  );
+  return result;
+};
+
 const userService = {
   registerUser,
   verifyEmail,
   resendOtpCode,
+  getAllUsers,
+  getMyProfile,
 };
 
 export default userService;

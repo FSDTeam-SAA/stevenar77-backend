@@ -25,5 +25,7 @@ router.post(
   userController.resendOtpCode
 );
 
+router.get("/all-users", userController.getAllUsers);
+
 const userRouter = router;
 export default userRouter;
