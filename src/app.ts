@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corseOptions = {
-  origin: ["*"],
+  origin: "*",
   credentials: true,
 };
 
