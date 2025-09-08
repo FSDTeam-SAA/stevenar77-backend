@@ -22,7 +22,7 @@ export const uploadToCloudinary = async (filePath: string, folder: string) => {
 
     return {
       public_id: result.public_id,
-      secure_url: result.secure_url,
+      url: result.secure_url,
     };
   } catch (error) {
     throw new Error("Failed to upload file to Cloudinary");
