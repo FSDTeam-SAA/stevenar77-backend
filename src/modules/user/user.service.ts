@@ -173,12 +173,15 @@ const getMyProfile = async (email: string) => {
   return result;
 };
 
+const updateUserProfile = async (payload: any, email: string, file: any) => {};
+
 const userService = {
   registerUser,
   verifyEmail,
   resendOtpCode,
   getAllUsers,
   getMyProfile,
+  updateUserProfile,
 };
 
 export default userService;
