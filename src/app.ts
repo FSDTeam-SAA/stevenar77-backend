@@ -8,6 +8,7 @@ import router from "./router";
 const app: Application = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 const corseOptions = {
   origin: ["*"],
@@ -15,8 +16,6 @@ const corseOptions = {
 };
 
 app.use(cors(corseOptions));
-app.use(cookieParser());
-
 
 app.use("/api/v1", router);
 
