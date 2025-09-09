@@ -55,21 +55,33 @@ export const deleteReview = catchAsync(async (req: Request, res: Response) => {
 })
 
 /*****************
- * GET REVIEWS BY DRIVER ID
+ * GET REVIEWS BY CLASS
  *****************/
-export const getReviewsByDriverId = catchAsync(
-  async (req: Request, res: Response) => {
-    const { driverId } = req.params
+export const getReviewsByClassId = catchAsync(async (req: Request, res: Response) => {
+  const { classId } = req.params
 
-    const reviews = await ReviewRating.find({ driverId })
-      .populate('userId', 'name email') // optionally populate user info
-      .sort({ createdAt: -1 })
+  const reviews = await ReviewRating.find({ classId }).populate('userId', 'name avatar')
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Reviews fetched successfully',
-      data: reviews,
-    })
-  }
-)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reviews fetched successfully by classId',
+    data: reviews,
+  })
+})
+
+/*****************
+ * GET REVIEWS BY TRIP
+ *****************/
+export const getReviewsByTripId = catchAsync(async (req: Request, res: Response) => {
+  const { tripId } = req.params
+
+  const reviews = await ReviewRating.find({ tripId }).populate('userId', 'name avatar')
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reviews fetched successfully by tripId',
+    data: reviews,
+  })
+})
