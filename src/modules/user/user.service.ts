@@ -260,6 +260,7 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
   const user = await User.findOne({ email }).select("image");
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
+  // eslint-disable-next-line prefer-const
   let updateData: any = { ...payload };
   let oldImagePublicId: string | undefined;
 
