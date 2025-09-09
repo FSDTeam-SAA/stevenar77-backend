@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 
 export interface ICourse {
   title: string;
-  image?: [
+  images?: [
     {
       public_id?: string;
       url?: string;
