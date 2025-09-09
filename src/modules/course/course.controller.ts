@@ -16,8 +16,33 @@ const createCourse = catchAsync(async (req, res) => {
   });
 });
 
+const getAllCourses = catchAsync(async (req, res) => {
+  const result = await courseService.getAllCourses();
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Courses fetched successfully",
+    data: result,
+  });
+});
+
+const getSingleCourse = catchAsync(async (req, res) => {
+  const { courseId } = req.params;
+  const result = await courseService.getSingleCourse(courseId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Course fetched successfully",
+    data: result,
+  });
+});
+
 const courseController = {
   createCourse,
+  getAllCourses,
+  getSingleCourse,
 };
 
 export default courseController;
