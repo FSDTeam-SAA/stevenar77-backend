@@ -14,57 +14,49 @@ import {
 
 const registerUser = async (payload: IUser) => {
   const existingUser = await User.isUserExistByEmail(payload.email);
+  if (existingUser && existingUser.isVerified) {
+    throw new AppError("User already exists", StatusCodes.CONFLICT);
+  }
 
-  let result;
+  // Password check
+  if (payload.password.length < 6) {
+    throw new AppError(
+      "Password must be at least 6 characters long",
+      StatusCodes.BAD_REQUEST
+    );
+  }
 
-  if (existingUser) {
-    if (existingUser.isVerified === true) {
-      // User already verified → throw error
-      throw new AppError("User already exists", StatusCodes.CONFLICT);
-    } else {
-      // User exists but not verified → resend OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const hashedOtp = await bcrypt.hash(otp, 10);
-      const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-      existingUser.otp = hashedOtp;
-      existingUser.otpExpires = otpExpires;
+  let result: IUser;
 
-      result = await User.findByIdAndUpdate(
-        existingUser._id,
-        { otp: hashedOtp, otpExpires },
-        { new: true }
-      );
-
-      result = existingUser;
-
-      await sendEmail({
-        to: result.email,
-        subject: "Verify your email",
-        html: verificationCodeTemplate(otp),
-      });
-    }
+  // Case 2: exists but not verified → update OTP
+  if (existingUser && !existingUser.isVerified) {
+    result = (await User.findOneAndUpdate(
+      { email: existingUser.email },
+      { otp: hashedOtp, otpExpires },
+      { new: true }
+    )) as IUser;
   } else {
-    // New user → create
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = await bcrypt.hash(otp, 10);
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-
-    const newUser = new User({
+    // Case 3: new user
+    result = await User.create({
       ...payload,
       otp: hashedOtp,
       otpExpires,
       isVerified: false,
     });
-    result = await User.create(newUser);
-
-    await sendEmail({
-      to: result.email,
-      subject: "Verify your email",
-      html: verificationCodeTemplate(otp),
-    });
   }
 
+  // Send email
+  await sendEmail({
+    to: result.email,
+    subject: "Verify your email",
+    html: verificationCodeTemplate(otp),
+  });
+
+  // JWT payload
   const JwtToken = {
     userId: result._id,
     email: result.email,
@@ -94,6 +86,89 @@ const registerUser = async (payload: IUser) => {
     },
   };
 };
+
+// const registerUser = async (payload: IUser) => {
+//   const existingUser = await User.isUserExistByEmail(payload.email);
+
+//   let result;
+
+//   if (existingUser) {
+//     if (existingUser.isVerified === true) {
+//       // User already verified → throw error
+//       throw new AppError("User already exists", StatusCodes.CONFLICT);
+//     } else {
+//       // User exists but not verified → resend OTP
+//       const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//       const hashedOtp = await bcrypt.hash(otp, 10);
+//       const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+//       existingUser.otp = hashedOtp;
+//       existingUser.otpExpires = otpExpires;
+
+//       result = await User.findByIdAndUpdate(
+//         existingUser._id,
+//         { otp: hashedOtp, otpExpires },
+//         { new: true }
+//       );
+
+//       result = existingUser;
+
+//       await sendEmail({
+//         to: result.email,
+//         subject: "Verify your email",
+//         html: verificationCodeTemplate(otp),
+//       });
+//     }
+//   } else {
+//     // New user → create
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//     const hashedOtp = await bcrypt.hash(otp, 10);
+//     const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+//     const newUser = new User({
+//       ...payload,
+//       otp: hashedOtp,
+//       otpExpires,
+//       isVerified: false,
+//     });
+//     result = await User.create(newUser);
+
+//     await sendEmail({
+//       to: result.email,
+//       subject: "Verify your email",
+//       html: verificationCodeTemplate(otp),
+//     });
+//   }
+
+//   const JwtToken = {
+//     userId: result._id,
+//     email: result.email,
+//     role: result.role,
+//   };
+
+// const accessToken = createToken(
+//   JwtToken,
+//   config.JWT_SECRET as string,
+//   config.JWT_EXPIRES_IN as string
+// );
+
+// const refreshToken = createToken(
+//   JwtToken,
+//   config.refreshTokenSecret as string,
+//   config.jwtRefreshTokenExpiresIn as string
+// );
+
+// return {
+//   accessToken,
+//   refreshToken,
+//   user: {
+//     _id: result._id,
+//     firstName: result.firstName,
+//     lastName: result.lastName,
+//     email: result.email,
+//   },
+// };
+// };
 
 const verifyEmail = async (email: string, payload: string) => {
   const { otp }: any = payload;
