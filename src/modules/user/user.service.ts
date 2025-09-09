@@ -103,8 +103,11 @@ const verifyEmail = async (email: string, payload: string) => {
   if (!existingUser)
     throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
+  // if (!existingUser.otp || !existingUser.otpExpires) {
+  //   throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
+  // }
   if (!existingUser.otp || !existingUser.otpExpires) {
-    throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
+    throw new AppError("OTP somoy sasee, abar denn", StatusCodes.BAD_REQUEST);
   }
 
   if (existingUser.otpExpires < new Date()) {
@@ -191,7 +194,7 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
 
     updateData.image = {
       public_id: uploadResult.public_id,
-      url: uploadResult.url, 
+      url: uploadResult.url,
     };
   }
 
