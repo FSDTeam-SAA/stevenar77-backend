@@ -51,8 +51,26 @@ const createCourse = async (payload: ICourse, files: any[]) => {
   return course;
 };
 
+const getAllCourses = async () => {
+  const result = await Course.find().populate({
+    path: "instructor",
+    select: "firstName lastName email role",
+  });
+  return result;
+};
+
+const getSingleCourse = async (courseId: string) => {
+  const result = await Course.findById(courseId).populate({
+    path: "instructor",
+    select: "firstName lastName email role",
+  });
+  return result;
+};
+
 const courseService = {
   createCourse,
+  getAllCourses,
+  getSingleCourse,
 };
 
 export default courseService;
