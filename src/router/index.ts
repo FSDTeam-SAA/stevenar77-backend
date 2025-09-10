@@ -4,30 +4,34 @@ import authRouter from "../modules/auth/auth.router";
 import classRouter from "../modules/class/class.router";
 import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
 import courseRouter from "../modules/course/course.router";
+import productRouter from "../modules/product/product.router";
 
 const router = Router();
 
 const moduleRoutes = [
   {
-    path: '/user',
+    path: "/user",
     route: userRouter,
   },
   {
-    path: '/auth',
+    path: "/auth",
     route: authRouter,
   },
   {
-    path: '/class',
+    path: "/class",
     route: classRouter,
   },
   {
-    path: '/class/bookings',
+    path: "/class/bookings",
     route: classBookingRouter,
   },
   {
-
     path: "/course",
     route: courseRouter,
+  },
+  {
+    path: "/product",
+    route: productRouter,
   },
 ];
 

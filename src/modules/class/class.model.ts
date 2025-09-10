@@ -1,14 +1,19 @@
-import { model, Schema } from 'mongoose'
-import { IClass } from './class.interface'
+import { model, Schema } from "mongoose";
+import { IClass } from "./class.interface";
 
 const classSchema = new Schema<IClass>(
   {
     title: { type: String, required: true },
-    image: {
+    images: {
       public_id: { type: String },
       url: { type: String },
     },
     shortDescription: { type: String, required: true },
+    courseLevel: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      required: true,
+    },
     features: { type: [String], default: [] },
     price: { type: Number, required: true },
     longDescription: { type: String },
@@ -23,11 +28,11 @@ const classSchema = new Schema<IClass>(
     timestamps: true,
     versionKey: false,
   }
-)
+);
 
 // Example of adding a static method if needed
 classSchema.statics.findByTitle = async function (title: string) {
-  return this.findOne({ title })
-}
+  return this.findOne({ title });
+};
 
-export const Class = model<IClass>('Class', classSchema)
+export const Class = model<IClass>("Class", classSchema);
