@@ -18,10 +18,10 @@ export interface IUser {
     url: string;
   };
   isVerified: boolean;
-  otp: string | null;
-  otpExpires: Date | null;
-  resetPasswordOtp: string | null;
-  resetPasswordOtpExpires: Date | null;
+  otp?: string | null;
+  otpExpires?: Date | null;
+  resetPasswordOtp?: string | null;
+  resetPasswordOtpExpires?: Date | null;
 }
 
 export interface userModel extends Model<IUser> {

@@ -14,57 +14,49 @@ import {
 
 const registerUser = async (payload: IUser) => {
   const existingUser = await User.isUserExistByEmail(payload.email);
+  if (existingUser && existingUser.isVerified) {
+    throw new AppError("User already exists", StatusCodes.CONFLICT);
+  }
 
-  let result;
+  // Password check
+  if (payload.password.length < 6) {
+    throw new AppError(
+      "Password must be at least 6 characters long",
+      StatusCodes.BAD_REQUEST
+    );
+  }
 
-  if (existingUser) {
-    if (existingUser.isVerified === true) {
-      // User already verified → throw error
-      throw new AppError("User already exists", StatusCodes.CONFLICT);
-    } else {
-      // User exists but not verified → resend OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const hashedOtp = await bcrypt.hash(otp, 10);
-      const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-      existingUser.otp = hashedOtp;
-      existingUser.otpExpires = otpExpires;
+  let result: IUser;
 
-      result = await User.findByIdAndUpdate(
-        existingUser._id,
-        { otp: hashedOtp, otpExpires },
-        { new: true }
-      );
-
-      result = existingUser;
-
-      await sendEmail({
-        to: result.email,
-        subject: "Verify your email",
-        html: verificationCodeTemplate(otp),
-      });
-    }
+  // Case 2: exists but not verified → update OTP
+  if (existingUser && !existingUser.isVerified) {
+    result = (await User.findOneAndUpdate(
+      { email: existingUser.email },
+      { otp: hashedOtp, otpExpires },
+      { new: true }
+    )) as IUser;
   } else {
-    // New user → create
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = await bcrypt.hash(otp, 10);
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-
-    const newUser = new User({
+    // Case 3: new user
+    result = await User.create({
       ...payload,
       otp: hashedOtp,
       otpExpires,
       isVerified: false,
     });
-    result = await User.create(newUser);
-
-    await sendEmail({
-      to: result.email,
-      subject: "Verify your email",
-      html: verificationCodeTemplate(otp),
-    });
   }
 
+  // Send email
+  await sendEmail({
+    to: result.email,
+    subject: "Verify your email",
+    html: verificationCodeTemplate(otp),
+  });
+
+  // JWT payload
   const JwtToken = {
     userId: result._id,
     email: result.email,
@@ -103,8 +95,11 @@ const verifyEmail = async (email: string, payload: string) => {
   if (!existingUser)
     throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
+  // if (!existingUser.otp || !existingUser.otpExpires) {
+  //   throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
+  // }
   if (!existingUser.otp || !existingUser.otpExpires) {
-    throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
+    throw new AppError("OTP somoy sasee, abar denn", StatusCodes.BAD_REQUEST);
   }
 
   if (existingUser.otpExpires < new Date()) {
@@ -182,6 +177,7 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
   const user = await User.findOne({ email }).select("image");
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
+  // eslint-disable-next-line prefer-const
   let updateData: any = { ...payload };
   let oldImagePublicId: string | undefined;
 
@@ -191,7 +187,7 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
 
     updateData.image = {
       public_id: uploadResult.public_id,
-      url: uploadResult.url, 
+      url: uploadResult.url,
     };
   }
 
