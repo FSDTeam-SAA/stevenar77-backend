@@ -7,6 +7,8 @@ export interface IOrder {
   status: string;
   totalPrice: number;
   quantity: number;
+  orderData: Date;
+  orderTime: Date;
   createdAt: Date;
   updatedAt: Date;
 }
