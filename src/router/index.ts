@@ -5,6 +5,7 @@ import classRouter from "../modules/class/class.router";
 import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
 import courseRouter from "../modules/course/course.router";
 import productRouter from "../modules/product/product.router";
+import contactRouter from "../modules/contact/contact.router";
 
 const router = Router();
 
@@ -32,6 +33,10 @@ const moduleRoutes = [
   {
     path: "/product",
     route: productRouter,
+  },
+  {
+    path: "/contact",
+    route: contactRouter,
   },
 ];
 
