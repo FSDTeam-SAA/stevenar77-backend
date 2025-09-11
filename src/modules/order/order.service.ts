@@ -136,11 +136,56 @@ const orderCancelByUser = async (email: string, orderId: string) => {
   return result;
 };
 
+const updateOrderStatus = async (orderId: string, status: string) => {
+  if (status !== "pending" && status !== "completed" && status !== "canceled") {
+    throw new AppError("Invalid status value", StatusCodes.BAD_REQUEST);
+  }
+
+  const orderProduct = await order.findById(orderId);
+  if (!orderProduct) {
+    throw new AppError("Order not found", StatusCodes.NOT_FOUND);
+  }
+
+  if (orderProduct.status === "canceled") {
+    throw new AppError("Order already canceled", StatusCodes.BAD_REQUEST);
+  }
+
+  if (orderProduct.status === "completed") {
+    throw new AppError("Order already completed", StatusCodes.BAD_REQUEST);
+  }
+
+  // Update order status
+  const result = await order.findOneAndUpdate(
+    { _id: orderId },
+    { status },
+    { new: true }
+  );
+
+  // If status is "canceled", restore product quantity
+  if (status === "canceled") {
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: orderProduct.productId },
+      { $inc: { quantity: orderProduct.quantity } },
+      { new: true }
+    );
+
+    // If product stock was 0, set inStock = true again
+    if (updatedProduct && updatedProduct.quantity > 0) {
+      await Product.findByIdAndUpdate(orderProduct.productId, {
+        inStock: true,
+      });
+    }
+  }
+
+  return result;
+};
+
 const orderService = {
   createOrder,
   getMyOder,
   getAllOrder,
   orderCancelByUser,
+  updateOrderStatus,
 };
 
 export default orderService;
