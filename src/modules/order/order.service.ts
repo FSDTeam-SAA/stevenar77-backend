@@ -6,7 +6,7 @@ import Product from "../product/product.model";
 import order from "./order.model";
 
 const createOrder = async (email: string, payload: IOrder) => {
-  const { productId, status, totalPrice, quantity } = payload;
+  const { productId, quantity } = payload;
 
   const user = await User.isUserExistByEmail(email);
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
@@ -28,18 +28,21 @@ const createOrder = async (email: string, payload: IOrder) => {
   const result = await order.create({
     userId: user._id,
     productId,
-    status,
     totalPrice: price,
     quantity,
     orderData: new Date(),
     orderTime: new Date(),
   });
 
-  await Product.findOneAndUpdate(
+  const updatedProduct = await Product.findOneAndUpdate(
     { _id: productId },
     { $inc: { quantity: -quantity } },
     { new: true }
   );
+
+  if (updatedProduct && updatedProduct.quantity <= 0) {
+    await Product.findByIdAndUpdate(productId, { inStock: false });
+  }
 
   return result;
 };
@@ -106,10 +109,38 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
   };
 };
 
+const orderCancelByUser = async (email: string, orderId: string) => {
+  const user = await User.isUserExistByEmail(email);
+  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  const orderProduct = await order.findById(orderId);
+  if (!orderProduct)
+    throw new AppError("Order not found", StatusCodes.NOT_FOUND);
+
+  const result = await order.findOneAndUpdate(
+    { _id: orderId },
+    { status: "cancelled" },
+    { new: true }
+  );
+
+  const updatedProduct = await Product.findOneAndUpdate(
+    { _id: orderProduct.productId },
+    { $inc: { quantity: orderProduct.quantity } },
+    { new: true }
+  );
+
+  if (updatedProduct && updatedProduct.quantity > 0) {
+    await Product.findByIdAndUpdate(orderProduct.productId, { inStock: true });
+  }
+
+  return result;
+};
+
 const orderService = {
   createOrder,
   getMyOder,
   getAllOrder,
+  orderCancelByUser,
 };
 
 export default orderService;
