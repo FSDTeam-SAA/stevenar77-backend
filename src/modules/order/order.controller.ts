@@ -17,19 +17,42 @@ const createOrder = catchAsync(async (req, res) => {
 
 const getMyOder = catchAsync(async (req, res) => {
   const { email } = req.user;
-  const result = await orderService.getMyOder(email);
+  const { page = 1, limit = 10 } = req.query;
+
+  const result = await orderService.getMyOder(
+    email,
+    Number(page),
+    Number(limit)
+  );
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Order fetched successfully",
-    data: result,
+    message: "Orders fetched successfully",
+    data: result.orders,
+    meta: result.meta,
   });
 });
+
+const getAllOrder = catchAsync(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  const result = await orderService.getAllOrder(Number(page), Number(limit));
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Orders fetched successfully",
+    data: result.orders,
+    meta: result.meta,
+  });
+});
+
 
 const orderController = {
   createOrder,
   getMyOder,
+  getAllOrder,
 };
 
 export default orderController;
