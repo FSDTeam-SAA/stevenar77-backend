@@ -13,6 +13,7 @@ const productSchema = new Schema<IProduct>(
         _id: false,
       },
     ],
+    category: { type: String, required: true },
     longDescription: { type: String, required: true },
     inStock: { type: Boolean, default: true },
     featured: { type: [String], default: [] },
