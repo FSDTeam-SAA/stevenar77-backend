@@ -12,6 +12,8 @@ const orderSchema = new Schema<IOrder>(
     },
     totalPrice: { type: Number, required: true },
     quantity: { type: Number, required: true },
+    orderData: { type: Date, default: Date.now },
+    orderTime: { type: Date, default: Date.now },
   },
   { timestamps: true, versionKey: false }
 );
