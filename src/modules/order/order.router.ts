@@ -16,5 +16,11 @@ router.put(
   orderController.orderCancelByUser
 );
 
+router.put(
+  "/update-status/:orderId",
+//   auth(USER_ROLE.ADMIN),
+  orderController.updateOrderStatus
+);
+
 const orderRouter = router;
 export default orderRouter;

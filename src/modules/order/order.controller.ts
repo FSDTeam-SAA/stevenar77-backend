@@ -62,11 +62,28 @@ const orderCancelByUser = catchAsync(async (req, res) => {
   });
 });
 
+const updateOrderStatus = catchAsync(async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  const result = await orderService.updateOrderStatus(orderId, status);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Order status updated successfully",
+    data: result,
+  });
+});
+
+//!deleted api is not add. after add it
+
 const orderController = {
   createOrder,
   getMyOder,
   getAllOrder,
   orderCancelByUser,
+  updateOrderStatus,
 };
 
 export default orderController;
