@@ -42,27 +42,56 @@ export const createClass = catchAsync(async (req, res) => {
   });
 });
 
-export const updateClass = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const updateClass = catchAsync(async (req: Request, res: Response) => {
+  console.log(req.body);
 
-    const updatedClass = await Class.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+  const files = req.files as any[];
+  const { id } = req.params;
 
-    if (!updatedClass) {
-      return next(new AppError("Class not found", 404));
-    }
-
-    sendResponse<IClass>(res, {
-      statusCode: 200,
-      success: true,
-      message: "Class updated successfully",
-      data: updatedClass,
-    });
+  const isClassExist = await Class.findById(id);
+  if (!isClassExist) {
+    throw new AppError("Class not found", 404);
   }
-);
+
+  let images = isClassExist.images || [];
+
+  // If new files are uploaded
+  if (files && files.length > 0) {
+    // Optional: delete old images from Cloudinary if you want
+    // for (const img of product.images) {
+    //   await deleteFromCloudinary(img.public_id);
+    // }
+
+    const uploadPromises = files.map((file) =>
+      uploadToCloudinary(file.path, "classes")
+    );
+
+    const uploadedResults = await Promise.all(uploadPromises);
+
+    images = uploadedResults.map((result) => ({
+      public_id: result.public_id,
+      url: result.secure_url,
+    }));
+  }
+
+  console.log("images", images);
+
+  const updatedClass = await Class.findByIdAndUpdate(
+    id,
+    {
+      ...req.body,
+      images,
+    },
+    { new: true, runValidators: true }
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Class updated successfully",
+    data: updatedClass,
+  });
+});
 
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
@@ -71,7 +100,11 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
 
   const [total, classes] = await Promise.all([
     Class.countDocuments(),
-    Class.find().skip(skip).limit(limit).sort({ courseDate: 1 }),
+    Class.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ courseDate: 1 })
+      .sort({ createdAt: -1 }),
   ]);
 
   sendResponse<IClass[]>(res, {
