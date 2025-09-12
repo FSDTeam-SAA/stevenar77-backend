@@ -3,7 +3,6 @@ import userRouter from "../modules/user/user.router";
 import authRouter from "../modules/auth/auth.router";
 import classRouter from "../modules/class/class.router";
 import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
-import courseRouter from "../modules/course/course.router";
 import productRouter from "../modules/product/product.router";
 import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
@@ -27,10 +26,6 @@ const moduleRoutes = [
   {
     path: "/class/bookings",
     route: classBookingRouter,
-  },
-  {
-    path: "/course",
-    route: courseRouter,
   },
   {
     path: "/product",
