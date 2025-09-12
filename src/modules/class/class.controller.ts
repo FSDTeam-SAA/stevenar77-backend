@@ -102,26 +102,23 @@ export const deleteClass = catchAsync(
       statusCode: 200,
       success: true,
       message: "Class deleted successfully",
-      data: null,
     });
   }
 );
 
 // Get single class by ID
-export const getClassById = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-
-    const singleClass = await Class.findById(id);
-    if (!singleClass) {
-      return next(new AppError("Class not found", 404));
-    }
-
-    sendResponse<IClass>(res, {
-      statusCode: 200,
-      success: true,
-      message: "Class fetched successfully",
-      data: singleClass,
-    });
+export const getClassById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const isExist = await Class.findById(id);
+  if (!isExist) {
+    throw new AppError("Class not found", 404);
   }
-);
+  const singleClass = await Class.findById(id);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Class fetched successfully",
+    data: singleClass,
+  });
+});
