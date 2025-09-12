@@ -13,7 +13,7 @@ const router = Router();
 router.post("/", upload.array("image", 5), createClass);
 router.get("/", getAllClasses);
 router.get("/:id", getClassById);
-router.put("/update/:id", updateClass);
+router.put("/update/:id", upload.array("image", 5), updateClass);
 router.delete("/delete/:id", deleteClass);
 
 const classRouter = router;
