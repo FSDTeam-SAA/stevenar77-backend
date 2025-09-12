@@ -7,6 +7,7 @@ import courseRouter from "../modules/course/course.router";
 import productRouter from "../modules/product/product.router";
 import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
+import  TripRoutes from "../modules/trips/trip.routes";
 
 const router = Router();
 
@@ -42,6 +43,10 @@ const moduleRoutes = [
   {
     path: "/order",
     route: orderRouter,
+  },
+   {
+    path: "/trip",
+    route: TripRoutes,
   },
 ];
 
