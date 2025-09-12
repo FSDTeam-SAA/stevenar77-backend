@@ -4,43 +4,44 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import AppError from "../../errors/AppError";
 import { IClass } from "./class.interface";
-import {
-  deleteFromCloudinary,
-  uploadToCloudinary,
-} from "../../utils/cloudinary";
+import { uploadToCloudinary } from "../../utils/cloudinary";
+import { StatusCodes } from "http-status-codes";
 
-// Create a new class
 export const createClass = catchAsync(async (req, res) => {
-  console.log(req.file);
+  const files = req.files as any[];
+  // eslint-disable-next-line prefer-const
+  let images: { public_id: string; url: string }[] = [];
 
-  if (req.file) {
-    const image = await uploadToCloudinary(req.file.path, "classes");
-    // if (image.public_id) {
-    //   await deleteFromCloudinary(image.public_id);
-    // }
-
-    req.body.image = {
-      public_id: image.public_id,
-      url: image.secure_url,
-    };
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const uploadResult = await uploadToCloudinary(file.path, "classes");
+      if (uploadResult) {
+        images.push({
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url,
+        });
+      }
+    }
+  } else {
+    throw new AppError(
+      "At least one image is required",
+      StatusCodes.BAD_REQUEST
+    );
   }
-
-  console.log(req.body);
-
-  const newClass = await Class.create({
+  const newClass = {
     ...req.body,
-    image: req.body.image,
-  });
+    images,
+  };
+  const result = await Class.create(newClass);
 
   sendResponse<IClass>(res, {
     statusCode: 201,
     success: true,
     message: "Class created successfully",
-    data: newClass,
+    data: result,
   });
 });
 
-// Edit/Update a class by ID
 export const updateClass = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
@@ -63,7 +64,6 @@ export const updateClass = catchAsync(
   }
 );
 
-// Get all classes (with simple pagination)
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
@@ -88,7 +88,6 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Delete a class by ID
 export const deleteClass = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
@@ -106,7 +105,6 @@ export const deleteClass = catchAsync(
   }
 );
 
-// Get single class by ID
 export const getClassById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const isExist = await Class.findById(id);

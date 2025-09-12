@@ -10,7 +10,7 @@ import { upload } from "../../middleware/multer.middleware";
 
 const router = Router();
 
-router.post("/", upload.single("image"), createClass);
+router.post("/", upload.array("image", 5), createClass);
 router.get("/", getAllClasses);
 router.get("/:id", getClassById);
 router.put("/update/:id", updateClass);
