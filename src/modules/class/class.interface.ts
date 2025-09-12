@@ -1,9 +1,6 @@
 export interface IClass {
   title: string;
-  images?: {
-    public_id?: string;
-    url?: string;
-  };
+  images: { public_id: string; url: string }[];
   courseLevel: "beginner" | "intermediate" | "advanced";
   shortDescription: string;
   features: string[];

@@ -4,10 +4,13 @@ import { IClass } from "./class.interface";
 const classSchema = new Schema<IClass>(
   {
     title: { type: String, required: true },
-    images: {
-      public_id: { type: String },
-      url: { type: String },
-    },
+    images: [
+      {
+        public_id: { type: String },
+        url: { type: String },
+        _id: false,
+      },
+    ],
     shortDescription: { type: String, required: true },
     courseLevel: {
       type: String,
