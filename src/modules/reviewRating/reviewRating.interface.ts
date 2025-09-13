@@ -5,6 +5,7 @@ export interface IReviewRating extends Document {
   userId: Types.ObjectId
   classId: Types.ObjectId
   tripId: Types.ObjectId
+  productId: Types.ObjectId
   star: number // 1–5
   comment?: string
 }

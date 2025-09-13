@@ -1,14 +1,12 @@
 import mongoose, { Schema } from 'mongoose'
-import {
-  IReviewRating,
-  ReviewRatingModel,
-} from './reviewRating.interface'
+import { IReviewRating, ReviewRatingModel } from './reviewRating.interface'
 
 const reviewRatingSchema: Schema = new Schema<IReviewRating>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    classId: { type: Schema.Types.ObjectId, ref: 'Facility', required: true },
-    tripId: { type: Schema.Types.ObjectId, ref: 'Trip', required: true },
+    classId: { type: Schema.Types.ObjectId, ref: 'Facility' },
+    tripId: { type: Schema.Types.ObjectId, ref: 'Trip' },
+    productId: { type: Schema.Types.ObjectId, ref: 'Shop' },
     star: { type: Number, required: true, min: 1, max: 5 }, // rating 1–5
     comment: { type: String, default: '' },
   },
