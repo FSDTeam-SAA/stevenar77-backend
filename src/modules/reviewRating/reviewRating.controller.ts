@@ -12,7 +12,6 @@ import Product from '../product/product.model'
  * CREATE REVIEW
  *****************/
 
-
 export const createReview = catchAsync(async (req: Request, res: Response) => {
   const { userId, classId, tripId, productId, star, comment } = req.body
 
@@ -70,7 +69,6 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-
 /*****************
  * DELETE REVIEW
  *****************/
@@ -117,9 +115,9 @@ export const getReviewsByClassId = catchAsync(
  *****************/
 export const getReviewsByTripId = catchAsync(
   async (req: Request, res: Response) => {
-    const { tripId } = req.params
+    const { productId } = req.params
 
-    const reviews = await ReviewRating.find({ tripId }).populate(
+    const reviews = await ReviewRating.find({ productId }).populate(
       'userId',
       'name avatar'
     )
@@ -127,7 +125,7 @@ export const getReviewsByTripId = catchAsync(
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Reviews fetched successfully by tripId',
+      message: 'Reviews fetched successfully by productId',
       data: reviews,
     })
   }

@@ -12,6 +12,6 @@ const router = Router()
 router.post('/', auth('user'), createReview)
 router.delete('/:id', auth('user'), deleteReview)
 router.get('/class/:classId', getReviewsByClassId)
-router.get('/trip/:tripId', getReviewsByTripId)
+router.get('/product/:productId', getReviewsByTripId)
 
 export default router
