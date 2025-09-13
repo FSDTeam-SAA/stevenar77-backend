@@ -26,6 +26,8 @@ const classSchema = new Schema<IClass>(
     requiredHeight: { type: Number },
     maxDepth: { type: Number },
     courseDuration: { type: String, required: true },
+    avgRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
   },
   {
     timestamps: true,
