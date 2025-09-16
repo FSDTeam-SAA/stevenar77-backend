@@ -54,7 +54,7 @@ export class TripBookingService {
           quantity: participants.length,
         },
       ],
-      metadata: { bookingId: booking._id.toString() },
+      metadata: { tripBookingId: booking._id.toString() },
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     });

@@ -103,7 +103,7 @@ export const createBooking = async (
           quantity: participant,
         },
       ],
-      metadata: { bookingId: booking._id.toString() },
+      metadata: { classBookingId: booking._id.toString() },
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     })
