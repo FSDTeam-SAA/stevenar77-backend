@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { Message } from '../modules/message/message.model' 
+import { Message } from '../modules/message/message.model'
 import { Conversation } from '../modules/conversation/conversation.model'
 
 export const initSocket = (io: Server) => {
@@ -20,13 +20,38 @@ export const initSocket = (io: Server) => {
     })
 
     // Handle sending messages
-    socket.on(
-      'sendMessage',
-      async (data: {
-        conversationId: string
-        sender: string
-        text: string
-      }) => {
+    // socket.on(
+    //   'sendMessage',
+    //   async (data: {
+    //     conversationId: string
+    //     sender: string
+    //     text: string
+    //   }) => {
+    //     const { conversationId, sender, text } = data
+
+    //     const msg = await Message.create({ conversationId, sender, text })
+    //     await Conversation.findByIdAndUpdate(conversationId, {
+    //       lastMessage: text,
+    //       updatedAt: new Date(),
+    //     })
+
+    //     // Real-time message to users in that conversation
+    //     io.to(conversationId).emit('receiveMessage', msg)
+
+    //     // Update conversation preview to all participants (personal rooms)
+    //     const conversation = await Conversation.findById(conversationId)
+    //     conversation?.participants.forEach((uid) => {
+    //       io.to(uid.toString()).emit('conversationUpdated', {
+    //         conversationId,
+    //         lastMessage: text,
+    //         updatedAt: msg.createdAt,
+    //       })
+    //     })
+    //   }
+    // )
+
+    socket.on('sendMessage', async (data) => {
+      try {
         const { conversationId, sender, text } = data
 
         const msg = await Message.create({ conversationId, sender, text })
@@ -35,10 +60,8 @@ export const initSocket = (io: Server) => {
           updatedAt: new Date(),
         })
 
-        // 1️⃣ Real-time message to users in that conversation
         io.to(conversationId).emit('receiveMessage', msg)
 
-        // 2️⃣ Update conversation preview to all participants (personal rooms)
         const conversation = await Conversation.findById(conversationId)
         conversation?.participants.forEach((uid) => {
           io.to(uid.toString()).emit('conversationUpdated', {
@@ -47,11 +70,19 @@ export const initSocket = (io: Server) => {
             updatedAt: msg.createdAt,
           })
         })
+      } catch (err) {
+        console.error('sendMessage error:', err)
+
+        // Inform the client so they can handle it gracefully
+        socket.emit('error', {
+          event: 'sendMessage',
+          message: 'Failed to send message. Please try again later.',
+        })
       }
-    )
+    })
 
     socket.on('disconnect', () => {
-      console.log('❌ Client disconnected', socket.id)
+      console.log(' Client disconnected', socket.id)
     })
   })
 }
