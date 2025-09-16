@@ -4,31 +4,133 @@ import catchAsync from '../../utils/catchAsync'
 import AppError from '../../errors/AppError'
 import sendResponse from '../../utils/sendResponse'
 import { BookingClass } from './bookingClass.model'
+import Stripe from 'stripe'
+import { Class } from '../class/class.model'
+import mongoose from 'mongoose'
+import Booking from '../trips/booking/booking.model'
 
 /*****************
  * CREATE BOOKING
  *****************/
-export const createBooking = catchAsync(async (req, res) => {
-  const { classId, participant, classDate } = req.body
+// export const createBooking = catchAsync(async (req, res) => {
+//   const { classId, participant, classDate } = req.body
 
-  if (!classId || !participant || !classDate) {
-    throw new AppError('Missing required fields', httpStatus.BAD_REQUEST)
-  }
+//   if (!classId || !participant || !classDate) {
+//     throw new AppError('Missing required fields', httpStatus.BAD_REQUEST)
+//   }
 
-  const booking = await BookingClass.create({
-    classId,
-    userId: req.user._id, // logged-in user
-    participant,
-    classDate,
-  })
+//   const booking = await BookingClass.create({
+//     classId,
+//     userId: req.user._id, // logged-in user
+//     participant,
+//     classDate,
+//   })
 
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: 'Booking created successfully',
-    data: booking,
-  })
+//   sendResponse(res, {
+//     statusCode: httpStatus.CREATED,
+//     success: true,
+//     message: 'Booking created successfully',
+//     data: booking,
+//   })
+// })
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: '2025-08-27.basil', // keep consistent with your TripBookingService
 })
+
+// ------------------ Create Booking with Stripe Payment ------------------ //
+export const createBooking = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { classId, participant, classDate } = req.body
+    const userId = req.user?.id
+
+    if (
+      !classId ||
+      !participant ||
+      !classDate ||
+      !Array.isArray(classDate) ||
+      classDate.length === 0
+    ) {
+      res.status(400).json({
+        success: false,
+        message: 'classId, participant and classDate are required.',
+      })
+      return
+    }
+
+    // 1️⃣ Validate Class exists
+    const classData = await Class.findById(classId)
+    if (!classData) {
+      res.status(404).json({ success: false, message: 'Class not found.' })
+      return
+    }
+
+    // 2️⃣ Calculate total price
+    const totalPrice = Number(classData.price) * participant
+
+    // 3️⃣ Create a pending booking in DB
+    const booking = await BookingClass.create({
+      classId: new mongoose.Types.ObjectId(classId),
+      userId: new mongoose.Types.ObjectId(userId),
+      participant,
+      classDate,
+      totalPrice,
+      status: 'pending',
+    })
+
+    // 4️⃣ Stripe Checkout Session
+    const successUrl =
+      process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
+    const cancelUrl =
+      process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: classData.title,
+            },
+            // per participant price in cents
+            unit_amount: Math.round(Number(classData.price) * 100),
+          },
+          quantity: participant,
+        },
+      ],
+      metadata: { bookingId: booking._id.toString() },
+      success_url: `${successUrl}?bookingId=${booking._id}`,
+      cancel_url: cancelUrl,
+    })
+
+    // 5️⃣ Optionally store PaymentIntent ID (if available)
+    if (session.payment_intent) {
+      booking.stripePaymentIntentId = session.payment_intent.toString()
+      await booking.save()
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Checkout session created successfully',
+      data: {
+        bookingId: booking._id,
+        sessionUrl:
+          session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error creating booking:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create booking',
+    })
+  }
+}
 
 /*****************
  * DELETE BOOKING
@@ -113,3 +215,44 @@ export const changeBookingStatus = catchAsync(
     })
   }
 )
+
+export const getSuccessfulPayments = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.id // if you want to filter by current user
+
+    // Query filter: only status "paid"
+    const filter = userId
+      ? { user: userId, status: 'paid' }
+      : { status: 'paid' }
+
+    // Fetch both in parallel
+    const [tripPayments, classPayments] = await Promise.all([
+      Booking.find(filter)
+        .populate('trip', 'title price')
+        .populate('user', 'name email')
+        .lean(),
+      BookingClass.find(filter)
+        .populate('classId', 'title price')
+        .populate('userId', 'name email')
+        .lean(),
+    ])
+
+    res.status(200).json({
+      success: true,
+      message: 'Fetched all successful payments',
+      data: {
+        tripPayments,
+        classPayments,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error fetching payment history:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch payment history',
+    })
+  }
+}

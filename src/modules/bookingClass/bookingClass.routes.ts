@@ -1,29 +1,32 @@
-import express from "express";
+import express from 'express'
 import {
   createBooking,
   deleteBooking,
   getUserBookings,
   getSingleBooking,
   changeBookingStatus,
-} from "./bookingClass.controller";
-import auth from "../../middleware/auth";
+  getSuccessfulPayments,
+} from './bookingClass.controller'
+import auth from '../../middleware/auth'
 
-const router = express.Router();
+const router = express.Router()
 
 // Create booking
-router.post("/", auth("admin", "user"), createBooking);
+router.post('/', auth('admin', 'user'), createBooking)
 
 // Delete booking
-router.delete("/:id", auth("user"), deleteBooking);
+router.delete('/:id', auth('user'), deleteBooking)
 
 // Get all bookings for logged-in user
-router.get("/my-bookings", auth("user"), getUserBookings);
+router.get('/my-bookings', auth('user'), getUserBookings)
 
 // Get single booking
-router.get("/:id", auth("user"), getSingleBooking);
+router.get('/:id', auth('user'), getSingleBooking)
 
 // Change booking status
-router.put("/:id/status", auth("admin"), changeBookingStatus);
+router.put('/:id/status', auth('admin'), changeBookingStatus)
 
-const bookingClassRoutes = router;
-export default bookingClassRoutes;
+router.get('/payment/history', auth('admin'), getSuccessfulPayments)
+
+const bookingClassRoutes = router
+export default bookingClassRoutes

@@ -3,18 +3,25 @@ import { BookingClassModel, IBookingClass } from "./bookingClass.interface";
 
 const bookingClassSchema = new Schema<IBookingClass>(
   {
-    classId: { type: Schema.Types.ObjectId, ref: "Class", required: true },
-    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    // status: {
+    //   type: String,
+    //   enum: ['pending', 'completed', 'canceled'],
+    //   default: 'pending',
+    // },
+    participant: { type: Number, required: true },
+    classDate: [{ type: Date, required: true }],
+    totalPrice: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["pending", "completed", "canceled"],
-      default: "pending",
+      enum: ['pending', 'paid', 'cancelled'],
+      default: 'pending',
     },
-    participant: { type: Number, required: true },
-    classDate: [{ type: Date, required: true }], // array of dates
+    stripePaymentIntentId: { type: String },
   },
   { timestamps: true }
-);
+)
 
 export const BookingClass = mongoose.model<IBookingClass, BookingClassModel>(
   "BookingClass",

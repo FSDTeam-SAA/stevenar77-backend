@@ -6,6 +6,8 @@ export interface IBookingClass extends Document {
   status: 'pending' | 'completed' | 'canceled'
   participant: number
   classDate: Date[] // multiple dates allowed
+  totalPrice: number
+  stripePaymentIntentId?: string
 }
 
 export type BookingClassModel = Model<IBookingClass>
