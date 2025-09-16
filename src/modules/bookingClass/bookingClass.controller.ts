@@ -7,6 +7,7 @@ import { BookingClass } from './bookingClass.model'
 import Stripe from 'stripe'
 import { Class } from '../class/class.model'
 import mongoose from 'mongoose'
+import Booking from '../trips/booking/booking.model'
 
 /*****************
  * CREATE BOOKING
@@ -214,3 +215,44 @@ export const changeBookingStatus = catchAsync(
     })
   }
 )
+
+export const getSuccessfulPayments = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.id // if you want to filter by current user
+
+    // Query filter: only status "paid"
+    const filter = userId
+      ? { user: userId, status: 'paid' }
+      : { status: 'paid' }
+
+    // Fetch both in parallel
+    const [tripPayments, classPayments] = await Promise.all([
+      Booking.find(filter)
+        .populate('trip', 'title price')
+        .populate('user', 'name email')
+        .lean(),
+      BookingClass.find(filter)
+        .populate('classId', 'title price')
+        .populate('userId', 'name email')
+        .lean(),
+    ])
+
+    res.status(200).json({
+      success: true,
+      message: 'Fetched all successful payments',
+      data: {
+        tripPayments,
+        classPayments,
+      },
+    })
+  } catch (error: any) {
+    console.error('Error fetching payment history:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch payment history',
+    })
+  }
+}
