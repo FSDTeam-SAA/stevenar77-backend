@@ -4,30 +4,17 @@ import { IClass } from "./class.interface";
 const classSchema = new Schema<IClass>(
   {
     title: { type: String, required: true },
-    images: [
-      {
-        public_id: { type: String },
-        url: { type: String },
-        _id: false,
-      },
-    ],
-    shortDescription: { type: String, required: true },
-    courseLevel: {
-      type: String,
-      enum: ["beginner", "intermediate", "advanced"],
-      required: true,
+    image: {
+      public_id: { type: String },
+      url: { type: String },
     },
-    features: { type: [String], default: [] },
-    price: { type: Number, required: true },
-    longDescription: { type: String },
-    courseDate: { type: Date, required: true },
-    location: { type: String, required: true },
-    requiredAge: { type: Number },
-    requiredHeight: { type: Number },
-    maxDepth: { type: Number },
-    courseDuration: { type: String, required: true },
-    avgRating: { type: Number, default: 0 },
+    description: { type: String },
+    price: { type: [Number], required: true },
+    courseIncludes: { type: [String], required: true },
+    duration: { type: String, required: true },
     totalReviews: { type: Number, default: 0 },
+    avgRating: { type: Number, default: 0 },
+    totalParticipates: { type: Number, default: 0 },
   },
   {
     timestamps: true,
