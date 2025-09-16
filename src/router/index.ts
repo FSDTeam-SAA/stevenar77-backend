@@ -8,6 +8,8 @@ import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
 import  TripRoutes from "../modules/trips/trip.routes";
 import reviewsRouter from "../modules/reviewRating/reviewRating.routes";
+import conversationRoutes from '../modules/conversation/conversation.routes'
+import messageRoutes from '../modules/message/message.routes'
 
 const router = Router();
 
@@ -48,6 +50,14 @@ const moduleRoutes = [
     path: '/reviews',
     route: reviewsRouter,
   },
+  {
+    path: '/conversation',
+    route: conversationRoutes,
+  },
+  {
+    path: '/message',
+    route: messageRoutes
+  }
 ]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
