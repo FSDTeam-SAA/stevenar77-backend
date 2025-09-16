@@ -10,7 +10,7 @@ export class TripBookingService {
     userId: string,
     participants: { firstName: string; lastName: string; email: string ;mobile:number;}[],
     totalParticipants:number
-  ): Promise<{ sessionUrl: string; bookingId: string }> {
+  ): Promise<{ sessionUrl: string; tripBookingId: string }> {
 
     // 1. Check if trip exists
     const trip = await Trip.findById(tripId);
@@ -61,7 +61,7 @@ export class TripBookingService {
 
     return {
       sessionUrl: session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
-      bookingId: booking._id.toString(),
+      tripBookingId: booking._id.toString(),
     };
   }
 }

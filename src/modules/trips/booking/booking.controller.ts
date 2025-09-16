@@ -17,7 +17,7 @@ export class TripBookingController {
       return; 
     }
 
-    const { sessionUrl, bookingId } = await TripBookingService.createCheckoutSession(
+    const { sessionUrl, tripBookingId } = await TripBookingService.createCheckoutSession(
       tripId,
       userId,
       participants,
@@ -27,7 +27,7 @@ export class TripBookingController {
     res.status(200).json({
       success: true,
       message: 'Checkout session created successfully',
-      data: { sessionUrl, bookingId }
+      data: { sessionUrl, tripBookingId }
     });
 
   } catch (error: any) {
