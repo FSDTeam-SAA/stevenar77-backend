@@ -8,7 +8,8 @@ export class TripBookingService {
   static async createCheckoutSession(
     tripId: string,
     userId: string,
-    participants: { firstName: string; lastName: string; email: string }[]
+    participants: { firstName: string; lastName: string; email: string ;mobile:number;}[],
+    totalParticipants:number
   ): Promise<{ sessionUrl: string; bookingId: string }> {
 
     // 1. Check if trip exists
@@ -28,6 +29,7 @@ export class TripBookingService {
       user: userId,
       participants,
       totalPrice,
+      totalParticipants,
       status: 'pending',
     });
 

@@ -9,7 +9,7 @@ export class TripBookingController {
   static async createCheckoutSession(req: Request, res: Response): Promise<void> {
   try {
     const { tripId } = req.params;
-    const { participants } = req.body;
+    const { participants ,totalParticipants} = req.body;
     const userId = req.user?.id;
 
     if (!participants || !Array.isArray(participants) || participants.length === 0) {
@@ -20,7 +20,8 @@ export class TripBookingController {
     const { sessionUrl, bookingId } = await TripBookingService.createCheckoutSession(
       tripId,
       userId,
-      participants
+      participants,
+      totalParticipants
     );
 
     res.status(200).json({
