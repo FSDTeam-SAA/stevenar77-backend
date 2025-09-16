@@ -161,6 +161,11 @@ const getAllUsers = async () => {
   return result;
 };
 
+const getAdminId = async () => {
+  const admin = await User.findOne({ role: "admin" }).select("_id");
+  return admin;
+};
+
 const getMyProfile = async (email: string) => {
   const existingUser = await User.findOne({ email });
   if (!existingUser)
@@ -209,6 +214,7 @@ const userService = {
   getAllUsers,
   getMyProfile,
   updateUserProfile,
+  getAdminId,
 };
 
 export default userService;
