@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { BookingClassModel, IBookingClass } from "./bookingClass.interface";
+import mongoose, { Schema } from 'mongoose'
+import { BookingClassModel, IBookingClass } from './bookingClass.interface'
 
 const bookingClassSchema = new Schema<IBookingClass>(
   {
@@ -12,6 +12,12 @@ const bookingClassSchema = new Schema<IBookingClass>(
     // },
     participant: { type: Number, required: true },
     classDate: [{ type: Date, required: true }],
+    medicalHistory: [{ type: String }],
+    canSwim: { type: String, required: true },
+    divingExperience: { type: String, required: true },
+    lastPhysicalExamination: { type: Date, required: true },
+    fitnessLevel: { type: String, required: true },
+    activityLevelSpecificQuestions: { type: String, required: true },
     totalPrice: { type: Number, required: true },
     status: {
       type: String,
@@ -24,6 +30,6 @@ const bookingClassSchema = new Schema<IBookingClass>(
 )
 
 export const BookingClass = mongoose.model<IBookingClass, BookingClassModel>(
-  "BookingClass",
+  'BookingClass',
   bookingClassSchema
-);
+)

@@ -132,6 +132,22 @@ export const createBooking = async (
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*****************
  * DELETE BOOKING
  *****************/
