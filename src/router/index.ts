@@ -6,59 +6,64 @@ import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
 import productRouter from "../modules/product/product.router";
 import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
-import  TripRoutes from "../modules/trips/trip.routes";
+import TripRoutes from "../modules/trips/trip.routes";
 import reviewsRouter from "../modules/reviewRating/reviewRating.routes";
-import conversationRoutes from '../modules/conversation/conversation.routes'
-import messageRoutes from '../modules/message/message.routes'
+import conversationRoutes from "../modules/conversation/conversation.routes";
+import messageRoutes from "../modules/message/message.routes";
+import dashboardRouter from "../modules/dashboard/dashboard.router";
 
 const router = Router();
 
 const moduleRoutes = [
   {
-    path: '/user',
+    path: "/user",
     route: userRouter,
   },
   {
-    path: '/auth',
+    path: "/auth",
     route: authRouter,
   },
   {
-    path: '/class',
+    path: "/class",
     route: classRouter,
   },
   {
-    path: '/class/bookings',
+    path: "/class/bookings",
     route: classBookingRouter,
   },
   {
-    path: '/product',
+    path: "/product",
     route: productRouter,
   },
   {
-    path: '/contact',
+    path: "/contact",
     route: contactRouter,
   },
   {
-    path: '/order',
+    path: "/order",
     route: orderRouter,
   },
   {
-    path: '/trip',
+    path: "/trip",
     route: TripRoutes,
   },
   {
-    path: '/reviews',
+    path: "/reviews",
     route: reviewsRouter,
   },
   {
-    path: '/conversation',
+    path: "/conversation",
     route: conversationRoutes,
   },
   {
-    path: '/message',
-    route: messageRoutes
-  }
-]
+    path: "/message",
+    route: messageRoutes,
+  },
+  {
+    path: "/dashboard",
+    route: dashboardRouter,
+  },
+];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 
