@@ -29,6 +29,12 @@ router.post(
   TripBookingController.createCheckoutSession
 );
 
+router.get(
+  '/my/paid-bookings/:userId',
+  // auth(USER_ROLE.USER), 
+  TripBookingController.getMyPaidBookings
+)
+
  const TripRoutes = router;
 
  export default TripRoutes
