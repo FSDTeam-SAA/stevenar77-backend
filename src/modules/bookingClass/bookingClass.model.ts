@@ -5,11 +5,6 @@ const bookingClassSchema = new Schema<IBookingClass>(
   {
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
-    // status: {
-    //   type: String,
-    //   enum: ['pending', 'completed', 'canceled'],
-    //   default: 'pending',
-    // },
     participant: { type: Number, required: true },
     classDate: [{ type: Date, required: true }],
     medicalHistory: [{ type: String }],
@@ -18,6 +13,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
     lastPhysicalExamination: { type: Date, required: true },
     fitnessLevel: { type: String, required: true },
     activityLevelSpecificQuestions: { type: String, required: true },
+    medicalDocuments : { type: String },
     totalPrice: { type: Number, required: true },
     status: {
       type: String,
