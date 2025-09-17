@@ -20,11 +20,11 @@ export const createConversation = async (req: Request, res: Response) => {
   if (
     !participants ||
     !Array.isArray(participants) ||
-    participants.length < 2
+    participants.length < 1
   ) {
     res.status(400).json({
       success: false,
-      message: 'participants array with at least 2 user IDs is required',
+      message: 'participants array with at least 1 user IDs is required',
     })
     return
   }
@@ -80,4 +80,15 @@ export const deleteConversation = async (req: Request, res: Response) => {
     conversation: deleted,
   })
   return
+}
+
+export const allConversations = async (req: Request, res: Response) => {
+  const conversations = await Conversation.find()
+    .sort({ updatedAt: -1 })
+    .populate('participants', 'name email')
+    .lean()
+  res.json({
+    success: true,
+    data: conversations,
+  })
 }
