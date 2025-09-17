@@ -81,3 +81,14 @@ export const deleteConversation = async (req: Request, res: Response) => {
   })
   return
 }
+
+export const allConversations = async (req: Request, res: Response) => {
+  const conversations = await Conversation.find()
+    .sort({ updatedAt: -1 })
+    .populate('participants', 'name email')
+    .lean()
+  res.json({
+    success: true,
+    data: conversations,
+  })
+}
