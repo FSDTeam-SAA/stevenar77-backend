@@ -11,59 +11,64 @@ import reviewsRouter from "../modules/reviewRating/reviewRating.routes";
 import conversationRoutes from "../modules/conversation/conversation.routes";
 import messageRoutes from "../modules/message/message.routes";
 import dashboardRouter from "../modules/dashboard/dashboard.router";
+import notificationRouter from "../modules/notification/notification.route";
 
 const router = Router();
 
 const moduleRoutes = [
   {
-    path: "/user",
+    path: '/user',
     route: userRouter,
   },
   {
-    path: "/auth",
+    path: '/auth',
     route: authRouter,
   },
   {
-    path: "/class",
+    path: '/class',
     route: classRouter,
   },
   {
-    path: "/class/bookings",
+    path: '/class/bookings',
     route: classBookingRouter,
   },
   {
-    path: "/product",
+    path: '/product',
     route: productRouter,
   },
   {
-    path: "/contact",
+    path: '/contact',
     route: contactRouter,
   },
   {
-    path: "/order",
+    path: '/order',
     route: orderRouter,
   },
   {
-    path: "/trip",
+    path: '/trip',
     route: TripRoutes,
   },
   {
-    path: "/reviews",
+    path: '/reviews',
     route: reviewsRouter,
   },
   {
-    path: "/conversation",
+    path: '/conversation',
     route: conversationRoutes,
   },
   {
-    path: "/message",
+    path: '/message',
     route: messageRoutes,
   },
   {
-    path: "/dashboard",
+    path: '/dashboard',
     route: dashboardRouter,
   },
-];
+  {
+    path: '/notifications',
+    route: notificationRouter,
+  },
+]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 
