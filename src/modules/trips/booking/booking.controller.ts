@@ -3,6 +3,8 @@ import { TripBookingService } from './booking.service'
 import Booking from './booking.model'
 import mongoose from 'mongoose'
 import Trip from '../trip.model'
+import { createNotification } from '../../../socket/notification.service'
+import { User } from '../../user/user.model';
 
 export class TripBookingController {
   /**

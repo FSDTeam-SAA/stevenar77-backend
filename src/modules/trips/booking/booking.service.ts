@@ -1,7 +1,9 @@
 import Stripe from 'stripe'
 import Trip from '../trip.model'
 import Booking from './booking.model'
-import { ObjectId } from 'mongoose'
+import mongoose, { ObjectId } from 'mongoose'
+import { User } from '../../user/user.model'
+import { createNotification } from '../../../socket/notification.service'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
@@ -11,13 +13,20 @@ export class TripBookingService {
   static async createCheckoutSession(
     tripId: string,
     userId: string,
-    participants: { firstName: string; lastName: string; email: string ;mobile:number;}[],
-    totalParticipants:number
+    participants: {
+      firstName: string
+      lastName: string
+      email: string
+      mobile: number
+    }[],
+    totalParticipants: number
   ): Promise<{ sessionUrl: string; tripBookingId: string }> {
-
     // 1. Check if trip exists
     const trip = await Trip.findById(tripId)
     if (!trip) throw new Error('Trip not found')
+
+    //  Get user
+    const user = await User.findById(userId)
 
     // 2. Check capacity
     if (trip.maximumCapacity < participants.length)
@@ -35,6 +44,21 @@ export class TripBookingService {
       totalParticipants,
       status: 'pending',
     })
+
+    /*************************************
+     * 🔔 Notify the admin about booking *
+     *************************************/
+    const admin = await User.findOne({ role: 'admin' }).select('_id')
+    if (admin) {
+      await createNotification({
+        to: new mongoose.Types.ObjectId(admin._id),
+        message: `New trip booking request for trip "${
+          trip.title || tripId
+        }" by user ${user?.firstName || userId} email:${user?.email || userId}`,
+        type: 'tripBooking',
+        id: trip._id,
+      })
+    }
 
     // 5. Use URLs from environment variables
     const successUrl =
