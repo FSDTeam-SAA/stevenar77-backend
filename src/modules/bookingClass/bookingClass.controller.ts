@@ -149,10 +149,11 @@ export const createBooking = async (
       lastPhysicalExamination,
       fitnessLevel,
       activityLevelSpecificQuestions,
+      price
     } = req.body
     const userId = req.user?.id
 
-    // ✅ Basic validation
+    // Basic validation
     if (
       !classId ||
       !participant ||
@@ -195,8 +196,20 @@ export const createBooking = async (
       medicalDocuments = uploadRes.secure_url
     }
 
+        console.log('classData', classData)
+
+
+    // const price = Number(classData.price)
+    // if (isNaN(price)) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: 'Class price is invalid or not set',
+    //   })
+    //   return
+    // }
+
     //  Total price
-    const totalPrice = Number(classData.price) * Number(participant)
+    const totalPrice = price
 
     //  Create booking
     const booking = await BookingClass.create({
@@ -218,6 +231,7 @@ export const createBooking = async (
       totalPrice,
       status: 'pending',
     })
+    console.log('booking', booking)
 
     // Stripe Checkout
     const successUrl =
@@ -233,7 +247,7 @@ export const createBooking = async (
           price_data: {
             currency: 'usd',
             product_data: { name: classData.title },
-            unit_amount: Math.round(Number(classData.price) * 100),
+            unit_amount: Math.round(Number(totalPrice) * 100),
           },
           quantity: participant,
         },
@@ -242,11 +256,13 @@ export const createBooking = async (
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     })
+    console.log('session', session)
 
     if (session.payment_intent) {
       booking.stripePaymentIntentId = session.payment_intent.toString()
       await booking.save()
     }
+    console.log('booking', booking)
 
     res.status(200).json({
       success: true,

@@ -9,7 +9,7 @@ export interface IBookingClass extends Document {
   divingExperience: string
   lastPhysicalExamination: Date
   fitnessLevel: string
-  activityLevelSpecificQuestions: string
+  activityLevelSpecificQuestions: string[]
   medicalDocuments: string
   participant: number
   classDate: Date[] // multiple dates allowed

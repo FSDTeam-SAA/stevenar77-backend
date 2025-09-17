@@ -12,7 +12,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
     divingExperience: { type: String, required: true },
     lastPhysicalExamination: { type: Date, required: true },
     fitnessLevel: { type: String, required: true },
-    activityLevelSpecificQuestions: { type: String, required: true },
+    activityLevelSpecificQuestions: [{ type: String, required: true }],
     medicalDocuments : { type: String },
     totalPrice: { type: Number, required: true },
     status: {
