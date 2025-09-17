@@ -3,10 +3,12 @@ import mongoose, { Schema, Document, model } from 'mongoose';
 export interface ITripBooking extends Document {
   trip: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
+  totalParticipants:number;
   participants: {
     firstName: string;
     lastName: string;
     email: string;
+    mobile:number;
   }[];
   totalPrice: number;
   status: 'pending' | 'paid' | 'cancelled';
@@ -24,8 +26,10 @@ const tripBookingSchema = new Schema<ITripBooking>(
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },
         email: { type: String, required: true },
+        mobile:{type:Number,required:true}
       },
     ],
+     totalParticipants:{type:Number,required:true},
     totalPrice: { type: Number, required: true },
     status: { type: String, enum: ['pending', 'paid', 'cancelled'], default: 'pending' },
     stripePaymentIntentId: { type: String },

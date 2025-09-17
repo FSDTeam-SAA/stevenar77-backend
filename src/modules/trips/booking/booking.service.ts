@@ -11,8 +11,10 @@ export class TripBookingService {
   static async createCheckoutSession(
     tripId: string,
     userId: string,
-    participants: { firstName: string; lastName: string; email: string }[]
-  ): Promise<{ sessionUrl: string; bookingId: string }> {
+    participants: { firstName: string; lastName: string; email: string ;mobile:number;}[],
+    totalParticipants:number
+  ): Promise<{ sessionUrl: string; tripBookingId: string }> {
+
     // 1. Check if trip exists
     const trip = await Trip.findById(tripId)
     if (!trip) throw new Error('Trip not found')
@@ -30,6 +32,7 @@ export class TripBookingService {
       user: userId,
       participants,
       totalPrice,
+      totalParticipants,
       status: 'pending',
     })
 
@@ -56,7 +59,7 @@ export class TripBookingService {
           quantity: participants.length,
         },
       ],
-      metadata: { bookingId: (booking._id as ObjectId).toString() },
+      metadata: { tripBookingId: (booking._id as ObjectId).toString() },
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     })
@@ -64,7 +67,7 @@ export class TripBookingService {
     return {
       sessionUrl:
         session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
-      bookingId: (booking._id as ObjectId).toString(),
+      tripBookingId: (booking._id as ObjectId).toString(),
     }
   }
 }

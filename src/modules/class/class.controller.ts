@@ -8,34 +8,26 @@ import { uploadToCloudinary } from "../../utils/cloudinary";
 import { StatusCodes } from "http-status-codes";
 
 export const createClass = catchAsync(async (req, res) => {
-  const files = req.files as any[];
-  // eslint-disable-next-line prefer-const
-  let images: { public_id: string; url: string }[] = [];
+  const file = req.file as Express.Multer.File;
+  const { duration, ...rest } = req.body;
 
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const uploadResult = await uploadToCloudinary(file.path, "classes");
-      if (uploadResult) {
-        images.push({
-          public_id: uploadResult.public_id,
-          url: uploadResult.secure_url,
-        });
-      }
-    }
-  } else {
-    throw new AppError(
-      "At least one image is required",
-      StatusCodes.BAD_REQUEST
-    );
+  if (!file) {
+    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
   }
-  const newClass = {
-    ...req.body,
-    images,
-  };
-  const result = await Class.create(newClass);
 
-  sendResponse<IClass>(res, {
-    statusCode: 201,
+  const uploadResult = await uploadToCloudinary(file.path, "classes");
+
+  const result = await Class.create({
+    ...rest,
+    duration,
+    image: {
+      public_id: uploadResult.public_id,
+      url: uploadResult.secure_url,
+    },
+  });
+
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
     success: true,
     message: "Class created successfully",
     data: result,
@@ -43,50 +35,35 @@ export const createClass = catchAsync(async (req, res) => {
 });
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
-  console.log(req.body);
-
-  const files = req.files as any[];
   const { id } = req.params;
+  const { duration, ...rest } = req.body;
 
-  const isClassExist = await Class.findById(id);
-  if (!isClassExist) {
-    throw new AppError("Class not found", 404);
+  const updateData: any = {
+    ...rest,
+  };
+
+  if (req.file) {
+    const file = req.file as Express.Multer.File;
+    const uploadResult = await uploadToCloudinary(file.path, "classes");
+
+    updateData.image = {
+      public_id: uploadResult.public_id,
+      url: uploadResult.secure_url,
+    };
   }
 
-  let images = isClassExist.images || [];
-
-  // If new files are uploaded
-  if (files && files.length > 0) {
-    // Optional: delete old images from Cloudinary if you want
-    // for (const img of product.images) {
-    //   await deleteFromCloudinary(img.public_id);
-    // }
-
-    const uploadPromises = files.map((file) =>
-      uploadToCloudinary(file.path, "classes")
-    );
-
-    const uploadedResults = await Promise.all(uploadPromises);
-
-    images = uploadedResults.map((result) => ({
-      public_id: result.public_id,
-      url: result.secure_url,
-    }));
-  }
-
-  console.log("images", images);
-
-  const updatedClass = await Class.findByIdAndUpdate(
-    id,
-    {
-      ...req.body,
-      images,
-    },
-    { new: true, runValidators: true }
+  const updatedClass = await Class.findOneAndUpdate(
+    { _id: id },
+    { $set: updateData },
+    { new: true }
   );
 
+  if (!updatedClass) {
+    throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+  }
+
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: StatusCodes.OK,
     success: true,
     message: "Class updated successfully",
     data: updatedClass,
@@ -130,7 +107,7 @@ export const deleteClass = catchAsync(
       return next(new AppError("Class not found", 404));
     }
 
-    sendResponse<null>(res, {
+    sendResponse(res, {
       statusCode: 200,
       success: true,
       message: "Class deleted successfully",
