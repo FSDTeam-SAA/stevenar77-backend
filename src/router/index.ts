@@ -3,7 +3,7 @@ import userRouter from "../modules/user/user.router";
 import authRouter from "../modules/auth/auth.router";
 import classRouter from "../modules/class/class.router";
 import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
-import productRouter from "../modules/product/product.router";
+import productRouter from "../modules/Shop/shop.routes"
 import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
 import  TripRoutes from "../modules/trips/trip.routes";
