@@ -394,14 +394,8 @@ export const getSuccessfulPayments = async (
 
     // Fetch both in parallel
     const [tripPayments, classPayments] = await Promise.all([
-      Booking.find(filter)
-        .populate('trip', 'title price')
-        .populate('user', 'name email')
-        .lean(),
-      BookingClass.find(filter)
-        .populate('classId', 'title price')
-        .populate('userId', 'name email')
-        .lean(),
+      Booking.find(filter).populate('trip').populate('user').lean(),
+      BookingClass.find(filter).populate('classId').populate('userId').lean(),
     ])
 
     res.status(200).json({
@@ -420,8 +414,6 @@ export const getSuccessfulPayments = async (
     })
   }
 }
-
-
 
 export const getBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find()
