@@ -14,7 +14,8 @@ app.use(cookieParser())
 
 const corseOptions = {
   origin: '*',
-  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  // credentials: true,
 }
 
 app.use(cors(corseOptions))
