@@ -205,3 +205,32 @@ export const submitDraftOrder = async (
 
 
 
+
+
+
+/**
+ * Get all orders for a user
+ * @param userId string | ObjectId
+ * @returns Promise<IOrder[]>
+ */
+export const getById=  async (userId: string )=>{
+  return Order.find({ user: userId }).sort("-createdAt").exec();
+}
+
+
+
+export const getGelatoOrderById = async (orderId: string, apiKey: string) => {
+  try {
+    const response = await axios.get(`${GELATO_ORDER_API}/${orderId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+    });
+    return response.data;
+  } catch (err: any) {
+    throw new Error(
+      `Failed to fetch Gelato order ${orderId}: ${err.response?.data?.message || err.message}`
+    );
+  }
+};

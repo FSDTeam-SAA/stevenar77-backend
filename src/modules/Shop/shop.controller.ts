@@ -1,14 +1,20 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import {
   createDraftOrder,
+ 
+  getById,
+ 
+  getGelatoOrderById,
+ 
   getQuote,
   getStoreProductWithPrices,
   ProductService,
   submitDraftOrder,
 } from "./shop.service";
+import orderService from "../order/order.service";
 
 export const getProducts = catchAsync(async (req: Request, res: Response) => {
   const products = await ProductService.getStoreProducts();
@@ -126,5 +132,68 @@ export const submitDraftOrderController = async (req: Request, res: Response) =>
       success: false,
       message: err.message || "Failed to submit draft order",
     });
+  }
+};
+
+
+
+
+
+
+/**
+ * GET /api/orders/my
+ * Returns all orders for the logged-in user
+ */
+export const getByIdController =async (req: Request, res: Response, next: NextFunction) =>{
+  try {
+    // req.user is set by auth middleware — extend Request type if needed
+    const userId = req.user.id;
+
+    const orders = await getById(userId);
+
+     res.json({
+      success: true,
+      message: "Orders fetched successfully",
+      data: orders,
+    });
+    return
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+
+export const getGelatoOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+       return
+    }
+
+    const apiKey = process.env.GELATO_API_KEY as string;
+    if (!apiKey) {
+      res.status(500).json({
+        success: false,
+        message: "Missing Gelato API key configuration",
+      });
+      return 
+    }
+
+    const order = await getGelatoOrderById(orderId, apiKey);
+
+    res.json({
+      success: true,
+      message: "Gelato order fetched successfully",
+      data: order,
+    });
+     return
+  } catch (err) {
+    next(err);
   }
 };
