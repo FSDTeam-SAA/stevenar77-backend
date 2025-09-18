@@ -1,243 +1,51 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Socket.IO Notification Tester</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Notification Test</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 20px; }
-    .row { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
-    input, button, select, textarea { padding:8px; font-size:14px; }
-    button { cursor:pointer; }
-    #log { width:100%; height:220px; overflow:auto; background:#111; color:#e6e6e6; padding:10px; border-radius:6px; font-family: monospace; white-space:pre-wrap }
-    #notifications { margin-top:10px; }
-    .note { border:1px solid #ddd; padding:8px; border-radius:6px; margin-bottom:8px; }
-    .badge { display:inline-block; padding:2px 6px; border-radius:4px; background:#eee; margin-left:8px; font-size:12px; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #notifications { margin-top: 20px; }
+    .notification { background: #f0f0f0; padding: 10px; margin-bottom: 5px; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <h1>Socket.IO Notification Tester</h1>
+  <h1>Live Notification Test</h1>
 
-  <div class="row">
-    <label for="serverUrl">Server URL</label>
-    <input id="serverUrl" value="http://localhost:5001" style="flex:1" />
-    <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn" disabled>Disconnect</button>
+  <label for="userId">Enter User ID:</label>
+  <input type="text" id="userId" placeholder="User ID">
+  <button id="joinBtn">Join Room</button>
+
+  <div id="notifications">
+    <h2>Notifications:</h2>
+    <div id="notificationList"></div>
   </div>
-
-  <div class="row">
-    <label for="userId">User ID (Mongo _id)</label>
-    <input id="userId" placeholder="e.g. 64f1a2b3c4..." />
-    <button id="registerBtn" disabled>Register (join personal room)</button>
-    <button id="unregisterBtn" disabled>Leave personal room</button>
-  </div>
-
-  <div class="row">
-    <label for="conversationId">Conversation ID (room)</label>
-    <input id="conversationId" placeholder="conversation id" />
-    <button id="joinConvBtn" disabled>Join Conversation</button>
-    <button id="leaveConvBtn" disabled>Leave Conversation</button>
-  </div>
-
-  <div class="row">
-    <label for="emitTest">Emit test (optional)</label>
-    <select id="emitTest">
-      <option value="none">-- choose --</option>
-      <option value="simulateNotification">Emit 'simulateNotification' (server must handle)</option>
-      <option value="sendMessage">Emit 'sendMessage' (chat)</option>
-    </select>
-    <button id="emitBtn" disabled>Emit</button>
-  </div>
-
-  <div class="row">
-    <span id="status">Status: <strong>disconnected</strong></span>
-    <span class="badge" id="socketId">socket id: -</span>
-  </div>
-
-  <h3>Logs</h3>
-  <div id="log">No logs yet</div>
-
-  <h3>Received Notifications</h3>
-  <div id="notifications"></div>
 
   <script>
-    // NOTE: This uses the socket.io client loaded from the server when using /socket.io/socket.io.js
-    // If you serve this file from file:// you must load the client from CDN instead:
-    // <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    // We'll try to load from CDN automatically if global io isn't present.
+    // Connect to the Socket.IO server
+    const socket = io('http://localhost:5001'); // Replace with your server URL and port
 
-    (function loadSocketIoClient(cb) {
-      if (typeof io !== 'undefined') return cb();
-      const s = document.createElement('script');
-      s.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
-      s.onload = cb;
-      document.head.appendChild(s);
-    })(init);
+    const joinBtn = document.getElementById('joinBtn');
+    const userIdInput = document.getElementById('userId');
+    const notificationList = document.getElementById('notificationList');
 
-    function init() {
-      let socket = null;
-      const serverUrlEl = document.getElementById('serverUrl');
-      const connectBtn = document.getElementById('connectBtn');
-      const disconnectBtn = document.getElementById('disconnectBtn');
-      const statusEl = document.getElementById('status');
-      const socketIdEl = document.getElementById('socketId');
-      const logEl = document.getElementById('log');
-
-      const userIdEl = document.getElementById('userId');
-      const registerBtn = document.getElementById('registerBtn');
-      const unregisterBtn = document.getElementById('unregisterBtn');
-
-      const convIdEl = document.getElementById('conversationId');
-      const joinConvBtn = document.getElementById('joinConvBtn');
-      const leaveConvBtn = document.getElementById('leaveConvBtn');
-
-      const emitTest = document.getElementById('emitTest');
-      const emitBtn = document.getElementById('emitBtn');
-
-      const notificationsEl = document.getElementById('notifications');
-
-      function log(...args) {
-        const line = '[' + new Date().toISOString() + '] ' + args.map(a => {
-          try { return (typeof a === 'string') ? a : JSON.stringify(a); } catch(e) { return String(a); }
-        }).join(' ');
-        logEl.textContent = line + '\\n' + logEl.textContent;
+    // Join the room for a specific user
+    joinBtn.addEventListener('click', () => {
+      const userId = userIdInput.value.trim();
+      if (userId) {
+        socket.emit('joinRoom', userId);
+        alert(`Joined room for user: ${userId}`);
       }
+    });
 
-      function setConnected(connected) {
-        statusEl.innerHTML = 'Status: <strong>' + (connected ? 'connected' : 'disconnected') + '</strong>';
-        connectBtn.disabled = connected;
-        disconnectBtn.disabled = !connected;
-        registerBtn.disabled = !connected;
-        joinConvBtn.disabled = !connected;
-        emitBtn.disabled = !connected;
-      }
-
-      connectBtn.addEventListener('click', () => {
-        const url = serverUrlEl.value.trim();
-        if (!url) return alert('Enter server URL (e.g. http://localhost:3000)');
-
-        // connect to server (adjust path/opts as needed)
-        socket = io(url, { transports: ['websocket', 'polling'] });
-
-        socket.on('connect', () => {
-          log('connected to', url);
-          socketIdEl.textContent = 'socket id: ' + socket.id;
-          setConnected(true);
-        });
-
-        socket.on('disconnect', (reason) => {
-          log('disconnected:', reason);
-          socketIdEl.textContent = 'socket id: -';
-          setConnected(false);
-        });
-
-        socket.on('connect_error', (err) => {
-          log('connect_error:', err && err.message ? err.message : err);
-        });
-
-        // application events
-        socket.on('newNotification', (n) => {
-          log('newNotification', n);
-          addNotification('Notification', n);
-        });
-
-        socket.on('conversationUpdated', (payload) => {
-          log('conversationUpdated', payload);
-          addNotification('Conversation update', payload);
-        });
-
-        socket.on('receiveMessage', (msg) => {
-          log('receiveMessage', msg);
-          addNotification('Message', msg);
-        });
-
-        socket.on('error', (e) => {
-          log('server error event:', e);
-        });
-      });
-
-      disconnectBtn.addEventListener('click', () => {
-        if (socket) socket.disconnect();
-      });
-
-      registerBtn.addEventListener('click', () => {
-        const uid = userIdEl.value.trim();
-        if (!uid) return alert('Enter user id to register (join personal room)');
-        if (!socket) return alert('Socket not connected');
-        socket.emit('register', uid);
-        log('emit register', uid);
-      });
-
-      unregisterBtn.addEventListener('click', () => {
-        const uid = userIdEl.value.trim();
-        if (!uid) return alert('Enter user id');
-        if (!socket) return alert('Socket not connected');
-        // no built-in leave handler on your server; we can leave locally
-        socket.emit('leaveRoom', uid); // server must support this if you want it to do something
-        socket.leave?.(uid);           // socket.leave only works server side; this is a no-op on client
-        log('requested leaveRoom', uid);
-      });
-
-      joinConvBtn.addEventListener('click', () => {
-        const conv = convIdEl.value.trim();
-        if (!conv) return alert('Enter conversation id');
-        if (!socket) return alert('Socket not connected');
-        socket.emit('joinRoom', conv);
-        log('emit joinRoom', conv);
-      });
-
-      leaveConvBtn.addEventListener('click', () => {
-        const conv = convIdEl.value.trim();
-        if (!conv) return alert('Enter conversation id');
-        if (!socket) return alert('Socket not connected');
-        socket.emit('leaveRoom', conv); // server must implement a leave handler to act on this
-        log('emit leaveRoom', conv);
-      });
-
-      emitBtn.addEventListener('click', () => {
-        const choice = emitTest.value;
-        if (!socket) return alert('Socket not connected');
-        if (choice === 'simulateNotification') {
-          // Many servers don't accept this event - it's only here for convenience if your server exposes it.
-          const payload = {
-            to: userIdEl.value.trim(),
-            message: 'Test notification from client',
-            type: 'test',
-            id: '000000000000000000000000'
-          };
-          log('emit simulateNotification', payload);
-          socket.emit('simulateNotification', payload); // server must implement handler
-        } else if (choice === 'sendMessage') {
-          const payload = {
-            conversationId: convIdEl.value.trim(),
-            sender: userIdEl.value.trim(),
-            text: 'Hello from tester at ' + new Date().toISOString()
-          };
-          log('emit sendMessage', payload);
-          socket.emit('sendMessage', payload);
-        } else {
-          alert('Choose an action to emit');
-        }
-      });
-
-      function addNotification(title, payload) {
-        const div = document.createElement('div');
-        div.className = 'note';
-        div.innerHTML = '<strong>' + title + '</strong> <small style="color:#666">(' + new Date().toLocaleTimeString() + ')</small><pre>' + JSON.stringify(payload, null, 2) + '</pre>';
-        notificationsEl.insertBefore(div, notificationsEl.firstChild);
-      }
-
-      // enable/disable leave buttons based on presence of values
-      userIdEl.addEventListener('input', () => {
-        unregisterBtn.disabled = !userIdEl.value.trim();
-      });
-      convIdEl.addEventListener('input', () => {
-        leaveConvBtn.disabled = !convIdEl.value.trim();
-      });
-
-      // initial states
-      setConnected(false);
-    }
+    // Listen for new notifications
+    socket.on('newNotification', (notification) => {
+      const div = document.createElement('div');
+      div.classList.add('notification');
+      div.innerText = `Type: ${notification.type}\nMessage: ${notification.message}`;
+      notificationList.prepend(div);
+    });
   </script>
 </body>
 </html>

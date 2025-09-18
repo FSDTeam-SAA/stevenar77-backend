@@ -2,7 +2,6 @@ import { Request, Response } from 'express'
 import { Notification } from './notification.model'
 import catchAsync from '../../utils/catchAsync'
 import httpStatus from 'http-status'
-import AppError from '../../errors/AppError'
 
 /*********************************
  * GET ALL NOTIFICATIONS BY USER *
@@ -53,3 +52,21 @@ await createNotification({
 })
 
  */
+
+/*********************************
+ * GET ALL NOTIFICATIONS (ADMIN) *
+ *********************************/
+export const getAllNotifications = catchAsync(
+  async (req: Request, res: Response) => {
+    const notifications = await Notification.find()
+      .populate('to', 'name email') // optional: show user info
+      .sort({ createdAt: -1 }) // newest first
+      .lean()
+
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: 'All notifications fetched successfully',
+      data: notifications,
+    })
+  }
+)

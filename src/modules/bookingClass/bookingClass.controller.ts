@@ -9,6 +9,8 @@ import { Class } from '../class/class.model'
 import mongoose from 'mongoose'
 import Booking from '../trips/booking/booking.model'
 import { uploadToCloudinary } from '../../utils/cloudinary'
+import { createNotification } from '../../socket/notification.service'
+import { User } from '../user/user.model'
 
 /*****************
  * CREATE BOOKING
@@ -149,7 +151,7 @@ export const createBooking = async (
       lastPhysicalExamination,
       fitnessLevel,
       activityLevelSpecificQuestions,
-      price
+      price,
     } = req.body
     const userId = req.user?.id
 
@@ -196,8 +198,7 @@ export const createBooking = async (
       medicalDocuments = uploadRes.secure_url
     }
 
-        console.log('classData', classData)
-
+    console.log('classData', classData)
 
     // const price = Number(classData.price)
     // if (isNaN(price)) {
@@ -231,7 +232,22 @@ export const createBooking = async (
       totalPrice,
       status: 'pending',
     })
-    console.log('booking', booking)
+
+    /***********************
+     * 🔔 Notify the admin *
+     ***********************/
+    // Find an admin (if multiple admins, you can broadcast to all)
+    const admin = await User.findOne({ role: 'admin' }).select('_id')
+    if (admin) {
+      await createNotification({
+        to: new mongoose.Types.ObjectId(admin._id),
+        message: `New booking created for class "${classData.title}" by user ${
+          req.user?.firstName || userId
+        }, ${req.user?.email}.`,
+        type: 'booking',
+        id: booking._id,
+      })
+    }
 
     // Stripe Checkout
     const successUrl =
