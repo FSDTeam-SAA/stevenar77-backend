@@ -6,12 +6,15 @@ import {
   getSingleBooking,
   changeBookingStatus,
   getSuccessfulPayments,
+  getBookings,
 } from './bookingClass.controller'
 import auth from '../../middleware/auth'
 import { upload } from '../../middleware/multer.middleware'
 
-
 const router = express.Router()
+
+// Get all bookings
+router.get('/all-bookings', auth('admin'), getBookings)
 
 // Create booking
 router.post(

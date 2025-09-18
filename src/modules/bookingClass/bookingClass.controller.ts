@@ -318,7 +318,7 @@ export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
 /*****************
  * GET ALL BOOKINGS FOR USER
  *****************/
-export const getUserBookings = catchAsync(async (req, res) => {  
+export const getUserBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find({ userId: req.user.id })
     .populate('classId')
     .populate('userId', 'name email')
@@ -387,23 +387,15 @@ export const getSuccessfulPayments = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id // if you want to filter by current user
+    // const userId = req.user?.id // if you want to filter by current user
 
     // Query filter: only status "paid"
-    const filter = userId
-      ? { user: userId, status: 'paid' }
-      : { status: 'paid' }
+    const filter = { status: 'paid' }
 
     // Fetch both in parallel
     const [tripPayments, classPayments] = await Promise.all([
-      Booking.find(filter)
-        .populate('trip', 'title price')
-        .populate('user', 'name email')
-        .lean(),
-      BookingClass.find(filter)
-        .populate('classId', 'title price')
-        .populate('userId', 'name email')
-        .lean(),
+      Booking.find(filter).populate('trip').populate('user').lean(),
+      BookingClass.find(filter).populate('classId').populate('userId').lean(),
     ])
 
     res.status(200).json({
@@ -422,3 +414,16 @@ export const getSuccessfulPayments = async (
     })
   }
 }
+
+export const getBookings = catchAsync(async (req, res) => {
+  const bookings = await BookingClass.find()
+    .populate('classId')
+    .populate('userId', 'name email')
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All bookings fetched successfully',
+    data: bookings,
+  })
+})
