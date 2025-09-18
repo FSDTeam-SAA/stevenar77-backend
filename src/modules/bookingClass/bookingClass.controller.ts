@@ -318,8 +318,8 @@ export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
 /*****************
  * GET ALL BOOKINGS FOR USER
  *****************/
-export const getUserBookings = catchAsync(async (req, res) => {
-  const bookings = await BookingClass.find({ userId: req.user._id })
+export const getUserBookings = catchAsync(async (req, res) => {  
+  const bookings = await BookingClass.find({ userId: req.user.id })
     .populate('classId')
     .populate('userId', 'name email')
 
