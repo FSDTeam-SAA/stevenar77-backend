@@ -420,3 +420,18 @@ export const getSuccessfulPayments = async (
     })
   }
 }
+
+
+
+export const getBookings = catchAsync(async (req, res) => {
+  const bookings = await BookingClass.find()
+    .populate('classId')
+    .populate('userId', 'name email')
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All bookings fetched successfully',
+    data: bookings,
+  })
+})
