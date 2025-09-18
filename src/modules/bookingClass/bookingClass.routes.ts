@@ -8,11 +8,18 @@ import {
   getSuccessfulPayments,
 } from './bookingClass.controller'
 import auth from '../../middleware/auth'
+import { upload } from '../../middleware/multer.middleware'
+
 
 const router = express.Router()
 
 // Create booking
-router.post('/', auth('admin', 'user'), createBooking)
+router.post(
+  '/',
+  auth('admin', 'user'),
+  upload.single('medicalDocuments'),
+  createBooking
+)
 
 // Delete booking
 router.delete('/:id', auth('user'), deleteBooking)

@@ -1,17 +1,19 @@
-import mongoose, { Schema } from "mongoose";
-import { BookingClassModel, IBookingClass } from "./bookingClass.interface";
+import mongoose, { Schema } from 'mongoose'
+import { BookingClassModel, IBookingClass } from './bookingClass.interface'
 
 const bookingClassSchema = new Schema<IBookingClass>(
   {
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
-    // status: {
-    //   type: String,
-    //   enum: ['pending', 'completed', 'canceled'],
-    //   default: 'pending',
-    // },
     participant: { type: Number, required: true },
     classDate: [{ type: Date, required: true }],
+    medicalHistory: [{ type: String }],
+    canSwim: { type: String, required: true },
+    divingExperience: { type: String, required: true },
+    lastPhysicalExamination: { type: Date, required: true },
+    fitnessLevel: { type: String, required: true },
+    activityLevelSpecificQuestions: [{ type: String, required: true }],
+    medicalDocuments : { type: String },
     totalPrice: { type: Number, required: true },
     status: {
       type: String,
@@ -24,6 +26,6 @@ const bookingClassSchema = new Schema<IBookingClass>(
 )
 
 export const BookingClass = mongoose.model<IBookingClass, BookingClassModel>(
-  "BookingClass",
+  'BookingClass',
   bookingClassSchema
-);
+)

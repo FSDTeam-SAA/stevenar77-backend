@@ -8,6 +8,9 @@ import Stripe from 'stripe'
 import { Class } from '../class/class.model'
 import mongoose from 'mongoose'
 import Booking from '../trips/booking/booking.model'
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import { createNotification } from '../../socket/notification.service'
+import { User } from '../user/user.model'
 
 /*****************
  * CREATE BOOKING
@@ -39,49 +42,214 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 })
 
 // ------------------ Create Booking with Stripe Payment ------------------ //
+// export const createBooking = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     const { classId, participant, classDate } = req.body
+//     const userId = req.user?.id
+
+//     if (
+//       !classId ||
+//       !participant ||
+//       !classDate ||
+//       !Array.isArray(classDate) ||
+//       classDate.length === 0
+//     ) {
+//       res.status(400).json({
+//         success: false,
+//         message: 'classId, participant and classDate are required.',
+//       })
+//       return
+//     }
+
+//     // 1️⃣ Validate Class exists
+//     const classData = await Class.findById(classId)
+//     if (!classData) {
+//       res.status(404).json({ success: false, message: 'Class not found.' })
+//       return
+//     }
+
+//     // 2️⃣ Calculate total price
+//     const totalPrice = Number(classData.price) * participant
+
+//     // 3️⃣ Create a pending booking in DB
+//     const booking = await BookingClass.create({
+//       classId: new mongoose.Types.ObjectId(classId),
+//       userId: new mongoose.Types.ObjectId(userId),
+//       participant,
+//       classDate,
+//       totalPrice,
+//       status: 'pending',
+//     })
+
+//     // 4️⃣ Stripe Checkout Session
+//     const successUrl =
+//       process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
+//     const cancelUrl =
+//       process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ['card'],
+//       mode: 'payment',
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: 'usd',
+//             product_data: {
+//               name: classData.title,
+//             },
+//             // per participant price in cents
+//             unit_amount: Math.round(Number(classData.price) * 100),
+//           },
+//           quantity: participant,
+//         },
+//       ],
+//       metadata: { classBookingId: booking._id.toString() },
+//       success_url: `${successUrl}?bookingId=${booking._id}`,
+//       cancel_url: cancelUrl,
+//     })
+
+//     // 5️⃣ Optionally store PaymentIntent ID (if available)
+//     if (session.payment_intent) {
+//       booking.stripePaymentIntentId = session.payment_intent.toString()
+//       await booking.save()
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Checkout session created successfully',
+//       data: {
+//         bookingId: booking._id,
+//         sessionUrl:
+//           session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
+//       },
+//     })
+//   } catch (error: any) {
+//     console.error('Error creating booking:', error)
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'Failed to create booking',
+//     })
+//   }
+// }
+
+// bookingClass.controller.ts
 export const createBooking = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { classId, participant, classDate } = req.body
+    const {
+      classId,
+      participant,
+      classDate,
+      medicalHistory,
+      canSwim,
+      divingExperience,
+      lastPhysicalExamination,
+      fitnessLevel,
+      activityLevelSpecificQuestions,
+      price,
+    } = req.body
     const userId = req.user?.id
 
+    // Basic validation
     if (
       !classId ||
       !participant ||
       !classDate ||
-      !Array.isArray(classDate) ||
-      classDate.length === 0
+      !canSwim ||
+      !divingExperience ||
+      !lastPhysicalExamination ||
+      !fitnessLevel ||
+      !activityLevelSpecificQuestions
     ) {
       res.status(400).json({
         success: false,
-        message: 'classId, participant and classDate are required.',
+        message: 'Missing required fields',
       })
       return
     }
 
-    // 1️⃣ Validate Class exists
+    if (!Array.isArray(classDate) || classDate.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'classDate must be a non-empty array',
+      })
+      return
+    }
+
+    // Validate Class exists
     const classData = await Class.findById(classId)
     if (!classData) {
       res.status(404).json({ success: false, message: 'Class not found.' })
       return
     }
 
-    // 2️⃣ Calculate total price
-    const totalPrice = Number(classData.price) * participant
+    // Upload medical document if provided
+    let medicalDocuments: string | undefined
+    if (req.file) {
+      const uploadRes = await uploadToCloudinary(
+        req.file.path,
+        'medical_documents'
+      )
+      medicalDocuments = uploadRes.secure_url
+    }
 
-    // 3️⃣ Create a pending booking in DB
+    console.log('classData', classData)
+
+    // const price = Number(classData.price)
+    // if (isNaN(price)) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: 'Class price is invalid or not set',
+    //   })
+    //   return
+    // }
+
+    //  Total price
+    const totalPrice = price
+
+    //  Create booking
     const booking = await BookingClass.create({
       classId: new mongoose.Types.ObjectId(classId),
       userId: new mongoose.Types.ObjectId(userId),
       participant,
       classDate,
+      medicalHistory: medicalHistory
+        ? Array.isArray(medicalHistory)
+          ? medicalHistory
+          : [medicalHistory]
+        : [],
+      canSwim,
+      divingExperience,
+      lastPhysicalExamination,
+      fitnessLevel,
+      activityLevelSpecificQuestions,
+      medicalDocuments,
       totalPrice,
       status: 'pending',
     })
 
-    // 4️⃣ Stripe Checkout Session
+    /***********************
+     * 🔔 Notify the admin *
+     ***********************/
+    // Find an admin (if multiple admins, you can broadcast to all)
+    const admin = await User.findOne({ role: 'admin' }).select('_id')
+    if (admin) {
+      await createNotification({
+        to: new mongoose.Types.ObjectId(admin._id),
+        message: `New booking created for class "${classData.title}" by user ${
+          req.user?.firstName || userId
+        }, ${req.user?.email}.`,
+        type: 'booking',
+        id: booking._id,
+      })
+    }
+
+    // Stripe Checkout
     const successUrl =
       process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
     const cancelUrl =
@@ -94,11 +262,8 @@ export const createBooking = async (
         {
           price_data: {
             currency: 'usd',
-            product_data: {
-              name: classData.title,
-            },
-            // per participant price in cents
-            unit_amount: Math.round(Number(classData.price) * 100),
+            product_data: { name: classData.title },
+            unit_amount: Math.round(Number(totalPrice) * 100),
           },
           quantity: participant,
         },
@@ -107,12 +272,13 @@ export const createBooking = async (
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     })
+    console.log('session', session)
 
-    // 5️⃣ Optionally store PaymentIntent ID (if available)
     if (session.payment_intent) {
       booking.stripePaymentIntentId = session.payment_intent.toString()
       await booking.save()
     }
+    console.log('booking', booking)
 
     res.status(200).json({
       success: true,
@@ -152,8 +318,8 @@ export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
 /*****************
  * GET ALL BOOKINGS FOR USER
  *****************/
-export const getUserBookings = catchAsync(async (req, res) => {
-  const bookings = await BookingClass.find({ userId: req.user._id })
+export const getUserBookings = catchAsync(async (req, res) => {  
+  const bookings = await BookingClass.find({ userId: req.user.id })
     .populate('classId')
     .populate('userId', 'name email')
 

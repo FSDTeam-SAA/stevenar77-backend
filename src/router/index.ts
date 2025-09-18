@@ -6,10 +6,12 @@ import classBookingRouter from "../modules/bookingClass/bookingClass.routes";
 import productRouter from "../modules/Shop/shop.routes"
 import contactRouter from "../modules/contact/contact.router";
 import orderRouter from "../modules/order/order.router";
-import  TripRoutes from "../modules/trips/trip.routes";
+import TripRoutes from "../modules/trips/trip.routes";
 import reviewsRouter from "../modules/reviewRating/reviewRating.routes";
-import conversationRoutes from '../modules/conversation/conversation.routes'
-import messageRoutes from '../modules/message/message.routes'
+import conversationRoutes from "../modules/conversation/conversation.routes";
+import messageRoutes from "../modules/message/message.routes";
+import dashboardRouter from "../modules/dashboard/dashboard.router";
+import notificationRouter from "../modules/notification/notification.route";
 
 const router = Router();
 
@@ -56,8 +58,16 @@ const moduleRoutes = [
   },
   {
     path: '/message',
-    route: messageRoutes
-  }
+    route: messageRoutes,
+  },
+  {
+    path: '/dashboard',
+    route: dashboardRouter,
+  },
+  {
+    path: '/notifications',
+    route: notificationRouter,
+  },
 ]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

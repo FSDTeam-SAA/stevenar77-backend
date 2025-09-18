@@ -4,7 +4,9 @@ import { Conversation } from '../conversation/conversation.model'
 
 export const getMessages = async (req: Request, res: Response) => {
   const { conversationId } = req.params
-  const messages = await Message.find({ conversationId }).sort({ createdAt: 1 })
+  const messages = await Message.find({ conversationId })
+    .populate('sender', 'firstName lastName image')
+    .sort({ createdAt: 1 })
   res.json(messages)
 }
 

@@ -3,7 +3,9 @@ import {
   getUserConversations,
   createConversation,
   deleteConversation,
+  allConversations,
 } from './conversation.controller'
+import auth from '../../middleware/auth'
 
 const router = Router()
 
@@ -11,5 +13,6 @@ const router = Router()
 router.get('/:userId', getUserConversations)
 router.post('/', createConversation)
 router.delete('/:id', deleteConversation)
+router.get('/',auth('admin'), allConversations)
 
 export default router
