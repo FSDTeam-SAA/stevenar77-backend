@@ -114,18 +114,15 @@ export const createBooking = async (
     });
 
     const bookingCount = participant && participant > 0 ? participant : 1;
+    const updatedClass = await Class.findByIdAndUpdate(
+      classId,
+      { $inc: { totalBookings: bookingCount } },
+      { new: true }
+    );
 
-    await Class.findByIdAndUpdate(classId, {
-      $inc: {
-        totalBookings: bookingCount,
-      },
-    });
-
-    // Check again if class is now full after this booking
-    const updatedClass = await Class.findById(classId);
     if (
-      updatedClass?.participates !== undefined &&
-      updatedClass?.totalParticipates !== undefined &&
+      updatedClass &&
+      updatedClass.totalParticipates > 0 &&
       updatedClass.participates >= updatedClass.totalParticipates
     ) {
       await Class.findByIdAndUpdate(classId, { isActive: false });
