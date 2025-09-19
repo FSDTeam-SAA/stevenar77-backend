@@ -13,7 +13,7 @@ app.use(express.json())
 app.use(cookieParser())
 
 const corsOptions = {
-  origin: '*',
+  origin: ['http://localhost:3000','https://stevenar77-dashboard.vercel.app','http://localhost:3001'],
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
 };
