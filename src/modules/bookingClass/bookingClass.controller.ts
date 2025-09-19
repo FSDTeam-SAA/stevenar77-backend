@@ -1,16 +1,16 @@
-import { Request, Response } from 'express'
-import httpStatus from 'http-status'
-import catchAsync from '../../utils/catchAsync'
-import AppError from '../../errors/AppError'
-import sendResponse from '../../utils/sendResponse'
-import { BookingClass } from './bookingClass.model'
-import Stripe from 'stripe'
-import { Class } from '../class/class.model'
-import mongoose from 'mongoose'
-import Booking from '../trips/booking/booking.model'
-import { uploadToCloudinary } from '../../utils/cloudinary'
-import { createNotification } from '../../socket/notification.service'
-import { User } from '../user/user.model'
+import { Request, Response } from "express";
+import httpStatus from "http-status";
+import catchAsync from "../../utils/catchAsync";
+import AppError from "../../errors/AppError";
+import sendResponse from "../../utils/sendResponse";
+import { BookingClass } from "./bookingClass.model";
+import Stripe from "stripe";
+import { Class } from "../class/class.model";
+import mongoose from "mongoose";
+import Booking from "../trips/booking/booking.model";
+import { uploadToCloudinary } from "../../utils/cloudinary";
+import { createNotification } from "../../socket/notification.service";
+import { User } from "../user/user.model";
 
 /*****************
  * CREATE BOOKING
@@ -38,8 +38,8 @@ import { User } from '../user/user.model'
 // })
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-08-27.basil', // keep consistent with your TripBookingService
-})
+  apiVersion: "2025-08-27.basil", // keep consistent with your TripBookingService
+});
 
 // ------------------ Create Booking with Stripe Payment ------------------ //
 // export const createBooking = async (
@@ -152,8 +152,8 @@ export const createBooking = async (
       fitnessLevel,
       activityLevelSpecificQuestions,
       price,
-    } = req.body
-    const userId = req.user?.id
+    } = req.body;
+    const userId = req.user?.id;
 
     // Basic validation
     if (
@@ -168,49 +168,49 @@ export const createBooking = async (
     ) {
       res.status(400).json({
         success: false,
-        message: 'Missing required fields',
-      })
-      return
+        message: "Missing required fields",
+      });
+      return;
     }
 
     if (!Array.isArray(classDate) || classDate.length === 0) {
       res.status(400).json({
         success: false,
-        message: 'classDate must be a non-empty array',
-      })
-      return
+        message: "classDate must be a non-empty array",
+      });
+      return;
     }
 
     // Validate Class exists
-    const classData = await Class.findById(classId)
+    const classData = await Class.findById(classId);
     if (!classData) {
-      res.status(404).json({ success: false, message: 'Class not found.' })
-      return
+      throw new AppError("Class not found", httpStatus.NOT_FOUND);
+    }
+
+    if (!classData.isActive) {
+      throw new AppError("Class is not available", httpStatus.BAD_REQUEST);
+    }
+
+    // Get values safely with defaults
+    const participates = classData.participates ?? 0;
+    const totalParticipates = classData.totalParticipates ?? 0;
+
+    // If no limit was set (0), treat it as "unlimited"
+    if (totalParticipates > 0 && participates >= totalParticipates) {
+      await Class.findByIdAndUpdate(classId, { isActive: false });
+      throw new AppError("Class is full", httpStatus.BAD_REQUEST);
     }
 
     // Upload medical document if provided
-    let medicalDocuments: string | undefined
+    let medicalDocuments: string | undefined;
     if (req.file) {
       const uploadRes = await uploadToCloudinary(
         req.file.path,
-        'medical_documents'
-      )
-      medicalDocuments = uploadRes.secure_url
+        "medical_documents"
+      );
+      medicalDocuments = uploadRes.secure_url;
     }
-
-    console.log('classData', classData)
-
-    // const price = Number(classData.price)
-    // if (isNaN(price)) {
-    //   res.status(400).json({
-    //     success: false,
-    //     message: 'Class price is invalid or not set',
-    //   })
-    //   return
-    // }
-
-    //  Total price
-    const totalPrice = price
+    const totalPrice = price;
 
     //  Create booking
     const booking = await BookingClass.create({
@@ -230,38 +230,54 @@ export const createBooking = async (
       activityLevelSpecificQuestions,
       medicalDocuments,
       totalPrice,
-      status: 'pending',
-    })
+      status: "pending",
+    });
+
+    await Class.findByIdAndUpdate(classId, {
+      $inc: {
+        totalBookings: 1,
+      },
+    });
+
+    // Check again if class is now full after this booking
+    const updatedClass = await Class.findById(classId);
+    if (
+      updatedClass?.participates !== undefined &&
+      updatedClass?.totalParticipates !== undefined &&
+      updatedClass.participates >= updatedClass.totalParticipates
+    ) {
+      await Class.findByIdAndUpdate(classId, { isActive: false });
+    }
 
     /***********************
      * 🔔 Notify the admin *
      ***********************/
     // Find an admin (if multiple admins, you can broadcast to all)
-    const admin = await User.findOne({ role: 'admin' }).select('_id')
+    const admin = await User.findOne({ role: "admin" }).select("_id");
     if (admin) {
       await createNotification({
         to: new mongoose.Types.ObjectId(admin._id),
         message: `New booking created for class "${classData.title}" by user ${
           req.user?.firstName || userId
         }, ${req.user?.email}.`,
-        type: 'booking',
+        type: "booking",
         id: booking._id,
-      })
+      });
     }
 
     // Stripe Checkout
     const successUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
+      process.env.FRONTEND_URL || "http://localhost:5000/booking-success";
     const cancelUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
+      process.env.FRONTEND_URL || "http://localhost:5000/booking-cancel";
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
+      payment_method_types: ["card"],
+      mode: "payment",
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: "usd",
             product_data: { name: classData.title },
             unit_amount: Math.round(Number(totalPrice) * 100),
           },
@@ -271,116 +287,116 @@ export const createBooking = async (
       metadata: { classBookingId: booking._id.toString() },
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
-    })
-    console.log('session', session)
+    });
+    console.log("session", session);
 
     if (session.payment_intent) {
-      booking.stripePaymentIntentId = session.payment_intent.toString()
-      await booking.save()
+      booking.stripePaymentIntentId = session.payment_intent.toString();
+      await booking.save();
     }
-    console.log('booking', booking)
+    console.log("booking", booking);
 
     res.status(200).json({
       success: true,
-      message: 'Checkout session created successfully',
+      message: "Checkout session created successfully",
       data: {
         bookingId: booking._id,
         sessionUrl:
           session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
       },
-    })
+    });
   } catch (error: any) {
-    console.error('Error creating booking:', error)
+    console.error("Error creating booking:", error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to create booking',
-    })
+      message: error.message || "Failed to create booking",
+    });
   }
-}
+};
 
 /*****************
  * DELETE BOOKING
  *****************/
 export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
+  const { id } = req.params;
 
-  const booking = await BookingClass.findByIdAndDelete(id)
-  if (!booking) throw new AppError('Booking not found', httpStatus.NOT_FOUND)
+  const booking = await BookingClass.findByIdAndDelete(id);
+  if (!booking) throw new AppError("Booking not found", httpStatus.NOT_FOUND);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Booking deleted successfully',
+    message: "Booking deleted successfully",
     data: booking,
-  })
-})
+  });
+});
 
 /*****************
  * GET ALL BOOKINGS FOR USER
  *****************/
 export const getUserBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find({ userId: req.user.id })
-    .populate('classId')
-    .populate('userId', 'name email')
+    .populate("classId")
+    .populate("userId", "name email");
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'User bookings fetched successfully',
+    message: "User bookings fetched successfully",
     data: bookings,
-  })
-})
+  });
+});
 
 /*****************
  * GET SINGLE BOOKING
  *****************/
 export const getSingleBooking = catchAsync(
   async (req: Request, res: Response) => {
-    const { id } = req.params
+    const { id } = req.params;
 
     const booking = await BookingClass.findById(id)
-      .populate('classId')
-      .populate('userId', 'name email')
+      .populate("classId")
+      .populate("userId", "name email");
 
-    if (!booking) throw new AppError('Booking not found', httpStatus.NOT_FOUND)
+    if (!booking) throw new AppError("Booking not found", httpStatus.NOT_FOUND);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Booking fetched successfully',
+      message: "Booking fetched successfully",
       data: booking,
-    })
+    });
   }
-)
+);
 
 /*****************
  * CHANGE STATUS
  *****************/
 export const changeBookingStatus = catchAsync(
   async (req: Request, res: Response) => {
-    const { id } = req.params
-    const { status } = req.body
+    const { id } = req.params;
+    const { status } = req.body;
 
-    if (!['pending', 'completed', 'canceled'].includes(status)) {
-      throw new AppError('Invalid status value', httpStatus.BAD_REQUEST)
+    if (!["pending", "completed", "canceled"].includes(status)) {
+      throw new AppError("Invalid status value", httpStatus.BAD_REQUEST);
     }
 
     const booking = await BookingClass.findByIdAndUpdate(
       id,
       { status },
       { new: true, runValidators: true }
-    )
+    );
 
-    if (!booking) throw new AppError('Booking not found', httpStatus.NOT_FOUND)
+    if (!booking) throw new AppError("Booking not found", httpStatus.NOT_FOUND);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Booking status updated successfully',
+      message: "Booking status updated successfully",
       data: booking,
-    })
+    });
   }
-)
+);
 
 export const getSuccessfulPayments = async (
   req: Request,
@@ -390,40 +406,40 @@ export const getSuccessfulPayments = async (
     // const userId = req.user?.id // if you want to filter by current user
 
     // Query filter: only status "paid"
-    const filter = { status: 'paid' }
+    const filter = { status: "paid" };
 
     // Fetch both in parallel
     const [tripPayments, classPayments] = await Promise.all([
-      Booking.find(filter).populate('trip').populate('user').lean(),
-      BookingClass.find(filter).populate('classId').populate('userId').lean(),
-    ])
+      Booking.find(filter).populate("trip").populate("user").lean(),
+      BookingClass.find(filter).populate("classId").populate("userId").lean(),
+    ]);
 
     res.status(200).json({
       success: true,
-      message: 'Fetched all successful payments',
+      message: "Fetched all successful payments",
       data: {
         tripPayments,
         classPayments,
       },
-    })
+    });
   } catch (error: any) {
-    console.error('Error fetching payment history:', error)
+    console.error("Error fetching payment history:", error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to fetch payment history',
-    })
+      message: error.message || "Failed to fetch payment history",
+    });
   }
-}
+};
 
 export const getBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find()
-    .populate('classId')
-    .populate('userId', 'name email')
+    .populate("classId")
+    .populate("userId", "name email");
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'All bookings fetched successfully',
+    message: "All bookings fetched successfully",
     data: bookings,
-  })
-})
+  });
+});

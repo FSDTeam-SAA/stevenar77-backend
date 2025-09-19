@@ -7,5 +7,7 @@ export interface IClass {
   duration: string;
   totalReviews?: number;
   avgRating?: number;
+  participates?: number;
   totalParticipates: number;
+  isActive?: boolean;
 }
