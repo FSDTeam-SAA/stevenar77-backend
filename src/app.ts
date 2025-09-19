@@ -12,13 +12,13 @@ app.use(express.static('public'))
 app.use(express.json())
 app.use(cookieParser())
 
-const corseOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://stevenar77-dashboard.vercel.app/'],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+const corsOptions = {
+  origin: ['*'],
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
-}
+};
 
-app.use(cors(corseOptions))
+app.use(cors(corsOptions))
 
 app.use('/api/v1', router)
 
