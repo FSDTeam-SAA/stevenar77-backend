@@ -12,130 +12,10 @@ import { uploadToCloudinary } from "../../utils/cloudinary";
 import { createNotification } from "../../socket/notification.service";
 import { User } from "../user/user.model";
 
-/*****************
- * CREATE BOOKING
- *****************/
-// export const createBooking = catchAsync(async (req, res) => {
-//   const { classId, participant, classDate } = req.body
-
-//   if (!classId || !participant || !classDate) {
-//     throw new AppError('Missing required fields', httpStatus.BAD_REQUEST)
-//   }
-
-//   const booking = await BookingClass.create({
-//     classId,
-//     userId: req.user._id, // logged-in user
-//     participant,
-//     classDate,
-//   })
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.CREATED,
-//     success: true,
-//     message: 'Booking created successfully',
-//     data: booking,
-//   })
-// })
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-08-27.basil", // keep consistent with your TripBookingService
+  apiVersion: "2025-08-27.basil",
 });
 
-// ------------------ Create Booking with Stripe Payment ------------------ //
-// export const createBooking = async (
-//   req: Request,
-//   res: Response
-// ): Promise<void> => {
-//   try {
-//     const { classId, participant, classDate } = req.body
-//     const userId = req.user?.id
-
-//     if (
-//       !classId ||
-//       !participant ||
-//       !classDate ||
-//       !Array.isArray(classDate) ||
-//       classDate.length === 0
-//     ) {
-//       res.status(400).json({
-//         success: false,
-//         message: 'classId, participant and classDate are required.',
-//       })
-//       return
-//     }
-
-//     // 1️⃣ Validate Class exists
-//     const classData = await Class.findById(classId)
-//     if (!classData) {
-//       res.status(404).json({ success: false, message: 'Class not found.' })
-//       return
-//     }
-
-//     // 2️⃣ Calculate total price
-//     const totalPrice = Number(classData.price) * participant
-
-//     // 3️⃣ Create a pending booking in DB
-//     const booking = await BookingClass.create({
-//       classId: new mongoose.Types.ObjectId(classId),
-//       userId: new mongoose.Types.ObjectId(userId),
-//       participant,
-//       classDate,
-//       totalPrice,
-//       status: 'pending',
-//     })
-
-//     // 4️⃣ Stripe Checkout Session
-//     const successUrl =
-//       process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
-//     const cancelUrl =
-//       process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
-
-//     const session = await stripe.checkout.sessions.create({
-//       payment_method_types: ['card'],
-//       mode: 'payment',
-//       line_items: [
-//         {
-//           price_data: {
-//             currency: 'usd',
-//             product_data: {
-//               name: classData.title,
-//             },
-//             // per participant price in cents
-//             unit_amount: Math.round(Number(classData.price) * 100),
-//           },
-//           quantity: participant,
-//         },
-//       ],
-//       metadata: { classBookingId: booking._id.toString() },
-//       success_url: `${successUrl}?bookingId=${booking._id}`,
-//       cancel_url: cancelUrl,
-//     })
-
-//     // 5️⃣ Optionally store PaymentIntent ID (if available)
-//     if (session.payment_intent) {
-//       booking.stripePaymentIntentId = session.payment_intent.toString()
-//       await booking.save()
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       message: 'Checkout session created successfully',
-//       data: {
-//         bookingId: booking._id,
-//         sessionUrl:
-//           session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
-//       },
-//     })
-//   } catch (error: any) {
-//     console.error('Error creating booking:', error)
-//     res.status(500).json({
-//       success: false,
-//       message: error.message || 'Failed to create booking',
-//     })
-//   }
-// }
-
-// bookingClass.controller.ts
 export const createBooking = async (
   req: Request,
   res: Response
@@ -233,9 +113,11 @@ export const createBooking = async (
       status: "pending",
     });
 
+    const bookingCount = participant && participant > 0 ? participant : 1;
+
     await Class.findByIdAndUpdate(classId, {
       $inc: {
-        totalBookings: 1,
+        totalBookings: bookingCount,
       },
     });
 
