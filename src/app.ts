@@ -13,10 +13,17 @@ app.use(express.json())
 app.use(cookieParser())
 
 const corsOptions = {
-  origin: ['http://localhost:3000','https://stevenar77-dashboard.vercel.app','http://localhost:3001'],
+  origin: [
+    'http://localhost:3000',
+    'https://stevenar77-dashboard.vercel.app',
+    'http://localhost:3001',
+    'https://stevenar77-website.vercel.app',
+    'https://scuba-life.net',
+    'https://admin.scuba-life.net',
+  ],
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
-};
+}
 
 app.use(cors(corsOptions))
 
