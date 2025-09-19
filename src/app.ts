@@ -13,9 +13,9 @@ app.use(express.json())
 app.use(cookieParser())
 
 const corsOptions = {
-  origin: ['*'],
+  origin: '*',
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-  credentials: true,
+  credentials: false,
 };
 
 app.use(cors(corsOptions))
