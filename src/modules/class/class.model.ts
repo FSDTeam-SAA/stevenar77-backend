@@ -14,7 +14,9 @@ const classSchema = new Schema<IClass>(
     duration: { type: String, required: true },
     totalReviews: { type: Number, default: 0 },
     avgRating: { type: Number, default: 0 },
+    participates: { type: Number, default: 0 },
     totalParticipates: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
   },
   {
     timestamps: true,
