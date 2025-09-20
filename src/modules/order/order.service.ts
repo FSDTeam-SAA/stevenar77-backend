@@ -5,6 +5,11 @@ import { IOrder } from "./order.interface";
 import Product from "../product/product.model";
 import order from "./order.model";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-08-27.basil",
+});
 
 const createOrder = async (email: string, payload: IOrder,files?: Express.Multer.File[]) => {
   const { productId, quantity } = payload;
@@ -63,6 +68,35 @@ console.log("email",email);
   if (updatedProduct && updatedProduct.quantity <= 0) {
     await Product.findByIdAndUpdate(productId, { inStock: false });
   }
+
+   // Step 2: Create Stripe Checkout session
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: email,
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: product.title,
+            images: images.map((img) => img.url),
+          },
+          unit_amount: product.price * 100, // cents
+        },
+        quantity,
+      },
+    ],
+    success_url: `${process.env.frontend_url}/payment-success?orderId=${result._id}`,
+    cancel_url: `${process.env.frontend_url}/payment-cancel?orderId=${result._id}`,
+    metadata: {
+      orderId: result._id.toString(),
+      productId: productId.toString(),
+      quantity: quantity.toString(),
+    },
+  });
+
+  return { order: result, sessionUrl: session.url };
 
   return result;
 };
@@ -200,12 +234,27 @@ const updateOrderStatus = async (orderId: string, status: string) => {
   return result;
 };
 
+const getAllPaid = async()=>{
+  const paidOrders  = await order.find({status:"paid"})
+  console.log("asa",paidOrders);
+   if (!paidOrders || paidOrders.length === 0) {
+    throw new AppError("No paid orders found", StatusCodes.NOT_FOUND);
+  }
+  const totalPrice = paidOrders.reduce((sum, ord) => sum + ord.totalPrice, 0);
+return {
+    orders: paidOrders,
+    totalPrice, 
+  };
+}
+
+
 const orderService = {
   createOrder,
   getMyOder,
   getAllOrder,
   orderCancelByUser,
   updateOrderStatus,
+  getAllPaid
 };
 
 export default orderService;

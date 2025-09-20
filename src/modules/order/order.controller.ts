@@ -1,4 +1,5 @@
 import { StatusCodes } from "http-status-codes";
+import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import orderService from "./order.service";
@@ -76,6 +77,29 @@ const updateOrderStatus = catchAsync(async (req, res) => {
     data: result,
   });
 });
+/**
+ * GET /api/orders/paid
+ * Returns all orders with paymentStatus = "paid"
+ */
+const fetchPaidOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await orderService.getAllPaid();
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Paid orders retrieved successfully",
+      data: orders,
+    });
+    return;
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: (error as Error).message,
+    });
+  }
+};
+
 
 //!deleted api is not add. after add it
 
@@ -85,6 +109,7 @@ const orderController = {
   getAllOrder,
   orderCancelByUser,
   updateOrderStatus,
+  fetchPaidOrders
 };
 
 export default orderController;

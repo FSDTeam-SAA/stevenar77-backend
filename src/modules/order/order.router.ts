@@ -4,6 +4,7 @@ import auth from "../../middleware/auth";
 import { USER_ROLE } from "../user/user.constant";
 import { upload } from "../../middleware/multer.middleware";
 
+
 const router = Router();
 
 router.post("/create", auth(USER_ROLE.USER), upload.array("image", 5),orderController.createOrder);
@@ -23,5 +24,6 @@ router.put(
   orderController.updateOrderStatus
 );
 
+router.get("/paid",orderController.fetchPaidOrders );
 const orderRouter = router;
 export default orderRouter;
