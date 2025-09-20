@@ -11,4 +11,5 @@ export interface IOrder {
   orderTime: Date;
   createdAt: Date;
   updatedAt: Date;
+   images: { public_id: string; url: string }[];
 }

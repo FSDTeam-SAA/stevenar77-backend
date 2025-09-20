@@ -14,6 +14,13 @@ const orderSchema = new Schema<IOrder>(
     quantity: { type: Number, required: true },
     orderData: { type: Date, default: Date.now },
     orderTime: { type: Date, default: Date.now },
+    images: [
+      {
+        public_id: { type: String },
+        url: { type: String },
+        _id: false,
+      },
+    ],
   },
   { timestamps: true, versionKey: false }
 );

@@ -32,6 +32,8 @@ const addProduct = async (payload: IProduct, files: Express.Multer.File[]) => {
   };
 
   const result = await Product.create(productData);
+  console.log("prodcut",result);
+
   return result;
 };
 

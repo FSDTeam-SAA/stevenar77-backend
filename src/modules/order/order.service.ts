@@ -4,11 +4,13 @@ import { User } from "../user/user.model";
 import { IOrder } from "./order.interface";
 import Product from "../product/product.model";
 import order from "./order.model";
+import { uploadToCloudinary } from "../../utils/cloudinary";
 
-const createOrder = async (email: string, payload: IOrder) => {
+const createOrder = async (email: string, payload: IOrder,files?: Express.Multer.File[]) => {
   const { productId, quantity } = payload;
-
+console.log("email",email);
   const user = await User.isUserExistByEmail(email);
+  
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
 
   const product = await Product.findById(productId);
@@ -25,11 +27,29 @@ const createOrder = async (email: string, payload: IOrder) => {
 
   const price = product.price * quantity;
 
+    // **Handle images**
+  const images: { public_id: string; url: string }[] = [];
+  
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const uploadResult = await uploadToCloudinary(file.path, "orders");
+      if (uploadResult) {
+        images.push({
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url,
+        });
+      }
+    }
+  } else {
+    throw new AppError("At least one image is required", StatusCodes.BAD_REQUEST);
+  }
+
   const result = await order.create({
     userId: user._id,
     productId,
     totalPrice: price,
     quantity,
+    images,
     orderData: new Date(),
     orderTime: new Date(),
   });

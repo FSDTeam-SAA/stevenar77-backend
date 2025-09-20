@@ -5,7 +5,8 @@ import orderService from "./order.service";
 
 const createOrder = catchAsync(async (req, res) => {
   const { email } = req.user;
-  const result = await orderService.createOrder(email, req.body);
+   const files = req.files as Express.Multer.File[];
+  const result = await orderService.createOrder(email, req.body,files);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
