@@ -54,7 +54,7 @@ export const createDraftOrderController = async (
   res: Response
 ) => {
   try {
-    const userId = req.user.id; // from auth middleware
+    const userId = req.user.id;
     const orderData = req.body;
  const file = req.file as Express.Multer.File
     const newOrder = await createDraftOrder(userId, orderData);

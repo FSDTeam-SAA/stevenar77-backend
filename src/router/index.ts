@@ -12,6 +12,7 @@ import conversationRoutes from "../modules/conversation/conversation.routes";
 import messageRoutes from "../modules/message/message.routes";
 import dashboardRouter from "../modules/dashboard/dashboard.router";
 import notificationRouter from "../modules/notification/notification.route";
+import shopRouter from "../modules/product/product.router";
 
 const router = Router();
 
@@ -67,6 +68,10 @@ const moduleRoutes = [
   {
     path: '/notifications',
     route: notificationRouter,
+  },
+   {
+    path: '/shop',
+    route: shopRouter,
   },
 ]
 
