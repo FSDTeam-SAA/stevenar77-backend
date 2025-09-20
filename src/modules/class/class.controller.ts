@@ -75,13 +75,16 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const limit = Number(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
+  const isAdmin = req.query.isAdmin === "true"; // check query param
+
+  const filter = isAdmin ? {} : { isActive: true };
+
   const [total, classes] = await Promise.all([
-    Class.countDocuments(),
-    Class.find({ isActive: true })
+    Class.countDocuments(filter),
+    Class.find(filter)
       .skip(skip)
       .limit(limit)
-      .sort({ courseDate: 1 })
-      .sort({ createdAt: -1 }),
+      .sort({ courseDate: 1, createdAt: -1 }),
   ]);
 
   sendResponse<IClass[]>(res, {
@@ -97,6 +100,7 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
 
 export const deleteClass = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
