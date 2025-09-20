@@ -77,7 +77,7 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
 
   const [total, classes] = await Promise.all([
     Class.countDocuments(),
-    Class.find()
+    Class.find({ isActive: true })
       .skip(skip)
       .limit(limit)
       .sort({ courseDate: 1 })
@@ -128,5 +128,24 @@ export const getClassById = catchAsync(async (req, res) => {
     success: true,
     message: "Class fetched successfully",
     data: singleClass,
+  });
+});
+
+export const toggleCourseStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const isExist = await Class.findById(id);
+  if (!isExist) {
+    throw new AppError("Class not found", 404);
+  }
+
+  await Class.findOneAndUpdate(
+    { _id: id },
+    { $set: { isActive: !isExist.isActive } },
+    { new: true }
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Class status updated successfully",
   });
 });

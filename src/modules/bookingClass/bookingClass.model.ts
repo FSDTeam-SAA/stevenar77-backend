@@ -21,6 +21,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
       default: 'pending',
     },
     stripePaymentIntentId: { type: String },
+    
   },
   { timestamps: true }
 )
