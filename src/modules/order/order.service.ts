@@ -236,7 +236,7 @@ const updateOrderStatus = async (orderId: string, status: string) => {
 
 const getAllPaid = async()=>{
   const paidOrders  = await order.find({status:"paid"})
-  console.log("asa",paidOrders);
+  // console.log("asa",paidOrders);
    if (!paidOrders || paidOrders.length === 0) {
     throw new AppError("No paid orders found", StatusCodes.NOT_FOUND);
   }
