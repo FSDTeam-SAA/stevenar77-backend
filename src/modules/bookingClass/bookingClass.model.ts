@@ -13,7 +13,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
     lastPhysicalExamination: { type: Date, required: true },
     fitnessLevel: { type: String, required: true },
     activityLevelSpecificQuestions: [{ type: String, required: true }],
-    medicalDocuments : { type: String },
+    medicalDocuments: { type: String },
     totalPrice: { type: Number, required: true },
     status: {
       type: String,
@@ -21,7 +21,10 @@ const bookingClassSchema = new Schema<IBookingClass>(
       default: 'pending',
     },
     stripePaymentIntentId: { type: String },
-    
+    gender: { type: String, enum: ['male', 'female'], required: true },
+    shoeSize: { type: Number, required: true },
+    hight: { type: Number, required: true },
+    weight: { type: Number, required: true },
   },
   { timestamps: true }
 )

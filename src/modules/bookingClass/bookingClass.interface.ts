@@ -15,6 +15,10 @@ export interface IBookingClass extends Document {
   classDate: Date[] // multiple dates allowed
   totalPrice: number
   stripePaymentIntentId?: string
+  gender: 'male' | 'female'
+  shoeSize: number
+  hight: number
+  weight: number
 }
 
 export type BookingClassModel = Model<IBookingClass>

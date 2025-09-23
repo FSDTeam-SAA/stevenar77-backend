@@ -17,6 +17,7 @@ const classSchema = new Schema<IClass>(
     participates: { type: Number, default: 0 },
     totalParticipates: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    classDates: [{ type: Date, required: true }],
   },
   {
     timestamps: true,
