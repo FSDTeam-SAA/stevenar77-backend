@@ -11,7 +11,7 @@ const TripSchema = new Schema<ITrip>(
     location: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
-    index:{type:Number},
+    index:{type:Number,required:true},
     images: [
       {
         public_id: { type: String },
