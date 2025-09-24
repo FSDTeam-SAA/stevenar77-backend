@@ -13,6 +13,7 @@ import messageRoutes from "../modules/message/message.routes";
 import dashboardRouter from "../modules/dashboard/dashboard.router";
 import notificationRouter from "../modules/notification/notification.route";
 import shopRouter from "../modules/product/product.router";
+import aboutRouter from "../modules/about/about.route";
 
 const router = Router();
 
@@ -73,6 +74,10 @@ const moduleRoutes = [
     path: '/shop',
     route: shopRouter,
   },
+  {
+    path: '/about',
+    route: aboutRouter,
+  }
 ]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
