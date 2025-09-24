@@ -6,6 +6,9 @@ interface ITeamCard {
     url: string
   }
   title: string
+  possition: string
+  description: string
+
   quote: string
   features: string[]
 }
@@ -51,6 +54,8 @@ const aboutSchema = new Schema<IAbout>(
         {
           image: imageObj,
           title: String,
+          possition: String,
+          description: String,
           quote: String,
           features: [String],
         },
