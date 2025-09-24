@@ -11,4 +11,5 @@ export interface IClass {
   totalParticipates: number
   isActive?: boolean
   classDates?: Date
+  index?:number
 }

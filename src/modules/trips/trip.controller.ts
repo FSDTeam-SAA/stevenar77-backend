@@ -17,8 +17,11 @@ const createTrip = catchAsync(async (req, res) => {
 });
 
 // Get All Trips
-const getAllTrips = catchAsync(async (_req, res) => {
-  const result = await TripService.getAllTrips();
+const getAllTrips = catchAsync(async (req, res) => {
+  // read query params (default page=1, limit=10)
+  const { page = 1, limit = 10 } = req.query;
+
+  const result = await TripService.getAllTrips(Number(page), Number(limit));
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

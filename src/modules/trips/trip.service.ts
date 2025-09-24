@@ -43,9 +43,26 @@ const createTrip = async (payload: ITrip, files: any[]) => {
   return trip
 }
 
-const getAllTrips = async () => {
-  return await Trip.find()
-}
+const getAllTrips = async (page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+
+  // Fetch paginated & sorted trips
+  const trips = await Trip.find()
+    .sort({ index: 1 })     // ascending order by index field
+    .skip(skip)            
+    .limit(limit);          
+
+  // Optionally get total count for pagination metadata
+  const total = await Trip.countDocuments();
+
+  return {
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+    totalTrips: total,
+    data: trips,
+  };
+};
 
 const getSingleTrip = async (tripId: string) => {
   return await Trip.findById(tripId)
