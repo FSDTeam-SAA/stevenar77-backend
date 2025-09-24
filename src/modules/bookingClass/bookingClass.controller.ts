@@ -21,6 +21,7 @@ export const createBooking = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log('req.body', req.body)
     const {
       classId,
       participant,
@@ -32,6 +33,10 @@ export const createBooking = async (
       fitnessLevel,
       activityLevelSpecificQuestions,
       price,
+      gender,
+      shoeSize,
+      hight,
+      weight,
     } = req.body
     const userId = req.user?.id
 
@@ -111,10 +116,10 @@ export const createBooking = async (
       medicalDocuments,
       totalPrice,
       status: 'pending',
-      gender: req.user?.gender,
-      shoeSize: req.user?.shoeSize,
-      hight: req.user?.hight,
-      weight: req.user?.weight,
+      gender,
+      shoeSize: Number(shoeSize), // ✅ convert to number
+      hight: Number(hight),
+      weight: Number(weight),
     })
 
     const bookingCount = participant && participant > 0 ? participant : 1
