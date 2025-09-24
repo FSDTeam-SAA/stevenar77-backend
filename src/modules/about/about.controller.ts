@@ -21,10 +21,29 @@ const processImages = async (
   folder = 'about'
 ) => {
   if (!files || files.length === 0) return []
-  const uploads = await Promise.all(
+  const uploads = await Promise.allSettled(
     files.map((f) => uploadToCloudinary(f.path, folder))
   )
-  return uploads.map((u) => ({ public_id: u.public_id, url: u.secure_url }))
+
+  // Log all rejected promises to see the error messages
+  uploads.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(
+        `Image upload failed for file at index ${index}:`,
+        result.reason
+      )
+    }
+  })
+
+  // Filter for successful uploads
+  const successfulUploads = uploads
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => (result as PromiseFulfilledResult<any>).value)
+
+  return successfulUploads.map((u) => ({
+    public_id: u.public_id,
+    url: u.secure_url,
+  }))
 }
 
 // ---- Create ----
@@ -32,6 +51,7 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
   const body = JSON.parse(req.body.data)
 
   const files = req.files as AboutMulterFiles | undefined
+  console.log('Gallery files received:', files?.galleryImages?.length)
 
   body.section1.images = await processImages(files?.section1Images)
   body.section2.images = await processImages(files?.section2Images)
@@ -44,6 +64,8 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
       c.image = teamUploads[idx]
     })
   }
+
+  console.log('Gallery files received:', files?.galleryImages?.length)
 
   const result = await About.create(body)
   sendResponse(res, {
