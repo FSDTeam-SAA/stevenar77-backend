@@ -10,4 +10,5 @@ export interface ITrip {
     public_id?: string;
     url?: string;
   }[];
+  index?:number
 }
