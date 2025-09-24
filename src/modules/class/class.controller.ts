@@ -82,9 +82,10 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const [total, classes] = await Promise.all([
     Class.countDocuments(filter),
     Class.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ courseDate: 1, createdAt: -1 }),
+    .sort({ index: 1 })
+    .skip(skip)
+    .limit(limit)
+      
   ]);
 
   sendResponse<IClass[]>(res, {
