@@ -85,17 +85,23 @@ export const createBooking = async (
       await Class.findByIdAndUpdate(classId, { isActive: false })
       throw new AppError('Class is full', httpStatus.BAD_REQUEST)
     }
+    let medicalDocuments: { public_id: string; url: string }[] = [];
+
+const files = req.files as Express.Multer.File[]; // multer.array() gives array of files
+if (files && files.length > 0) {
+  const uploadResults = await Promise.all(
+    files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+  );
+
+  medicalDocuments = uploadResults.map((uploaded) => ({
+    public_id: uploaded.public_id,
+    url: uploaded.secure_url,
+  }));
+}
 
     // Upload medical document if provided
-    let medicalDocuments: string | undefined
-    if (req.file) {
-      const uploadRes = await uploadToCloudinary(
-        req.file.path,
-        'medical_documents'
-      )
-      medicalDocuments = uploadRes.secure_url
-    }
-    const totalPrice = price
+    
+      const totalPrice = price
 
     //  Create booking
     const booking = await BookingClass.create({
