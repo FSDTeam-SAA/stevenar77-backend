@@ -3,7 +3,7 @@ import catchAsync from '../../utils/catchAsync'
 import sendResponse from '../../utils/sendResponse'
 import AppError from '../../errors/AppError'
 import { StatusCodes } from 'http-status-codes'
-import { About } from './about.model'
+import { About, IAbout } from './about.model'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 
 // ---- Custom type for the expected multer field names ----
@@ -77,43 +77,141 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
 })
 
 // ---- Update ----
+// export const updateAbout = catchAsync(async (req: Request, res: Response) => {
+//   const { id } = req.params
+//   const body = JSON.parse(req.body.data || '{}')
+
+//   const files = req.files as AboutMulterFiles | undefined
+
+//   if (files?.section1Images) {
+//     body.section1 = {
+//       ...body.section1,
+//       images: await processImages(files.section1Images),
+//     }
+//   }
+//   if (files?.section2Images) {
+//     body.section2 = {
+//       ...body.section2,
+//       images: await processImages(files.section2Images),
+//     }
+//   }
+//   if (files?.section3Images) {
+//     body.section3 = {
+//       ...body.section3,
+//       images: await processImages(files.section3Images),
+//     }
+//   }
+//   if (files?.galleryImages) {
+//     body.galleryImages = await processImages(files.galleryImages)
+//   }
+
+//   if (Array.isArray(body.team?.card) && files?.teamImages) {
+//     const teamUploads = await processImages(files.teamImages)
+//     body.team.card.forEach((c: any, idx: number) => {
+//       c.image = teamUploads[idx]
+//     })
+//   }
+
+//   const updated = await About.findByIdAndUpdate(id, body, { new: true })
+//   if (!updated) throw new AppError('About entry not found', 404)
+
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: 'About updated successfully',
+//     data: updated,
+//   })
+// })
+
 export const updateAbout = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const body = JSON.parse(req.body.data || '{}')
-
   const files = req.files as AboutMulterFiles | undefined
 
+  const existing = (await About.findById(id)) as IAbout | null
+  if (!existing) throw new AppError('About entry not found', 404)
+
+  // ---- Section 1 ----
   if (files?.section1Images) {
     body.section1 = {
+      ...(existing.section1?.toObject?.() || existing.section1 || {}),
       ...body.section1,
       images: await processImages(files.section1Images),
     }
+  } else if (body.section1) {
+    // keep old images if none uploaded
+    body.section1 = {
+      ...(existing.section1?.toObject?.() || existing.section1 || {}),
+      ...body.section1,
+      images: existing.section1?.images || [],
+    }
   }
+
+  // ---- Section 2 ----
   if (files?.section2Images) {
     body.section2 = {
+      ...(existing.section2?.toObject?.() || existing.section2 || {}),
       ...body.section2,
       images: await processImages(files.section2Images),
     }
+  } else if (body.section2) {
+    body.section2 = {
+      ...(existing.section2?.toObject?.() || existing.section2 || {}),
+      ...body.section2,
+      images: existing.section2?.images || [],
+    }
   }
+
+  // ---- Section 3 ----
   if (files?.section3Images) {
     body.section3 = {
+      ...(existing.section3?.toObject?.() || existing.section3 || {}),
       ...body.section3,
       images: await processImages(files.section3Images),
     }
+  } else if (body.section3) {
+    body.section3 = {
+      ...(existing.section3?.toObject?.() || existing.section3 || {}),
+      ...body.section3,
+      images: existing.section3?.images || [],
+    }
   }
+
+  // ---- Gallery ----
   if (files?.galleryImages) {
     body.galleryImages = await processImages(files.galleryImages)
+  } else {
+    body.galleryImages = existing.galleryImages || []
   }
 
-  if (Array.isArray(body.team?.card) && files?.teamImages) {
-    const teamUploads = await processImages(files.teamImages)
-    body.team.card.forEach((c: any, idx: number) => {
-      c.image = teamUploads[idx]
-    })
+  // ---- Team ----
+  if (Array.isArray(body.team?.card)) {
+    if (files?.teamImages) {
+      const teamUploads = await processImages(files.teamImages)
+      body.team.card.forEach((c: any, idx: number) => {
+        if (teamUploads[idx]) {
+          c.image = teamUploads[idx]
+        } else if (existing.team?.card?.[idx]?.image) {
+          // preserve old image
+          c.image = existing.team.card[idx].image
+        }
+      })
+    } else {
+      // preserve all old team images
+      body.team.card.forEach((c: any, idx: number) => {
+        if (existing.team?.card?.[idx]?.image) {
+          c.image = existing.team.card[idx].image
+        }
+      })
+    }
   }
 
-  const updated = await About.findByIdAndUpdate(id, body, { new: true })
-  if (!updated) throw new AppError('About entry not found', 404)
+  // ---- Update ----
+  const updated = await About.findByIdAndUpdate(
+    id,
+    { $set: body },
+    { new: true, runValidators: true }
+  )
 
   sendResponse(res, {
     statusCode: 200,
