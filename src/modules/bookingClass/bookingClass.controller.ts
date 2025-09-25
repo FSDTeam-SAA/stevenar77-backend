@@ -331,3 +331,4 @@ export const getBookings = catchAsync(async (req, res) => {
     data: bookings,
   })
 })
+

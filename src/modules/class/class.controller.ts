@@ -36,12 +36,13 @@ export const createClass = catchAsync(async (req, res) => {
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { duration, ...rest } = req.body;
+  const { index, duration, ...rest } = req.body; // include index from payload
 
   const updateData: any = {
     ...rest,
   };
 
+  // ----- Handle file upload -----
   if (req.file) {
     const file = req.file as Express.Multer.File;
     const uploadResult = await uploadToCloudinary(file.path, "classes");
@@ -52,15 +53,41 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     };
   }
 
+  // ----- Handle index logic if provided -----
+  if (index !== undefined) {
+    const currentClass = await Class.findById(id);
+    if (!currentClass) {
+      throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+    }
+
+    const oldIndex = currentClass.index;
+    const newIndex = Number(index);
+
+    if (typeof oldIndex === "number" && oldIndex !== newIndex) {
+      if (newIndex < oldIndex) {
+        // Moving UP: shift other classes down
+        await Class.updateMany(
+          { index: { $gte: newIndex, $lt: oldIndex } },
+          { $inc: { index: 1 } }
+        );
+      } else {
+        // Moving DOWN: shift other classes up
+        await Class.updateMany(
+          { index: { $lte: newIndex, $gt: oldIndex } },
+          { $inc: { index: -1 } }
+        );
+      }
+
+      updateData.index = newIndex; // set the new index for this class
+    }
+  }
+
+  // ----- Update the class -----
   const updatedClass = await Class.findOneAndUpdate(
     { _id: id },
     { $set: updateData },
     { new: true }
   );
-
-  if (!updatedClass) {
-    throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-  }
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -69,6 +96,7 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     data: updatedClass,
   });
 });
+
 
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
