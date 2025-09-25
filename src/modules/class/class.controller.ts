@@ -63,7 +63,7 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     const oldIndex = currentClass.index;
     const newIndex = Number(index);
 
-    if (oldIndex !== newIndex) {
+    if (oldIndex !== undefined && oldIndex !== newIndex) {
       if (newIndex < oldIndex) {
         // Moving UP: shift other classes DOWN
         await Class.updateMany(
