@@ -13,12 +13,7 @@ export interface IUser {
   postalCode: string;
   dateOfBirth: Date;
   role: string;
-  submittedForm:[
-      public_id: string,
-    
-      url:string,
-    
-    ]
+  
   image: {
     public_id: string;
     url: string;

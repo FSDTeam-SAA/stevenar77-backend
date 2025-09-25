@@ -50,16 +50,7 @@ const userSchema = new Schema<IUser>(
         type: String,
       },
     },
-    submittedForm: [
-      {
-        public_id: {
-          type: String,
-        },
-        url: {
-          type: String,
-        },
-      }
-    ],
+    
     isVerified: {
       type: Boolean,
       default: false,

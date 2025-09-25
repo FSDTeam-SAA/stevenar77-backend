@@ -20,7 +20,7 @@ router.get('/all-bookings', auth('admin'), getBookings)
 router.post(
   '/',
   auth('admin', 'user'),
-  upload.single('medicalDocuments'),
+  upload.array('medicalDocuments'),
   createBooking
 )
 

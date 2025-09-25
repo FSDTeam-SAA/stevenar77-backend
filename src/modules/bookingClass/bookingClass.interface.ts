@@ -10,7 +10,7 @@ export interface IBookingClass extends Document {
   lastPhysicalExamination: Date
   fitnessLevel: string
   activityLevelSpecificQuestions: string[]
-  medicalDocuments: string
+  medicalDocuments: string[]
   participant: number
   classDate: Date[] // multiple dates allowed
   totalPrice: number
