@@ -73,72 +73,61 @@ const updateTrip = async (
   payload: Partial<ITrip>,
   files?: any[]
 ) => {
-  // @ts-expect-error: payload.images may be undefined, so we need to handle this case
-  let images: { public_id: string; url: string }[] = payload.images || []
+  let images: { public_id: string; url: string }[] = [];
 
- if (files && files.length > 0) {
-  const uploadPromises = files.map((file) =>
-    uploadToCloudinary(file.path, 'Trips')
-  );
-  const uploadedResults = await Promise.all(uploadPromises);
-
-  images = uploadedResults.map((uploaded) => ({
-    public_id: uploaded.public_id,
-    url: uploaded.secure_url,
-  }));
-
-  // Removed old image deletion logic
-  // if (payload.images && payload.images.length > 0) {
-  //   const oldImagesPublicIds = payload.images.map(
-  //     (img) => img.public_id ?? ''
-  //   );
-  //   await Promise.all(
-  //     oldImagesPublicIds.map((publicId) => deleteFromCloudinary(publicId))
-  //   );
-  // }
-}
-
-   // ----- index logic -----
-// ----- index logic -----
-const trip = await Trip.findById(tripId);
-if (!trip) throw new Error("Trip not found");
-
-if (
-  payload.index !== undefined &&
-  trip.index !== undefined &&
-  payload.index !== trip.index
-) {
-  const oldIndex = trip.index;
-  const newIndex = Number(payload.index);
-
-  if (newIndex < oldIndex) {
-    // Moving UP: shift other trips DOWN
-    await Trip.updateMany(
-      { _id: { $ne: tripId }, index: { $gte: newIndex, $lt: oldIndex } },
-      { $inc: { index: 1 } }
+  // ----- Handle new image uploads -----
+  if (files && files.length > 0) {
+    const uploadResults = await Promise.all(
+      files.map((file) => uploadToCloudinary(file.path, 'Trips'))
     );
-  } else if (newIndex > oldIndex) {
-    // Moving DOWN: shift other trips UP
-    await Trip.updateMany(
-      { _id: { $ne: tripId }, index: { $gt: oldIndex, $lte: newIndex } },
-      { $inc: { index: -1 } }
-    );
+
+    images = uploadResults.map((uploaded) => ({
+      public_id: uploaded.public_id,
+      url: uploaded.secure_url,
+    }));
   }
 
-  // Set the moving trip index LAST
-  trip.index = newIndex;
-  await trip.save();
-}
+  // ----- Index logic -----
+  const trip = await Trip.findById(tripId);
+  if (!trip) throw new Error("Trip not found");
 
+  if (
+    payload.index !== undefined &&
+    trip.index !== undefined &&
+    payload.index !== trip.index
+  ) {
+    const oldIndex = trip.index;
+    const newIndex = Number(payload.index);
 
-  const updatedTrip = await Trip.findByIdAndUpdate(
-    tripId,
-    { ...payload, images },
-    { new: true }
-  )
+    if (newIndex < oldIndex) {
+      await Trip.updateMany(
+        { _id: { $ne: tripId }, index: { $gte: newIndex, $lt: oldIndex } },
+        { $inc: { index: 1 } }
+      );
+    } else if (newIndex > oldIndex) {
+      await Trip.updateMany(
+        { _id: { $ne: tripId }, index: { $gt: oldIndex, $lte: newIndex } },
+        { $inc: { index: -1 } }
+      );
+    }
 
-  return updatedTrip
-}
+    trip.index = newIndex;
+    await trip.save();
+  }
+
+  // ----- Prepare update object -----
+  const updateData: Partial<ITrip> = { ...payload };
+  if (images.length > 0) {
+    updateData.images = images; // only update if new images exist
+  }
+
+  const updatedTrip = await Trip.findByIdAndUpdate(tripId, updateData, {
+    new: true,
+  });
+
+  return updatedTrip;
+};
+
 
 const deleteTrip = async (tripId: string) => {
   // ✅ use lowercase variable name
