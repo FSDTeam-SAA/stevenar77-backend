@@ -36,7 +36,7 @@ export const createClass = catchAsync(async (req, res) => {
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { index, duration, ...rest } = req.body; 
+  const { index, duration, ...rest } = req.body;
 
   const updateData: any = {
     ...rest,
@@ -63,30 +63,29 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     const oldIndex = currentClass.index;
     const newIndex = Number(index);
 
-    if (typeof oldIndex === "number" && oldIndex !== newIndex) {
+    if (oldIndex !== newIndex) {
       if (newIndex < oldIndex) {
-        // Moving UP: shift other classes down
+        // Moving UP: shift other classes DOWN
         await Class.updateMany(
-          { _id: { $ne: id }, index: { $lte: newIndex, $gt: oldIndex } },
-
+          { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
           { $inc: { index: 1 } }
         );
       } else {
-        // Moving DOWN: shift other classes up
+        // Moving DOWN: shift other classes UP
         await Class.updateMany(
-         { _id: { $ne: id }, index: { $lte: newIndex, $gt: oldIndex } }
-,
+          { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
           { $inc: { index: -1 } }
         );
       }
 
-      updateData.index = newIndex; // set the new index for this class
+      // Set the moving class index LAST
+      updateData.index = newIndex;
     }
   }
 
   // ----- Update the class -----
-  const updatedClass = await Class.findOneAndUpdate(
-    { _id: id },
+  const updatedClass = await Class.findByIdAndUpdate(
+    id,
     { $set: updateData },
     { new: true }
   );

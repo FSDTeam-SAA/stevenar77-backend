@@ -98,31 +98,36 @@ const updateTrip = async (
   }
 
    // ----- index logic -----
-  const trip = await Trip.findById(tripId)
-  if (!trip) throw new Error("Trip not found")
+// ----- index logic -----
+const trip = await Trip.findById(tripId);
+if (!trip) throw new Error("Trip not found");
 
-  if (
-    payload.index !== undefined &&
-    trip.index !== undefined &&
-    payload.index !== trip.index
-  ) {
-    const oldIndex = trip.index
-    const newIndex = payload.index
+if (
+  payload.index !== undefined &&
+  trip.index !== undefined &&
+  payload.index !== trip.index
+) {
+  const oldIndex = trip.index;
+  const newIndex = Number(payload.index);
 
-    if (newIndex < oldIndex) {
-      // Moving UP: shift everything down
-      await Trip.updateMany(
-        { index: { $gte: newIndex, $lt: oldIndex } },
-        { $inc: { index: 1 } }
-      )
-    } else if (newIndex > oldIndex) {
-      // Moving DOWN: shift everything up
-      await Trip.updateMany(
-        { index: { $lte: newIndex, $gt: oldIndex } },
-        { $inc: { index: -1 } }
-      )
-    }
+  if (newIndex < oldIndex) {
+    // Moving UP: shift other trips DOWN
+    await Trip.updateMany(
+      { _id: { $ne: tripId }, index: { $gte: newIndex, $lt: oldIndex } },
+      { $inc: { index: 1 } }
+    );
+  } else if (newIndex > oldIndex) {
+    // Moving DOWN: shift other trips UP
+    await Trip.updateMany(
+      { _id: { $ne: tripId }, index: { $gt: oldIndex, $lte: newIndex } },
+      { $inc: { index: -1 } }
+    );
   }
+
+  // Set the moving trip index LAST
+  trip.index = newIndex;
+  await trip.save();
+}
 
 
   const updatedTrip = await Trip.findByIdAndUpdate(
