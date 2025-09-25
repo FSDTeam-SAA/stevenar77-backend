@@ -67,13 +67,15 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
       if (newIndex < oldIndex) {
         // Moving UP: shift other classes down
         await Class.updateMany(
-          { index: { $gte: newIndex, $lt: oldIndex } },
+          { _id: { $ne: id }, index: { $lte: newIndex, $gt: oldIndex } },
+
           { $inc: { index: 1 } }
         );
       } else {
         // Moving DOWN: shift other classes up
         await Class.updateMany(
-          { index: { $lte: newIndex, $gt: oldIndex } },
+         { _id: { $ne: id }, index: { $lte: newIndex, $gt: oldIndex } }
+,
           { $inc: { index: -1 } }
         );
       }
