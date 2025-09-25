@@ -76,26 +76,27 @@ const updateTrip = async (
   // @ts-expect-error: payload.images may be undefined, so we need to handle this case
   let images: { public_id: string; url: string }[] = payload.images || []
 
-  if (files && files.length > 0) {
-    const uploadPromises = files.map((file) =>
-      uploadToCloudinary(file.path, 'Trips')
-    )
-    const uploadedResults = await Promise.all(uploadPromises)
+ if (files && files.length > 0) {
+  const uploadPromises = files.map((file) =>
+    uploadToCloudinary(file.path, 'Trips')
+  );
+  const uploadedResults = await Promise.all(uploadPromises);
 
-    images = uploadedResults.map((uploaded) => ({
-      public_id: uploaded.public_id,
-      url: uploaded.secure_url,
-    }))
+  images = uploadedResults.map((uploaded) => ({
+    public_id: uploaded.public_id,
+    url: uploaded.secure_url,
+  }));
 
-    if (payload.images && payload.images.length > 0) {
-      const oldImagesPublicIds = payload.images.map(
-        (img) => img.public_id ?? ''
-      )
-      await Promise.all(
-        oldImagesPublicIds.map((publicId) => deleteFromCloudinary(publicId))
-      )
-    }
-  }
+  // Removed old image deletion logic
+  // if (payload.images && payload.images.length > 0) {
+  //   const oldImagesPublicIds = payload.images.map(
+  //     (img) => img.public_id ?? ''
+  //   );
+  //   await Promise.all(
+  //     oldImagesPublicIds.map((publicId) => deleteFromCloudinary(publicId))
+  //   );
+  // }
+}
 
    // ----- index logic -----
 // ----- index logic -----
