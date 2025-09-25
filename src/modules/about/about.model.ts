@@ -15,16 +15,19 @@ interface ITeamCard {
 
 export interface IAbout extends Document {
   section1: {
+    [x: string]: any
     title: string
     description: string
     images: { public_id: string; url: string }[]
   }
   section2: {
+    [x: string]: any
     title: string
     description: string
     images: { public_id: string; url: string }[]
   }
   section3: {
+    [x: string]: any
     title: string
     description: string
     images: { public_id: string; url: string }[]
