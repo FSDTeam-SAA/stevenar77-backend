@@ -36,7 +36,7 @@ export const createClass = catchAsync(async (req, res) => {
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { index, duration, ...rest } = req.body; // include index from payload
+  const { index, duration, ...rest } = req.body; 
 
   const updateData: any = {
     ...rest,
