@@ -26,6 +26,10 @@ const SocialSchema: Schema = new Schema(
       required: true,
       unique: true, // Make email unique
     },
+    number: {
+      type: String,
+      required: true,
+    }
   },
   { timestamps: true }
 )
