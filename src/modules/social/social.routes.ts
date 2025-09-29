@@ -6,6 +6,10 @@ import {
   updateSocialProfile,
   deleteSocialProfile,
 } from './social.controller'
+import auth from '../../middleware/auth'
+
+
+
 
 const router = Router()
 
