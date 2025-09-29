@@ -14,6 +14,7 @@ import dashboardRouter from "../modules/dashboard/dashboard.router";
 import notificationRouter from "../modules/notification/notification.route";
 import shopRouter from "../modules/product/product.router";
 import aboutRouter from "../modules/about/about.route";
+import socialRouter from "../modules/social/social.routes";
 
 const router = Router();
 
@@ -77,6 +78,10 @@ const moduleRoutes = [
   {
     path: '/about',
     route: aboutRouter,
+  },
+  {
+    path: "/social",
+    route: socialRouter,
   }
 ]
 
