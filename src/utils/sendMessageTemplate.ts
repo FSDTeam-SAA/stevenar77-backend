@@ -3,12 +3,14 @@ import { companyName } from "../lib/globalType";
 interface MessageTemplateProps {
   email: string;
   subject: string;
+  phone: string;
   message: string;
 }
 
 const sendMessageTemplate = ({
   email,
   subject,
+  phone,
   message,
 }: MessageTemplateProps): string => {
   return `
@@ -26,6 +28,11 @@ const sendMessageTemplate = ({
             <span style="color: #111827; font-size: 15px;">${email}</span>
           </div>
           
+          <div style="margin-bottom: 16px;">
+            <strong style="display: block; color: #374151; font-size: 14px; margin-bottom: 4px;">Phone:</strong>
+            <span style="color: #111827; font-size: 15px;">${phone}</span>
+          </div>
+
           <div style="margin-bottom: 16px;">
             <strong style="display: block; color: #374151; font-size: 14px; margin-bottom: 4px;">Subject:</strong>
             <span style="color: #111827; font-size: 15px;">${subject}</span>
