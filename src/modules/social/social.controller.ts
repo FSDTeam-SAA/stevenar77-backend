@@ -8,7 +8,7 @@ import { StatusCodes } from 'http-status-codes'
 // Create Social Profile
 export const createSocialProfile = catchAsync(
   async (req: Request, res: Response) => {
-    const { facebook, instagram, location, email } = req.body
+    const { facebook, instagram, location, email, number } = req.body
 
     // Check if the email already exists
     const existingProfile = await Social.findOne({ email })
