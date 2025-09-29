@@ -39,6 +39,7 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { index, duration, ...rest } = req.body;
 
   const updateData: any = {
+    duration,
     ...rest,
   };
 
@@ -98,7 +99,6 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
@@ -110,11 +110,7 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
 
   const [total, classes] = await Promise.all([
     Class.countDocuments(filter),
-    Class.find(filter)
-    .sort({ index: 1 })
-    .skip(skip)
-    .limit(limit)
-      
+    Class.find(filter).sort({ index: 1 }).skip(skip).limit(limit),
   ]);
 
   sendResponse<IClass[]>(res, {
@@ -130,7 +126,6 @@ export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
-
 
 export const deleteClass = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
