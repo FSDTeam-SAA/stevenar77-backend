@@ -24,7 +24,15 @@ router.post(
 )
 router.get('/', getAllClasses)
 router.get('/:id', getClassById)
-router.put('/update/:id', upload.single('image'), updateClass)
+// router.put('/update/:id', upload.single('image'), updateClass)
+router.put(
+  '/update/:id',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdfFiles', maxCount: 10 },
+  ]),
+  updateClass
+)
 router.put('/update-status/:id', auth(USER_ROLE.ADMIN), toggleCourseStatus)
 router.delete('/delete/:id', deleteClass)
 
