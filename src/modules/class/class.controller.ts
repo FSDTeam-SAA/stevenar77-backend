@@ -7,57 +7,6 @@ import { IClass } from './class.interface'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 import { StatusCodes } from 'http-status-codes'
 
-// export const createClass = catchAsync(async (req, res) => {
-//   const files = req.files as {
-//     image?: Express.Multer.File[]
-//     pdfFiles?: Express.Multer.File[]
-//   }
-//   const { duration, ...rest } = req.body
-
-//   // Check if image exists
-//   if (!files.image || files.image.length === 0) {
-//     throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
-//   }
-
-//   // Upload image to Cloudinary
-//   const imageUploadResult = await uploadToCloudinary(
-//     files.image[0].path,
-//     'classes'
-//   )
-
-//   // Upload PDF files to Cloudinary if they exist
-//   let pdfFilesUploadResults: any = []
-//   if (files.pdfFiles && files.pdfFiles.length > 0) {
-//     pdfFilesUploadResults = await Promise.all(
-//       files.pdfFiles.map(async (file) => {
-//         const result = await uploadToCloudinary(file.path, 'classes/pdfs')
-//         return {
-//           fileType: file.mimetype,
-//           public_id: result.public_id,
-//           url: result.secure_url,
-//         }
-//       })
-//     )
-//   }
-
-//   const result = await Class.create({
-//     ...rest,
-//     duration,
-//     image: {
-//       public_id: imageUploadResult.public_id,
-//       url: imageUploadResult.secure_url,
-//     },
-//     pdfFiles: pdfFilesUploadResults,
-//   })
-
-//   sendResponse(res, {
-//     statusCode: StatusCodes.CREATED,
-//     success: true,
-//     message: 'Class created successfully',
-//     data: result,
-//   })
-// })
-
 export const createClass = catchAsync(async (req, res) => {
   const files = req.files as {
     image?: Express.Multer.File[]
@@ -144,24 +93,144 @@ export const createClass = catchAsync(async (req, res) => {
   })
 })
 
+// export const updateClass = catchAsync(async (req: Request, res: Response) => {
+//   const { id } = req.params
+//   const { index, duration, ...rest } = req.body
+
+//   const updateData: any = {
+//     duration,
+//     ...rest,
+//   }
+
+//   // ----- Handle file upload -----
+//   if (req.file) {
+//     const file = req.file as Express.Multer.File
+//     const uploadResult = await uploadToCloudinary(file.path, 'classes')
+
+//     updateData.image = {
+//       public_id: uploadResult.public_id,
+//       url: uploadResult.secure_url,
+//     }
+//   }
+
+//   // ----- Handle index logic if provided -----
+//   if (index !== undefined) {
+//     const currentClass = await Class.findById(id)
+//     if (!currentClass) {
+//       throw new AppError('Class not found', StatusCodes.NOT_FOUND)
+//     }
+
+//     const oldIndex = currentClass.index
+//     const newIndex = Number(index)
+
+//     if (oldIndex !== undefined && oldIndex !== newIndex) {
+//       if (newIndex < oldIndex) {
+//         // Moving UP: shift other classes DOWN
+//         await Class.updateMany(
+//           { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
+//           { $inc: { index: 1 } }
+//         )
+//       } else {
+//         // Moving DOWN: shift other classes UP
+//         await Class.updateMany(
+//           { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
+//           { $inc: { index: -1 } }
+//         )
+//       }
+
+//       // Set the moving class index LAST
+//       updateData.index = newIndex
+//     }
+//   }
+
+//   // ----- Update the class -----
+//   const updatedClass = await Class.findByIdAndUpdate(
+//     id,
+//     { $set: updateData },
+//     { new: true }
+//   )
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: 'Class updated successfully',
+//     data: updatedClass,
+//   })
+// })
+
+
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const { index, duration, ...rest } = req.body
+  const files = req.files as {
+    image?: Express.Multer.File[]
+    pdfFiles?: Express.Multer.File[]
+  }
+  const { index, duration, pdfFileTypes, ...rest } = req.body
 
   const updateData: any = {
     duration,
     ...rest,
   }
 
-  // ----- Handle file upload -----
-  if (req.file) {
-    const file = req.file as Express.Multer.File
+  // ----- Handle image upload if provided -----
+  if (files.image && files.image.length > 0) {
+    const file = files.image[0]
     const uploadResult = await uploadToCloudinary(file.path, 'classes')
 
     updateData.image = {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url,
     }
+
+    // Optional: Delete old image from Cloudinary
+    // const oldClass = await Class.findById(id);
+    // if (oldClass?.image?.public_id) {
+    //   await deleteFromCloudinary(oldClass.image.public_id);
+    // }
+  }
+
+  // ----- Handle PDF files upload if provided -----
+  if (files.pdfFiles && files.pdfFiles.length > 0) {
+    // Parse pdfFileTypes if provided
+    let parsedPdfFileTypes: string[] = []
+    if (pdfFileTypes) {
+      try {
+        parsedPdfFileTypes = JSON.parse(pdfFileTypes)
+      } catch (error) {
+        throw new AppError(
+          'Invalid pdfFileTypes format',
+          StatusCodes.BAD_REQUEST
+        )
+      }
+    }
+
+    // Check if number of files matches number of fileTypes
+    if (parsedPdfFileTypes.length !== files.pdfFiles.length) {
+      throw new AppError(
+        'Number of PDF files and file types must match',
+        StatusCodes.BAD_REQUEST
+      )
+    }
+
+    // Upload new PDF files to Cloudinary
+    const pdfFilesUploadResults = await Promise.all(
+      files.pdfFiles.map(async (file, index) => {
+        const result = await uploadToCloudinary(file.path, 'classes/pdfs')
+        return {
+          fileType: parsedPdfFileTypes[index],
+          public_id: result.public_id,
+          url: result.secure_url,
+        }
+      })
+    )
+
+    // Option 1: Replace all PDF files
+    updateData.pdfFiles = pdfFilesUploadResults
+
+    // Option 2: Append to existing PDF files (uncomment if you prefer this)
+    const existingClass = await Class.findById(id);
+    const existingPdfFiles = existingClass?.pdfFiles || [];
+    updateData.pdfFiles = [...existingPdfFiles, ...pdfFilesUploadResults];
   }
 
   // ----- Handle index logic if provided -----
@@ -198,8 +267,12 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const updatedClass = await Class.findByIdAndUpdate(
     id,
     { $set: updateData },
-    { new: true }
+    { new: true, runValidators: true }
   )
+
+  if (!updatedClass) {
+    throw new AppError('Class not found', StatusCodes.NOT_FOUND)
+  }
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -208,6 +281,8 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     data: updatedClass,
   })
 })
+
+
 
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1
