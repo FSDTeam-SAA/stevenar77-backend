@@ -99,11 +99,29 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     image?: Express.Multer.File[]
     pdfFiles?: Express.Multer.File[]
   }
-  const { index, duration, pdfFileTypes, classDates, ...rest } = req.body
+  const { index, duration, pdfFileTypes, classDates, price, ...rest } = req.body
 
   const updateData: any = {
     duration,
     ...rest,
+  }
+
+  // ----- Handle price parsing -----
+  if (price) {
+    try {
+      const parsed = typeof price === 'string' ? JSON.parse(price) : price
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('price must be an array of numbers')
+      }
+
+      updateData.price = parsed.map((p: any) => Number(p))
+    } catch (err) {
+      throw new AppError(
+        'Invalid price format. Must be a JSON array of numbers.',
+        StatusCodes.BAD_REQUEST
+      )
+    }
   }
 
   // ----- Handle classDates parsing -----
@@ -174,10 +192,10 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     // Replace all existing PDF files
     updateData.pdfFiles = pdfFilesUploadResults
 
-    // Or append to existing files (uncomment this if you want append instead of replace)
-    const existingClass = await Class.findById(id);
-    const existingPdfFiles = existingClass?.pdfFiles || [];
-    updateData.pdfFiles = [...existingPdfFiles, ...pdfFilesUploadResults];
+    // Or append to existing files
+    const existingClass = await Class.findById(id)
+    const existingPdfFiles = existingClass?.pdfFiles || []
+    updateData.pdfFiles = [...existingPdfFiles, ...pdfFilesUploadResults]
   }
 
   // ----- Handle index logic if provided -----
