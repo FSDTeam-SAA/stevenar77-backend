@@ -26,7 +26,7 @@ const SocialSchema: Schema = new Schema(
       required: true,
       unique: true, // Make email unique
     },
-    number: {
+    phoneNumber: {
       type: String,
       required: true,
     }
