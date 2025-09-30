@@ -19,6 +19,13 @@ const classSchema = new Schema<IClass>(
     isActive: { type: Boolean, default: true },
     classDates: [{ type: Date, required: true }],
     index:{type:Number,required:true},
+    pdfFiles: [
+      {
+        fileType: { type: String },
+        public_id: { type: String },
+        url: { type: String },
+      }
+    ]
 
   },
   {

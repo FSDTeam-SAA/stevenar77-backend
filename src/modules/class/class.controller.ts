@@ -1,68 +1,178 @@
-import { Request, Response, NextFunction } from "express";
-import { Class } from "./class.model";
-import catchAsync from "../../utils/catchAsync";
-import sendResponse from "../../utils/sendResponse";
-import AppError from "../../errors/AppError";
-import { IClass } from "./class.interface";
-import { uploadToCloudinary } from "../../utils/cloudinary";
-import { StatusCodes } from "http-status-codes";
+import { Request, Response, NextFunction } from 'express'
+import { Class } from './class.model'
+import catchAsync from '../../utils/catchAsync'
+import sendResponse from '../../utils/sendResponse'
+import AppError from '../../errors/AppError'
+import { IClass } from './class.interface'
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import { StatusCodes } from 'http-status-codes'
+
+// export const createClass = catchAsync(async (req, res) => {
+//   const files = req.files as {
+//     image?: Express.Multer.File[]
+//     pdfFiles?: Express.Multer.File[]
+//   }
+//   const { duration, ...rest } = req.body
+
+//   // Check if image exists
+//   if (!files.image || files.image.length === 0) {
+//     throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
+//   }
+
+//   // Upload image to Cloudinary
+//   const imageUploadResult = await uploadToCloudinary(
+//     files.image[0].path,
+//     'classes'
+//   )
+
+//   // Upload PDF files to Cloudinary if they exist
+//   let pdfFilesUploadResults: any = []
+//   if (files.pdfFiles && files.pdfFiles.length > 0) {
+//     pdfFilesUploadResults = await Promise.all(
+//       files.pdfFiles.map(async (file) => {
+//         const result = await uploadToCloudinary(file.path, 'classes/pdfs')
+//         return {
+//           fileType: file.mimetype,
+//           public_id: result.public_id,
+//           url: result.secure_url,
+//         }
+//       })
+//     )
+//   }
+
+//   const result = await Class.create({
+//     ...rest,
+//     duration,
+//     image: {
+//       public_id: imageUploadResult.public_id,
+//       url: imageUploadResult.secure_url,
+//     },
+//     pdfFiles: pdfFilesUploadResults,
+//   })
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.CREATED,
+//     success: true,
+//     message: 'Class created successfully',
+//     data: result,
+//   })
+// })
 
 export const createClass = catchAsync(async (req, res) => {
-  const file = req.file as Express.Multer.File;
-  const { duration, ...rest } = req.body;
-
-  if (!file) {
-    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
+  const files = req.files as {
+    image?: Express.Multer.File[]
+    pdfFiles?: Express.Multer.File[]
   }
 
-  const uploadResult = await uploadToCloudinary(file.path, "classes");
+  const { duration, pdfFileTypes, price, courseIncludes, classDates, ...rest } =
+    req.body
+
+  // Check if image exists
+  if (!files.image || files.image.length === 0) {
+    throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
+  }
+
+  // Upload image to Cloudinary
+  const imageUploadResult = await uploadToCloudinary(
+    files.image[0].path,
+    'classes'
+  )
+
+  // Parse pdfFileTypes if provided
+  let parsedPdfFileTypes: string[] = []
+  if (pdfFileTypes) {
+    try {
+      parsedPdfFileTypes = JSON.parse(pdfFileTypes)
+    } catch (error) {
+      throw new AppError('Invalid pdfFileTypes format', StatusCodes.BAD_REQUEST)
+    }
+  }
+
+  // Upload PDF files to Cloudinary if they exist
+  let pdfFilesUploadResults: any[] = []
+  if (files.pdfFiles && files.pdfFiles.length > 0) {
+    if (parsedPdfFileTypes.length !== files.pdfFiles.length) {
+      throw new AppError(
+        'Number of PDF files and file types must match',
+        StatusCodes.BAD_REQUEST
+      )
+    }
+
+    pdfFilesUploadResults = await Promise.all(
+      files.pdfFiles.map(async (file, index) => {
+        const result = await uploadToCloudinary(file.path, 'classes/pdfs')
+        return {
+          fileType: parsedPdfFileTypes[index],
+          public_id: result.public_id,
+          url: result.secure_url,
+        }
+      })
+    )
+  }
+
+  // ✅ Parse JSON-string fields safely
+  let parsedPrice: number[] = []
+  let parsedCourseIncludes: string[] = []
+  let parsedClassDates: Date[] = []
+
+  try {
+    if (price) parsedPrice = JSON.parse(price)
+    if (courseIncludes) parsedCourseIncludes = JSON.parse(courseIncludes)
+    if (classDates) parsedClassDates = JSON.parse(classDates)
+  } catch (error) {
+    throw new AppError('Invalid JSON format in fields', StatusCodes.BAD_REQUEST)
+  }
 
   const result = await Class.create({
     ...rest,
     duration,
+    price: parsedPrice,
+    courseIncludes: parsedCourseIncludes,
+    classDates: parsedClassDates,
     image: {
-      public_id: uploadResult.public_id,
-      url: uploadResult.secure_url,
+      public_id: imageUploadResult.public_id,
+      url: imageUploadResult.secure_url,
     },
-  });
+    pdfFiles: pdfFilesUploadResults,
+  })
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: "Class created successfully",
+    message: 'Class created successfully',
     data: result,
-  });
-});
+  })
+})
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { index, duration, ...rest } = req.body;
+  const { id } = req.params
+  const { index, duration, ...rest } = req.body
 
   const updateData: any = {
     duration,
     ...rest,
-  };
+  }
 
   // ----- Handle file upload -----
   if (req.file) {
-    const file = req.file as Express.Multer.File;
-    const uploadResult = await uploadToCloudinary(file.path, "classes");
+    const file = req.file as Express.Multer.File
+    const uploadResult = await uploadToCloudinary(file.path, 'classes')
 
     updateData.image = {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url,
-    };
+    }
   }
 
   // ----- Handle index logic if provided -----
   if (index !== undefined) {
-    const currentClass = await Class.findById(id);
+    const currentClass = await Class.findById(id)
     if (!currentClass) {
-      throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+      throw new AppError('Class not found', StatusCodes.NOT_FOUND)
     }
 
-    const oldIndex = currentClass.index;
-    const newIndex = Number(index);
+    const oldIndex = currentClass.index
+    const newIndex = Number(index)
 
     if (oldIndex !== undefined && oldIndex !== newIndex) {
       if (newIndex < oldIndex) {
@@ -70,17 +180,17 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
         await Class.updateMany(
           { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
           { $inc: { index: 1 } }
-        );
+        )
       } else {
         // Moving DOWN: shift other classes UP
         await Class.updateMany(
           { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
           { $inc: { index: -1 } }
-        );
+        )
       }
 
       // Set the moving class index LAST
-      updateData.index = newIndex;
+      updateData.index = newIndex
     }
   }
 
@@ -89,95 +199,94 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     id,
     { $set: updateData },
     { new: true }
-  );
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Class updated successfully",
+    message: 'Class updated successfully',
     data: updatedClass,
-  });
-});
+  })
+})
 
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = req.query.limit ? Number(req.query.limit) : 0;
-  const skip = limit > 0 ? (page - 1) * limit : 0;
+  const page = Number(req.query.page) || 1
+  const limit = req.query.limit ? Number(req.query.limit) : 0
+  const skip = limit > 0 ? (page - 1) * limit : 0
 
-  const isAdmin = req.query.isAdmin === "true"; // check query param
-  const filter = isAdmin ? {} : { isActive: true };
+  const isAdmin = req.query.isAdmin === 'true' // check query param
+  const filter = isAdmin ? {} : { isActive: true }
 
   const [total, classes] = await Promise.all([
     Class.countDocuments(filter),
     (() => {
-      const query = Class.find(filter).sort({ index: 1 }).skip(skip);
-      return limit > 0 ? query.limit(limit) : query;
+      const query = Class.find(filter).sort({ index: 1 }).skip(skip)
+      return limit > 0 ? query.limit(limit) : query
     })(),
-  ]);
+  ])
 
   sendResponse<IClass[]>(res, {
     statusCode: 200,
     success: true,
-    message: "Classes fetched successfully",
+    message: 'Classes fetched successfully',
     data: classes,
     meta: {
-      limit: limit || total, 
+      limit: limit || total,
       page: limit > 0 ? page : 1,
       total,
       totalPage: limit > 0 ? Math.ceil(total / limit) : 1,
     },
-  });
-});
-
+  })
+})
 
 export const deleteClass = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+    const { id } = req.params
 
-    const deletedClass = await Class.findByIdAndDelete(id);
+    const deletedClass = await Class.findByIdAndDelete(id)
     if (!deletedClass) {
-      return next(new AppError("Class not found", 404));
+      return next(new AppError('Class not found', 404))
     }
 
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Class deleted successfully",
-    });
+      message: 'Class deleted successfully',
+    })
   }
-);
+)
 
 export const getClassById = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const isExist = await Class.findById(id);
+  const { id } = req.params
+  const isExist = await Class.findById(id)
   if (!isExist) {
-    throw new AppError("Class not found", 404);
+    throw new AppError('Class not found', 404)
   }
-  const singleClass = await Class.findById(id);
+  const singleClass = await Class.findById(id)
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Class fetched successfully",
+    message: 'Class fetched successfully',
     data: singleClass,
-  });
-});
+  })
+})
 
 export const toggleCourseStatus = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const isExist = await Class.findById(id);
+  const { id } = req.params
+  const isExist = await Class.findById(id)
   if (!isExist) {
-    throw new AppError("Class not found", 404);
+    throw new AppError('Class not found', 404)
   }
 
   await Class.findOneAndUpdate(
     { _id: id },
     { $set: { isActive: !isExist.isActive } },
     { new: true }
-  );
+  )
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Class status updated successfully",
-  });
-});
+    message: 'Class status updated successfully',
+  })
+})
