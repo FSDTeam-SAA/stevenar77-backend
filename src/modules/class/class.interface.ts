@@ -12,4 +12,8 @@ export interface IClass {
   isActive?: boolean
   classDates?: Date
   index?:number
+  formTitle?:string[]
+  maxAge:number
+  minAge:number
+  location:string
 }
