@@ -19,7 +19,7 @@ const classSchema = new Schema<IClass>(
     isActive: { type: Boolean, default: true },
     classDates: [{ type: Date, required: true }],
     index:{type:Number,required:true},
-    formTitle: [ {type: [String]} ],
+    formTitle: [ {type: String} ],
     maxAge:{type:Number},
     minAge:{type:Number},
     location:{type:String}
