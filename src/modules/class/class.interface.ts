@@ -11,6 +11,9 @@ export interface IClass {
   totalParticipates: number
   isActive?: boolean
   classDates?: Date
-  index?: number
-  pdfFiles?: { fileType: string; public_id: string; url: string }[]
+  index?:number
+  formTitle?:string[]
+  maxAge:number
+  minAge:number
+  location:string
 }

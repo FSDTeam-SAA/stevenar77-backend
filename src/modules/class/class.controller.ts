@@ -8,76 +8,40 @@ import { uploadToCloudinary } from '../../utils/cloudinary'
 import { StatusCodes } from 'http-status-codes'
 
 export const createClass = catchAsync(async (req, res) => {
-  const files = req.files as {
-    image?: Express.Multer.File[]
-    pdfFiles?: Express.Multer.File[]
+  const file = req.file as Express.Multer.File;
+  const { index, duration, ...rest } = req.body;
+
+  if (!file) {
+    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
   }
 
-  const { duration, pdfFileTypes, price, courseIncludes, classDates, ...rest } =
-    req.body
+  // Upload to Cloudinary
+  const uploadResult = await uploadToCloudinary(file.path, "classes");
 
-  // Check if image exists
-  if (!files.image || files.image.length === 0) {
-    throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
+  // ----- Handle index logic -----
+  let insertIndex: number;
+
+  if (index !== undefined) {
+    const newIndex = Number(index);
+
+    // Shift classes >= newIndex
+    await Class.updateMany(
+      { index: { $gte: newIndex } },
+      { $inc: { index: 1 } }
+    );
+
+    insertIndex = newIndex;
+  } else {
+    // If no index provided, append at the end
+    const maxIndexClass = await Class.findOne().sort({ index: -1 });
+    insertIndex = maxIndexClass ? ((maxIndexClass.index ?? 0) + 1) : 1;
   }
 
-  // Upload image to Cloudinary
-  const imageUploadResult = await uploadToCloudinary(
-    files.image[0].path,
-    'classes'
-  )
-
-  // Parse pdfFileTypes if provided
-  let parsedPdfFileTypes: string[] = []
-  if (pdfFileTypes) {
-    try {
-      parsedPdfFileTypes = JSON.parse(pdfFileTypes)
-    } catch (error) {
-      throw new AppError('Invalid pdfFileTypes format', StatusCodes.BAD_REQUEST)
-    }
-  }
-
-  // Upload PDF files to Cloudinary if they exist
-  let pdfFilesUploadResults: any[] = []
-  if (files.pdfFiles && files.pdfFiles.length > 0) {
-    if (parsedPdfFileTypes.length !== files.pdfFiles.length) {
-      throw new AppError(
-        'Number of PDF files and file types must match',
-        StatusCodes.BAD_REQUEST
-      )
-    }
-
-    pdfFilesUploadResults = await Promise.all(
-      files.pdfFiles.map(async (file, index) => {
-        const result = await uploadToCloudinary(file.path, 'classes/pdfs')
-        return {
-          fileType: parsedPdfFileTypes[index],
-          public_id: result.public_id,
-          url: result.secure_url,
-        }
-      })
-    )
-  }
-
-  // ✅ Parse JSON-string fields safely
-  let parsedPrice: number[] = []
-  let parsedCourseIncludes: string[] = []
-  let parsedClassDates: Date[] = []
-
-  try {
-    if (price) parsedPrice = JSON.parse(price)
-    if (courseIncludes) parsedCourseIncludes = JSON.parse(courseIncludes)
-    if (classDates) parsedClassDates = JSON.parse(classDates)
-  } catch (error) {
-    throw new AppError('Invalid JSON format in fields', StatusCodes.BAD_REQUEST)
-  }
-
+  // ----- Create new class -----
   const result = await Class.create({
     ...rest,
     duration,
-    price: parsedPrice,
-    courseIncludes: parsedCourseIncludes,
-    classDates: parsedClassDates,
+    index: insertIndex,
     image: {
       public_id: imageUploadResult.public_id,
       url: imageUploadResult.secure_url,
@@ -92,6 +56,7 @@ export const createClass = catchAsync(async (req, res) => {
     data: result,
   })
 })
+
 
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
