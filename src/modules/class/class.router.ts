@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express'
 import {
   createClass,
   updateClass,
@@ -6,19 +6,35 @@ import {
   deleteClass,
   getClassById,
   toggleCourseStatus,
-} from "./class.controller";
-import { upload } from "../../middleware/multer.middleware";
-import auth from "../../middleware/auth";
-import { USER_ROLE } from "../user/user.constant";
+} from './class.controller'
+import { upload } from '../../middleware/multer.middleware'
+import auth from '../../middleware/auth'
+import { USER_ROLE } from '../user/user.constant'
 
-const router = Router();
+const router = Router()
 
-router.post("/", upload.single("image"), createClass);
-router.get("/", getAllClasses);
-router.get("/:id", getClassById);
-router.put("/update/:id", upload.single("image"), updateClass);
-router.put("/update-status/:id", auth(USER_ROLE.ADMIN), toggleCourseStatus);
-router.delete("/delete/:id", deleteClass);
+// router.post("/", upload.single("image"), createClass);
+router.post(
+  '/',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdfFiles', maxCount: 10 },
+  ]),
+  createClass
+)
+router.get('/', getAllClasses)
+router.get('/:id', getClassById)
+// router.put('/update/:id', upload.single('image'), updateClass)
+router.put(
+  '/update/:id',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'pdfFiles', maxCount: 10 },
+  ]),
+  updateClass
+)
+router.put('/update-status/:id', auth(USER_ROLE.ADMIN), toggleCourseStatus)
+router.delete('/delete/:id', deleteClass)
 
-const classRouter = router;
-export default classRouter;
+const classRouter = router
+export default classRouter
