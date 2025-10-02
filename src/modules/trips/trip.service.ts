@@ -6,42 +6,67 @@ import Trip from './trip.model'
 import { ITrip } from './trips.interface'
 
 const createTrip = async (payload: ITrip, files: any[]) => {
-  let images: { public_id: string; url: string }[] = []
+  let images: { public_id: string; url: string }[] = [];
 
+  const { index, ...rest } = payload; // ✅ use payload, not req.body
+
+  // ----- Handle file uploads -----
   if (files && files.length > 0) {
     const uploadPromises = files.map((file) =>
-      uploadToCloudinary(file.path, 'Trips')
-    )
-    const uploadedResults = await Promise.all(uploadPromises)
+      uploadToCloudinary(file.path, "Trips")
+    );
+    const uploadedResults = await Promise.all(uploadPromises);
 
     images = uploadedResults.map((uploaded) => ({
-      public_id: uploaded.public_id !== undefined ? uploaded.public_id : '',
+      public_id: uploaded.public_id ?? "",
       url: uploaded.secure_url,
-    }))
+    }));
 
+    // Delete old images if provided
     if (payload.images && payload.images.length > 0) {
       const oldImagesPublicIds = payload.images.map(
-        (img) => img.public_id ?? ''
-      )
+        (img) => img.public_id ?? ""
+      );
       await Promise.all(
         oldImagesPublicIds.map((publicId) => deleteFromCloudinary(publicId))
-      )
+      );
     }
   } else {
     images = (payload.images || []).map((img) => ({
-      public_id: img.public_id ?? '',
-      url: img.url ?? '',
-    }))
+      public_id: img.public_id ?? "",
+      url: img.url ?? "",
+    }));
   }
 
-  // ✅ use lowercase variable, not `const Trip`
-  const trip = await Trip.create({
-    ...payload,
-    images,
-  })
+  // ----- Handle index logic -----
+  let insertIndex: number;
 
-  return trip
-}
+  if (index !== undefined) {
+    const newIndex = Number(index);
+
+    // Shift trips >= newIndex
+    await Trip.updateMany(
+      { index: { $gte: newIndex } },
+      { $inc: { index: 1 } }
+    );
+
+    insertIndex = newIndex;
+  } else {
+    // Append at the end if no index passed
+    const maxIndexTrip = await Trip.findOne().sort({ index: -1 });
+    insertIndex = maxIndexTrip ? ((maxIndexTrip.index ?? 0) + 1) : 1;
+  }
+
+  // ----- Create trip -----
+  const trip = await Trip.create({
+    ...rest,
+    index: insertIndex,
+    images,
+  });
+
+  return trip;
+};
+
 
 const getAllTrips = async (page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
