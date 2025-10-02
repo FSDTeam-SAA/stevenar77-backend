@@ -19,6 +19,10 @@ const bookingClassSchema = new Schema<IBookingClass>(
     url: String,
   }
 ],
+ form: {
+      type: Schema.Types.Mixed, 
+      default: null,
+    },
 
     totalPrice: { type: Number, required: true },
     status: {

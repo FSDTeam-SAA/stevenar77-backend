@@ -11,6 +11,7 @@ import Booking from '../trips/booking/booking.model'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 import { createNotification } from '../../socket/notification.service'
 import { User } from '../user/user.model'
+import sendEmail from '../../utils/sendEmail'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
@@ -338,3 +339,101 @@ export const getBookings = catchAsync(async (req, res) => {
   })
 })
 
+
+
+// Send mail  by admin to the user with form
+
+
+export const sendFormLinkToUser = async (req: Request, res: Response) => {
+  try {
+    const { userId, formLink } = req.body
+
+    if (!userId || !formLink) {
+      throw new AppError('userId and formLink are required', httpStatus.BAD_REQUEST)
+    }
+
+    // find user email
+    const user = await User.findById(new mongoose.Types.ObjectId(userId)).select('email name')
+    if (!user) throw new AppError('User not found', httpStatus.NOT_FOUND)
+
+    const emailHtml = `
+      <p>Hello ${user.firstName || ''},</p>
+      <p>You have been invited to fill out a form for your booking.</p>
+      <p>Please click the link below to complete it:</p>
+      <a href="${formLink}" target="_blank">${formLink}</a>
+      <p>Thanks,<br/>Admin Team</p>
+    `
+
+    const result = await sendEmail({
+      to: user.email,
+      subject: 'Booking Form Link',
+      html: emailHtml,
+    })
+
+    if (!result.success) {
+      throw new AppError(result.error || 'Failed to send email', httpStatus.INTERNAL_SERVER_ERROR)
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Form link sent to ${user.email}`,
+    })
+  } catch (error: any) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Error sending form link',
+    })
+  }
+}
+
+
+// update form 
+
+export const submitBookingForm = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+
+    // প্রথমে booking খুঁজে বের করো
+    const booking = await BookingClass.findById(new mongoose.Types.ObjectId(id))
+    if (!booking) {
+      throw new AppError('Booking not found', httpStatus.NOT_FOUND)
+    }
+
+    // files handle
+    const uploadedFiles: { public_id: string; url: string }[] = []
+    const files = req.files as Express.Multer.File[]
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const uploadResult = await uploadToCloudinary(file.path, 'booking_forms')
+        if (uploadResult) {
+          uploadedFiles.push({
+            public_id: uploadResult.public_id,
+            url: uploadResult.secure_url,
+          })
+        }
+      }
+    }
+
+    // form data combine করো
+    const formData = {
+      ...req.body, // text fields
+      documents: uploadedFiles, // uploaded files
+    }
+
+    // booking update করো
+    booking.form = formData
+    await booking.save()
+
+    res.status(200).json({
+      success: true,
+      message: 'Form submitted successfully',
+      data: booking,
+    })
+  } catch (error: any) {
+    console.error('Error submitting form:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to submit form',
+    })
+  }
+}

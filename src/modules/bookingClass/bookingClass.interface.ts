@@ -22,6 +22,13 @@ export interface IBookingClass extends Document {
   shoeSize: number
   hight: number
   weight: number
+   form?: {
+    [key: string]: any
+    documents?: {
+      public_id: string
+      url: string
+    }[]
+  }
 }
 
 export type BookingClassModel = Model<IBookingClass>

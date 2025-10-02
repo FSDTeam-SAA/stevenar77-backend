@@ -7,6 +7,8 @@ import {
   changeBookingStatus,
   getSuccessfulPayments,
   getBookings,
+  sendFormLinkToUser,
+  submitBookingForm,
 } from './bookingClass.controller'
 import auth from '../../middleware/auth'
 import { upload } from '../../middleware/multer.middleware'
@@ -22,6 +24,13 @@ router.post(
   auth('admin', 'user'),
   upload.array('medicalDocuments'),
   createBooking
+)
+router.post('/send-form-link', auth('admin'), sendFormLinkToUser)
+router.patch(
+  '/:id/submit-form',
+  auth('user'),
+  upload.array('documents'), // form এর সাথে file এলে handle করবে
+  submitBookingForm
 )
 
 // Delete booking
