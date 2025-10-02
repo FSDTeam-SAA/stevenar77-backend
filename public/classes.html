@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Create Class API</title>
+</head>
+<body>
+  <h1>Test Create Class API</h1>
+  <form id="classForm" action="http://localhost:5001/api/v1/class" method="POST" enctype="multipart/form-data">
+    <label>Class Image (required):</label><br>
+    <input type="file" name="image" required><br><br>
+
+    <label>PDF Files (optional):</label><br>
+    <input type="file" name="pdfFiles" multiple><br><br>
+
+    <label>PDF File Types (JSON array):</label><br>
+    <input type="text" name="pdfFileTypes" value='["Syllabus","Study Materials"]'><br><br>
+
+    <label>Title:</label><br>
+    <input type="text" name="title" value="Advanced React Development" required><br><br>
+
+    <label>Description:</label><br>
+    <input type="text" name="description" value="Master advanced React concepts and patterns"><br><br>
+
+    <label>Price (JSON array):</label><br>
+    <input type="text" name="price" value='[4999, 7999]' required><br><br>
+
+    <label>Course Includes (JSON array):</label><br>
+    <input type="text" name="courseIncludes" value='["Source Code","Lifetime Access","Certificate","Q&A Support"]' required><br><br>
+
+    <label>Duration:</label><br>
+    <input type="text" name="duration" value="6 weeks" required><br><br>
+
+    <label>Class Dates (JSON array of ISO dates):</label><br>
+    <input type="text" name="classDates" value='["2024-02-01T14:00:00.000Z","2024-02-08T14:00:00.000Z","2024-02-15T14:00:00.000Z"]' required><br><br>
+
+    <label>Index:</label><br>
+    <input type="number" name="index" value="2" required><br><br>
+
+    <button type="submit">Create Class</button>
+  </form>
+</body>
+</html>

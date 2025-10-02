@@ -27,12 +27,6 @@ export const createBooking = async (
       classId,
       participant,
       classDate,
-      medicalHistory,
-      canSwim,
-      divingExperience,
-      lastPhysicalExamination,
-      fitnessLevel,
-      activityLevelSpecificQuestions,
       price,
       gender,
       shoeSize,
@@ -42,16 +36,7 @@ export const createBooking = async (
     const userId = req.user?.id
 
     // Basic validation
-    if (
-      !classId ||
-      !participant ||
-      !classDate ||
-      !canSwim ||
-      !divingExperience ||
-      !lastPhysicalExamination ||
-      !fitnessLevel ||
-      !activityLevelSpecificQuestions
-    ) {
+    if (!classId || !participant || !classDate) {
       res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -86,23 +71,23 @@ export const createBooking = async (
       await Class.findByIdAndUpdate(classId, { isActive: false })
       throw new AppError('Class is full', httpStatus.BAD_REQUEST)
     }
-    let medicalDocuments: { public_id: string; url: string }[] = [];
+    let medicalDocuments: { public_id: string; url: string }[] = []
 
-const files = req.files as Express.Multer.File[]; // multer.array() gives array of files
-if (files && files.length > 0) {
-  const uploadResults = await Promise.all(
-    files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
-  );
+    const files = req.files as Express.Multer.File[] // multer.array() gives array of files
+    if (files && files.length > 0) {
+      const uploadResults = await Promise.all(
+        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+      )
 
-  medicalDocuments = uploadResults.map((uploaded) => ({
-    public_id: uploaded.public_id,
-    url: uploaded.secure_url,
-  }));
-}
+      medicalDocuments = uploadResults.map((uploaded) => ({
+        public_id: uploaded.public_id,
+        url: uploaded.secure_url,
+      }))
+    }
 
     // Upload medical document if provided
-    
-      const totalPrice = price
+
+    const totalPrice = price
 
     //  Create booking
     const booking = await BookingClass.create({
@@ -110,16 +95,6 @@ if (files && files.length > 0) {
       userId: new mongoose.Types.ObjectId(userId),
       participant,
       classDate,
-      medicalHistory: medicalHistory
-        ? Array.isArray(medicalHistory)
-          ? medicalHistory
-          : [medicalHistory]
-        : [],
-      canSwim,
-      divingExperience,
-      lastPhysicalExamination,
-      fitnessLevel,
-      activityLevelSpecificQuestions,
       medicalDocuments,
       totalPrice,
       status: 'pending',

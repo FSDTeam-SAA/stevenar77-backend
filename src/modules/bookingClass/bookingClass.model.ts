@@ -7,12 +7,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     participant: { type: Number, required: true },
     classDate: [{ type: Date, required: true }],
-    medicalHistory: [{ type: String }],
-    canSwim: { type: String, required: true },
-    divingExperience: { type: String, required: true },
-    lastPhysicalExamination: { type: Date, required: true },
-    fitnessLevel: { type: String, required: true },
-    activityLevelSpecificQuestions: [{ type: String, required: true }],
+
     medicalDocuments: [
   {
     public_id: String,
