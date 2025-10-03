@@ -9,13 +9,13 @@ const bookingClassSchema = new Schema<IBookingClass>(
     classDate: [{ type: Date, required: true }],
 
     medicalDocuments: [
-  {
-    public_id: String,
-    url: String,
-  }
-],
- form: {
-      type: Schema.Types.Mixed, 
+      {
+        public_id: String,
+        url: String,
+      },
+    ],
+    form: {
+      type: Schema.Types.Mixed,
       default: null,
     },
 
@@ -33,6 +33,11 @@ const bookingClassSchema = new Schema<IBookingClass>(
       required: true,
     },
     weight: { type: Number, required: true },
+    Username: { type: String, required: true },
+    email: { type: String, required: true },
+    phoneNumber: { type: String },
+    emergencyName: { type: String },
+    emergencyPhoneNumber: { type: String },
   },
   { timestamps: true }
 )
