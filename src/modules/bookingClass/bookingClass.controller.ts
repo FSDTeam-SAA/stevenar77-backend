@@ -32,7 +32,7 @@ export const createBooking = async (
       shoeSize,
       hight,
       weight,
-      name,
+      Username,
       email,
       phoneNumber,
       emergencyName,
@@ -107,7 +107,7 @@ export const createBooking = async (
       shoeSize: Number(shoeSize), // ✅ convert to number
       hight,
       weight: Number(weight),
-      name,
+      Username,
       email,
       phoneNumber,
       emergencyName,
