@@ -8,34 +8,37 @@ import { deleteFromCloudinary, uploadToCloudinary } from '../../utils/cloudinary
 import { StatusCodes } from 'http-status-codes'
 
 export const createClass = catchAsync(async (req, res) => {
-  const file = req.file as Express.Multer.File
-  const { index, duration, ...rest } = req.body
+  const file = req.file as Express.Multer.File;
+  const { index, duration, addOnce, ...rest } = req.body;
+
+  console.log(file);
 
   if (!file) {
-    throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
+    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
   }
 
   // Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file.path, 'classes')
+  const uploadResult = await uploadToCloudinary(file.path, "classes");
 
   // ----- Handle index logic -----
-  let insertIndex: number
+  let insertIndex: number;
 
   if (index !== undefined) {
-    const newIndex = Number(index)
+    const newIndex = Number(index);
 
     // Shift classes >= newIndex
     await Class.updateMany(
       { index: { $gte: newIndex } },
       { $inc: { index: 1 } }
-    )
+    );
 
-    insertIndex = newIndex
+    insertIndex = newIndex;
   } else {
     // If no index provided, append at the end
-    const maxIndexClass = await Class.findOne().sort({ index: -1 })
-    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1
+    const maxIndexClass = await Class.findOne().sort({ index: -1 });
+    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1;
   }
+
 
   // ----- Create new class -----
   const result = await Class.create({
@@ -46,14 +49,15 @@ export const createClass = catchAsync(async (req, res) => {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url,
     },
-  })
+    addOnce,
+  });
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Class created successfully',
+    message: "Class created successfully",
     data: result,
-  })
+  });
 })
 
 
