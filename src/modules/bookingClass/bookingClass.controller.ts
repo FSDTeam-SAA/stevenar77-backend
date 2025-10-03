@@ -100,7 +100,7 @@ export const createBooking = async (
       status: 'pending',
       gender,
       shoeSize: Number(shoeSize), // ✅ convert to number
-      hight: Number(hight),
+      hight,
       weight: Number(weight),
     })
 

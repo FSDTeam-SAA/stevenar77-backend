@@ -28,7 +28,10 @@ const bookingClassSchema = new Schema<IBookingClass>(
     stripePaymentIntentId: { type: String },
     gender: { type: String, enum: ['male', 'female'], required: true },
     shoeSize: { type: Number, required: true },
-    hight: { type: Number, required: true },
+    hight: {
+      type: String,
+      required: true,
+    },
     weight: { type: Number, required: true },
   },
   { timestamps: true }
