@@ -16,7 +16,12 @@ export interface IBookingClass extends Document {
   shoeSize: number
   hight: number
   weight: number
-   form?: {
+  Username: string
+  email: string
+  phoneNumber: string
+  emergencyName: string
+  emergencyPhoneNumber: string
+  form?: {
     [key: string]: any
     documents?: {
       public_id: string
