@@ -66,11 +66,12 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as {
     image?: Express.Multer.File[]
   }
-  const { index, duration, classDates, price, ...rest } = req.body
+  const { index, duration, classDates, price, addOnce, ...rest } = req.body
 
   const updateData: any = {
     duration,
     ...rest,
+    addOnce,
   }
 
   // ----- Handle price parsing -----

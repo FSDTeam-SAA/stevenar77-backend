@@ -14,7 +14,7 @@ export interface IBookingClass extends Document {
   stripePaymentIntentId?: string
   gender: 'male' | 'female'
   shoeSize: number
-  hight: number
+  hight: string
   weight: number
 }
 
