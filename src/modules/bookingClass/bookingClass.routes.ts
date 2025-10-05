@@ -29,7 +29,7 @@ router.post('/send-form-link', auth('admin'), sendFormLinkToUser)
 router.patch(
   '/:id/submit-form',
   auth('user'),
-  upload.array('documents'), // form এর সাথে file এলে handle করবে
+  upload.array('documents'), 
   submitBookingForm
 )
 
