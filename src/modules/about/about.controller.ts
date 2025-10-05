@@ -178,32 +178,42 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
   }
 
   // ---- Gallery ----
-  if (files?.galleryImages) {
-    const galleryUploads = await processImages(files.galleryImages)
+ if (files?.galleryImages) {
+  const galleryUploads = await processImages(files.galleryImages)
 
-    // If client specifies which indexes to replace
-    if (
-      body.galleryReplaceIndexes &&
-      Array.isArray(body.galleryReplaceIndexes)
-    ) {
-      const existingGallery = existing.galleryImages || []
-      body.galleryImages = [...existingGallery]
+  // Normalize replaceIndexes from FormData
+  let replaceIndexes = body.galleryReplaceIndexes
 
-      body.galleryReplaceIndexes.forEach((replaceIdx: number, i: number) => {
-        if (galleryUploads[i]) {
-          body.galleryImages[replaceIdx] = galleryUploads[i]
-        }
-      })
-    } else {
-      // If no indexes given, append instead of replacing all
-      body.galleryImages = [
-        ...(existing.galleryImages || []),
-        ...galleryUploads,
-      ]
-    }
-  } else {
-    body.galleryImages = existing.galleryImages || []
+  // Make sure it’s always an array
+  if (!Array.isArray(replaceIndexes)) {
+    replaceIndexes = [replaceIndexes]
   }
+
+  // Convert to numbers
+  replaceIndexes = replaceIndexes
+    .map(i => Number(i))
+    .filter(i => !isNaN(i)) // remove invalid values
+
+  // --- Replace or append ---
+  if (replaceIndexes.length > 0) {
+    const existingGallery = existing.galleryImages || []
+    body.galleryImages = [...existingGallery]
+
+    replaceIndexes.forEach((replaceIdx, i) => {
+      if (galleryUploads[i] !== undefined) {
+        body.galleryImages[replaceIdx] = galleryUploads[i]
+      }
+    })
+  } else {
+    // Append new images
+    body.galleryImages = [
+      ...(existing.galleryImages || []),
+      ...galleryUploads,
+    ]
+  }
+} else {
+  body.galleryImages = existing.galleryImages || []
+}
 
   // ---- Team ----
   if (Array.isArray(body.team?.card)) {
