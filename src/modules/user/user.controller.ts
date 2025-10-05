@@ -45,7 +45,7 @@ const resendOtpCode = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "OTP code sent successfully",
+    message: "OTP code sent successfully. check your inbox or spam folder",
     data: result,
   });
 });

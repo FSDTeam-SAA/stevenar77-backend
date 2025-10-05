@@ -42,7 +42,7 @@ const forgotPassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "OTP sent to your email",
+    message: "OTP sent to your email. Please check your inbox or spam folder",
     data: result,
   });
 });
@@ -54,7 +54,7 @@ const resendForgotOtpCode = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "OTP resent successfully",
+    message: "OTP resent successfully. Please check your inbox or spam folder",
     // data: result,
   });
 });

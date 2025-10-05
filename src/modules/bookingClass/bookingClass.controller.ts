@@ -32,6 +32,11 @@ export const createBooking = async (
       shoeSize,
       hight,
       weight,
+      Username,
+      email,
+      phoneNumber,
+      emergencyName,
+      emergencyPhoneNumber,
     } = req.body
     const userId = req.user?.id
 
@@ -100,8 +105,13 @@ export const createBooking = async (
       status: 'pending',
       gender,
       shoeSize: Number(shoeSize), // ✅ convert to number
-      hight: Number(hight),
+      hight,
       weight: Number(weight),
+      Username,
+      email,
+      phoneNumber,
+      emergencyName,
+      emergencyPhoneNumber,
     })
 
     const bookingCount = participant && participant > 0 ? participant : 1
@@ -314,21 +324,23 @@ export const getBookings = catchAsync(async (req, res) => {
   })
 })
 
-
-
 // Send mail  by admin to the user with form
-
 
 export const sendFormLinkToUser = async (req: Request, res: Response) => {
   try {
     const { userId, formLink } = req.body
 
     if (!userId || !formLink) {
-      throw new AppError('userId and formLink are required', httpStatus.BAD_REQUEST)
+      throw new AppError(
+        'userId and formLink are required',
+        httpStatus.BAD_REQUEST
+      )
     }
 
     // find user email
-    const user = await User.findById(new mongoose.Types.ObjectId(userId)).select('email name')
+    const user = await User.findById(
+      new mongoose.Types.ObjectId(userId)
+    ).select('email name')
     if (!user) throw new AppError('User not found', httpStatus.NOT_FOUND)
 
     const emailHtml = `
@@ -346,7 +358,10 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
     })
 
     if (!result.success) {
-      throw new AppError(result.error || 'Failed to send email', httpStatus.INTERNAL_SERVER_ERROR)
+      throw new AppError(
+        result.error || 'Failed to send email',
+        httpStatus.INTERNAL_SERVER_ERROR
+      )
     }
 
     res.status(200).json({
@@ -361,8 +376,7 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
   }
 }
 
-
-// update form 
+// update form
 
 export const submitBookingForm = async (req: Request, res: Response) => {
   try {
@@ -379,7 +393,10 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[]
     if (files && files.length > 0) {
       for (const file of files) {
-        const uploadResult = await uploadToCloudinary(file.path, 'booking_forms')
+        const uploadResult = await uploadToCloudinary(
+          file.path,
+          'booking_forms'
+        )
         if (uploadResult) {
           uploadedFiles.push({
             public_id: uploadResult.public_id,
