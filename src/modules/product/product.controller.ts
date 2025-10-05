@@ -2,10 +2,32 @@ import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import productService from "./product.service";
+import AppError from "../../errors/AppError";
 
 const addProduct = catchAsync(async (req, res) => {
   const files = req.files as any[];
-  const result = await productService.addProduct(req.body, files);
+
+  // Parse variants string into JSON
+  let variants = [];
+  if (req.body.variants) {
+    try {
+      variants = JSON.parse(req.body.variants);
+    } catch (err) {
+      try {
+        variants = JSON.parse(req.body.variants.replace(/'/g, '"'));
+      } catch (err2) {
+        throw new AppError("Invalid JSON format for variants", StatusCodes.BAD_REQUEST);
+      }
+    }
+  }
+
+  // ✅ merge parsed variants into payload
+  const payload = {
+    ...req.body,
+    variants,
+  };
+
+  const result = await productService.addProduct(payload, files);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -14,6 +36,7 @@ const addProduct = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 
 const getAllProducts = catchAsync(async (req, res) => {
   const result = await productService.getAllProducts(req.query);
