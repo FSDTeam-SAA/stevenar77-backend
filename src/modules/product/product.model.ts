@@ -20,6 +20,14 @@ const productSchema = new Schema<IProduct>(
     totalReviews: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
     quantity: { type: Number, required: true },
+    variants: [
+      {
+        title: { type: String, required: true },   // e.g., "Red - Large"
+        quantity: { type: Number, required: true }, // stock for this variant
+        
+        _id: false,
+      },
+    ],
   },
   {
     timestamps: true,

@@ -11,4 +11,9 @@ export interface IProduct {
   totalReviews: number;
   averageRating: number;
   quantity: number;
+  variants?: {
+    title: string;      
+    quantity: number;  
+       
+}
 }
