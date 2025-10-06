@@ -178,42 +178,41 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
   }
 
   // ---- Gallery ----
- if (files?.galleryImages) {
-  const galleryUploads = await processImages(files.galleryImages)
+// ---- Gallery ----
+const existingGallery = existing.galleryImages || []
 
-  // Normalize replaceIndexes from FormData
-  let replaceIndexes = body.galleryReplaceIndexes
-
-  // Make sure it’s always an array
-  if (!Array.isArray(replaceIndexes)) {
-    replaceIndexes = [replaceIndexes]
-  }
-
-  // Convert to numbers
-  replaceIndexes = replaceIndexes
-    .map((i: any) => Number(i))
-    .filter((i: any) => !isNaN(i)) // remove invalid values
-
-  // --- Replace or append ---
-  if (replaceIndexes.length > 0) {
-    const existingGallery = existing.galleryImages || []
-    body.galleryImages = [...existingGallery]
-
-    replaceIndexes.forEach((replaceIdx: number, i: number) => {
-      if (galleryUploads[i] !== undefined) {
-        body.galleryImages[replaceIdx] = galleryUploads[i]
-      }
-    })
-  } else {
-    // Append new images
-    body.galleryImages = [
-      ...(existing.galleryImages || []),
-      ...galleryUploads,
-    ]
-  }
-} else {
-  body.galleryImages = existing.galleryImages || []
+// 1️⃣ Process new uploads
+let galleryUploads: any[] = []
+if (files?.galleryImages) {
+  galleryUploads = await processImages(files.galleryImages)
 }
+
+// 2️⃣ Determine which existing images to keep
+let galleryKeepIds: string[] = []
+if (Array.isArray(body.galleryKeepIds)) {
+  galleryKeepIds = body.galleryKeepIds.map(String)
+}
+
+// 3️⃣ Start with kept existing images
+const updatedGallery = existingGallery.filter(img => galleryKeepIds.includes(img.public_id))
+
+// 4️⃣ Add newly uploaded images
+updatedGallery.push(...galleryUploads)
+
+// 5️⃣ Optional: Replace specific images by index (if provided)
+let replaceIndexes = body.galleryReplaceIndexes
+if (!Array.isArray(replaceIndexes)) replaceIndexes = replaceIndexes ? [replaceIndexes] : []
+replaceIndexes = replaceIndexes.map((i: any) => Number(i)).filter((i: any) => !isNaN(i))
+
+replaceIndexes.forEach((replaceIdx: number, i: number) => {
+  if (galleryUploads[i] !== undefined) {
+    updatedGallery[replaceIdx] = galleryUploads[i]
+  }
+})
+
+// 6️⃣ Set final gallery in body
+body.galleryImages = updatedGallery
+
 
   // ---- Team ----
 if (Array.isArray(body.team?.card) && files?.teamImages) {
