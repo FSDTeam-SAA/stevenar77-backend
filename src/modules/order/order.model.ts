@@ -11,9 +11,19 @@ const orderSchema = new Schema<IOrder>(
       default: "pending",
     },
     totalPrice: { type: Number, required: true },
+     variants: [
+      {
+        title: { type: String, required: true },  
+        quantity: { type: Number, required: true },
+      
+        _id: false,
+      },
+    ],
+  
     quantity: { type: Number, required: true },
     orderData: { type: Date, default: Date.now },
     orderTime: { type: Date, default: Date.now },
+    
     images: [
       {
         public_id: { type: String },
@@ -22,6 +32,7 @@ const orderSchema = new Schema<IOrder>(
       },
     ],
   },
+  
   { timestamps: true, versionKey: false }
 );
 

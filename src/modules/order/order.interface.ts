@@ -12,4 +12,9 @@ export interface IOrder {
   createdAt: Date;
   updatedAt: Date;
    images: { public_id: string; url: string }[];
+     variants?: {
+    title: string;      
+    quantity: number;  
+       
+}
 }
