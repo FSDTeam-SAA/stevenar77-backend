@@ -4,7 +4,7 @@ import sendResponse from '../../utils/sendResponse'
 import AppError from '../../errors/AppError'
 import { StatusCodes } from 'http-status-codes'
 import { About, IAbout } from './about.model'
-import { uploadToCloudinary } from '../../utils/cloudinary'
+import { deleteFromCloudinary, uploadToCloudinary } from '../../utils/cloudinary'
 
 // ---- Custom type for the expected multer field names ----
 type AboutMulterFiles = {
@@ -286,4 +286,48 @@ export const deleteAbout = catchAsync(async (req: Request, res: Response) => {
   const deleted = await About.findByIdAndDelete(req.params.id)
   if (!deleted) throw new AppError('Not found', 404)
   sendResponse(res, { statusCode: 200, success: true, message: 'Deleted' })
+})
+
+
+export const deleteGalleryImage = catchAsync(async (req: Request, res: Response) => {
+  const { id, imageId } = req.params
+
+  const about = await About.findById(id)
+  if (!about) throw new AppError('About entry not found', 404)
+
+  // Find the image object by MongoDB _id
+// Find the image object by its MongoDB _id
+const removedImage = about.galleryImages.find((img: any) => img._id.toString() === imageId)
+
+if (!removedImage) {
+  throw new AppError('Gallery image not found', 404)
+}
+
+// Remove the image from the array
+about.galleryImages = about.galleryImages.filter((img: any) => img._id.toString() !== imageId)
+
+// Remove the file from Cloudinary if it exists
+if (removedImage.public_id) {
+  await deleteFromCloudinary(removedImage.public_id)
+}
+
+// Save the document
+await about.save()
+
+sendResponse(res, {
+  statusCode: 200,
+  success: true,
+  message: 'Gallery image deleted successfully',
+  data: about.galleryImages,
+})
+
+
+  await about.save()
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Gallery image deleted successfully',
+    data: about.galleryImages,
+  })
 })

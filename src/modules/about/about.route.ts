@@ -5,6 +5,7 @@ import {
   getAboutById,
   updateAbout,
   deleteAbout,
+  deleteGalleryImage,
 } from './about.controller'
 import { upload } from '../../middleware/multer.middleware'
 
@@ -38,5 +39,6 @@ router.put(
 )
 
 router.delete('/:id', deleteAbout)
+router.delete('/:id/gallery/:imageId', deleteGalleryImage)
 
 export default router
