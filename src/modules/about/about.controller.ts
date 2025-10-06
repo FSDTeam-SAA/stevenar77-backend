@@ -239,17 +239,29 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
 
 
 // ---- Gallery: Keep only selected images ----
-if (body.galleryKeepIds && Array.isArray(body.galleryKeepIds)) {
+// ---- Gallery: Keep only selected images (optional) ----
+if (Array.isArray(body.galleryKeepIds) && body.galleryKeepIds.length > 0) {
   const existingGallery = existing.galleryImages || []
 
-  // Keep only images whose _id is in galleryKeepIds
-  body.galleryImages = existingGallery.filter(
-    (img) => body.galleryKeepIds.includes(img.public_id)
+  // Keep only selected existing images
+  body.galleryImages = existingGallery.filter((img) =>
+    body.galleryKeepIds.includes(img.public_id)
   )
+
+  // Append newly uploaded images (if any)
+  if (files?.galleryImages) {
+    const galleryUploads = await processImages(files.galleryImages)
+    body.galleryImages.push(...galleryUploads)
+  }
+} else if (files?.galleryImages) {
+  // If no keepIds, just append new ones
+  const galleryUploads = await processImages(files.galleryImages)
+  body.galleryImages = [...(existing.galleryImages || []), ...galleryUploads]
 } else {
-  // If no IDs sent, clear the gallery
-  body.galleryImages = []
+  // No uploads, keep existing gallery
+  body.galleryImages = existing.galleryImages || []
 }
+
 
 
   // ---- Update ----
