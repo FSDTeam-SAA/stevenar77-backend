@@ -1,6 +1,7 @@
 import { Schema, model, Document } from 'mongoose'
 
 interface ITeamCard {
+  private _id(_id: any): unknown
   image: {
     public_id: string
     url: string

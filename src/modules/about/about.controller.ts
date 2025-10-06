@@ -216,51 +216,31 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
 }
 
   // ---- Team ----
-  if (Array.isArray(body.team?.card)) {
-    if (files?.teamImages) {
-      const teamUploads = await processImages(files.teamImages)
-      body.team.card.forEach((c: any, idx: number) => {
-        if (teamUploads[idx]) {
-          c.image = teamUploads[idx]
-        } else if (existing.team?.card?.[idx]?.image) {
-          // preserve old image
-          c.image = existing.team.card[idx].image
-        }
-      })
-    } else {
-      // preserve all old team images
-      body.team.card.forEach((c: any, idx: number) => {
-        if (existing.team?.card?.[idx]?.image) {
-          c.image = existing.team.card[idx].image
-        }
-      })
+if (Array.isArray(body.team?.card) && files?.teamImages) {
+  const teamUploads = await processImages(files.teamImages)
+
+  // Parse JSON array of IDs
+  let teamImageIds = body.teamImageIds
+  if (typeof teamImageIds === "string") {
+    try {
+      teamImageIds = JSON.parse(teamImageIds)
+    } catch (err) {
+      teamImageIds = [teamImageIds]
     }
   }
 
+  body.team.card = body.team.card.map((card: any) => {
+    const matchIndex = teamImageIds.findIndex((id: any) => String(id) === String(card._id))
+    if (matchIndex !== -1 && teamUploads[matchIndex]) {
+      return { ...card, image: teamUploads[matchIndex] }
+    }
+    const existingCard = existing.team?.card?.find(c => String(c._id) === String(card._id))
+    return { ...card, image: existingCard?.image || card.image || null }
+  })
+}
 
-// ---- Gallery: Keep only selected images ----
-// ---- Gallery: Keep only selected images (optional) ----
-// if (Array.isArray(body.galleryKeepIds) && body.galleryKeepIds.length > 0) {
-//   const existingGallery = existing.galleryImages || []
 
-//   // Keep only selected existing images
-//   body.galleryImages = existingGallery.filter((img) =>
-//     body.galleryKeepIds.includes(img.public_id)
-//   )
 
-//   // Append newly uploaded images (if any)
-//   if (files?.galleryImages) {
-//     const galleryUploads = await processImages(files.galleryImages)
-//     body.galleryImages.push(...galleryUploads)
-//   }
-// } else if (files?.galleryImages) {
-//   // If no keepIds, just append new ones
-//   const galleryUploads = await processImages(files.galleryImages)
-//   body.galleryImages = [...(existing.galleryImages || []), ...galleryUploads]
-// } else {
-//   // No uploads, keep existing gallery
-//   body.galleryImages = existing.galleryImages || []
-// }
 
 
 
