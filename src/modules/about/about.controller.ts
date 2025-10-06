@@ -191,15 +191,15 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
 
   // Convert to numbers
   replaceIndexes = replaceIndexes
-    .map(i => Number(i))
-    .filter(i => !isNaN(i)) // remove invalid values
+    .map((i: any) => Number(i))
+    .filter((i: any) => !isNaN(i)) // remove invalid values
 
   // --- Replace or append ---
   if (replaceIndexes.length > 0) {
     const existingGallery = existing.galleryImages || []
     body.galleryImages = [...existingGallery]
 
-    replaceIndexes.forEach((replaceIdx, i) => {
+    replaceIndexes.forEach((replaceIdx: number, i: number) => {
       if (galleryUploads[i] !== undefined) {
         body.galleryImages[replaceIdx] = galleryUploads[i]
       }

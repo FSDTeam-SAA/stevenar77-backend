@@ -22,9 +22,9 @@ const productSchema = new Schema<IProduct>(
     quantity: { type: Number, required: true },
     variants: [
       {
-        title: { type: String, required: true },   // e.g., "Red - Large"
-        quantity: { type: Number, required: true }, // stock for this variant
-        
+        title: { type: String, required: true },  
+        quantity: { type: Number, required: true },
+      
         _id: false,
       },
     ],
