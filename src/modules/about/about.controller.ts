@@ -4,7 +4,11 @@ import sendResponse from '../../utils/sendResponse'
 import AppError from '../../errors/AppError'
 import { StatusCodes } from 'http-status-codes'
 import { About, IAbout } from './about.model'
-import { deleteFromCloudinary, uploadToCloudinary } from '../../utils/cloudinary'
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from '../../utils/cloudinary'
+import mongoose from 'mongoose'
 
 // ---- Custom type for the expected multer field names ----
 type AboutMulterFiles = {
@@ -13,6 +17,11 @@ type AboutMulterFiles = {
   section3Images?: Express.Multer.File[]
   galleryImages?: Express.Multer.File[]
   teamImages?: Express.Multer.File[]
+}
+
+interface IExistingCard {
+  // other properties...
+  image?: { public_id: string; url: string } | undefined
 }
 
 // ---- Utility to upload all images in a section to Cloudinary ----
@@ -78,52 +87,6 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
 })
 
 // ---- Update ----
-// export const updateAbout = catchAsync(async (req: Request, res: Response) => {
-//   const { id } = req.params
-//   const body = JSON.parse(req.body.data || '{}')
-
-//   const files = req.files as AboutMulterFiles | undefined
-
-//   if (files?.section1Images) {
-//     body.section1 = {
-//       ...body.section1,
-//       images: await processImages(files.section1Images),
-//     }
-//   }
-//   if (files?.section2Images) {
-//     body.section2 = {
-//       ...body.section2,
-//       images: await processImages(files.section2Images),
-//     }
-//   }
-//   if (files?.section3Images) {
-//     body.section3 = {
-//       ...body.section3,
-//       images: await processImages(files.section3Images),
-//     }
-//   }
-//   if (files?.galleryImages) {
-//     body.galleryImages = await processImages(files.galleryImages)
-//   }
-
-//   if (Array.isArray(body.team?.card) && files?.teamImages) {
-//     const teamUploads = await processImages(files.teamImages)
-//     body.team.card.forEach((c: any, idx: number) => {
-//       c.image = teamUploads[idx]
-//     })
-//   }
-
-//   const updated = await About.findByIdAndUpdate(id, body, { new: true })
-//   if (!updated) throw new AppError('About entry not found', 404)
-
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'About updated successfully',
-//     data: updated,
-//   })
-// })
-
 export const updateAbout = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const body = JSON.parse(req.body.data || '{}')
@@ -178,71 +141,136 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-// ---- Gallery ----
-const existingGallery = existing.galleryImages || []
+  // ---- Gallery ----
+  const existingGallery = existing.galleryImages || []
 
-// 1️⃣ Process new uploads
-let galleryUploads: { public_id: string; url: string }[] = []
-if (files?.galleryImages) {
-  galleryUploads = await processImages(files.galleryImages) // should return array of {public_id, url}
-}
-
-// 2️⃣ Keep all existing images and append new uploads
-const updatedGallery = [...existingGallery, ...galleryUploads]
-
-// 3️⃣ Optional: Replace specific images by index if provided
-let replaceIndexes = body.galleryReplaceIndexes
-if (!Array.isArray(replaceIndexes)) replaceIndexes = replaceIndexes ? [replaceIndexes] : []
-replaceIndexes = replaceIndexes.map((i: any) => Number(i)).filter((i: any) => !isNaN(i))
-
-replaceIndexes.forEach((replaceIdx: number, i: number) => {
-  if (galleryUploads[i] !== undefined) {
-    updatedGallery[replaceIdx] = galleryUploads[i]
+  // 1️⃣ Process new uploads
+  let galleryUploads: { public_id: string; url: string }[] = []
+  if (files?.galleryImages) {
+    galleryUploads = await processImages(files.galleryImages) // should return array of {public_id, url}
   }
-})
 
-// 4️⃣ Set final gallery in body
-body.galleryImages = updatedGallery
+  // 2️⃣ Keep all existing images and append new uploads
+  const updatedGallery = [...existingGallery, ...galleryUploads]
 
+  // 3️⃣ Optional: Replace specific images by index if provided
+  let replaceIndexes = body.galleryReplaceIndexes
+  if (!Array.isArray(replaceIndexes))
+    replaceIndexes = replaceIndexes ? [replaceIndexes] : []
+  replaceIndexes = replaceIndexes
+    .map((i: any) => Number(i))
+    .filter((i: any) => !isNaN(i))
 
-  // ---- Team ----
-let teamCardIds: string[] = []
-
-if (body.teamCardIds) {
-  if (typeof body.teamCardIds === "string") {
-    try {
-      teamCardIds = JSON.parse(body.teamCardIds)
-      if (!Array.isArray(teamCardIds)) teamCardIds = [teamCardIds]
-    } catch (err) {
-      teamCardIds = [body.teamCardIds]
+  replaceIndexes.forEach((replaceIdx: number, i: number) => {
+    if (galleryUploads[i] !== undefined) {
+      updatedGallery[replaceIdx] = galleryUploads[i]
     }
-  } else if (Array.isArray(body.teamCardIds)) {
-    teamCardIds = body.teamCardIds
-  } else {
-    teamCardIds = [String(body.teamCardIds)]
+  })
+
+  // 4️⃣ Set final gallery in body
+  body.galleryImages = updatedGallery
+
+  // ---- Team Update Section ----
+  // ---- Team Update Section ----
+  let teamCardIds: string[] = []
+
+  // 1️⃣ Parse teamCardIds safely
+  if (body.teamCardIds) {
+    if (typeof body.teamCardIds === 'string') {
+      try {
+        teamCardIds = JSON.parse(body.teamCardIds)
+        if (!Array.isArray(teamCardIds)) teamCardIds = [teamCardIds]
+      } catch (err) {
+        teamCardIds = [body.teamCardIds]
+      }
+    } else if (Array.isArray(body.teamCardIds)) {
+      teamCardIds = body.teamCardIds
+    }
   }
-}
 
-// ---- Team uploads ----
-let teamUploads: { public_id: string; url: string }[] = []
-if (files?.teamImages) {
-  teamUploads = await processImages(files.teamImages)
-}
-
-// Now safe to use findIndex
-body.team.card = body.team.card.map((card: any) => {
-  const matchIndex = teamCardIds.findIndex(id => String(id) === String(card._id))
-  if (matchIndex !== -1 && teamUploads[matchIndex]) {
-    return { ...card, image: teamUploads[matchIndex] }
+  // 2️⃣ Upload new images (if any)
+  let teamUploads: { public_id: string; url: string }[] = []
+  if (files?.teamImages) {
+    teamUploads = await processImages(files.teamImages)
   }
-  const existingCard = existing.team?.card?.find(c => String(c._id) === String(card._id))
-  return { ...card, image: existingCard?.image || card.image || null }
-})
 
+  // 3️⃣ Build updated cards array - START WITH EXISTING CARDS
+  const existingCards = existing.team?.card || []
+  let updatedCards = [...existingCards]
 
+  // Track used uploads to avoid reusing the same image
+  const usedUploadIndexes = new Set<number>()
 
+  // Process each card update from the request
+  for (const cardUpdate of body.team.card || []) {
+    // ❌ Remove card if marked for deletion
+    if (cardUpdate._delete) {
+      updatedCards = updatedCards.filter(
+        (c) => String(c._id) !== String(cardUpdate._id)
+      )
+      continue
+    }
 
+    // 🧩 Find existing card index
+    const existingCardIndex = updatedCards.findIndex(
+      (c) => c._id && String(c._id) === String(cardUpdate._id)
+    )
 
+    if (existingCardIndex !== -1) {
+      // 🔄 Update existing card
+      const existingCard = updatedCards[existingCardIndex]
+      const matchIndex = teamCardIds.findIndex(
+        (id) => String(id) === String(cardUpdate._id)
+      )
+
+      // Handle image removal
+      if (cardUpdate.image === null) {
+        if (existingCard.image?.public_id) {
+          await deleteFromCloudinary(existingCard.image.public_id)
+        }
+        // Remove image from card
+        cardUpdate.image = undefined
+      }
+
+      // Update the card
+      updatedCards[existingCardIndex] = {
+        ...(existingCard.toObject?.() || existingCard),
+        ...cardUpdate,
+        image:
+          cardUpdate.image === null
+            ? undefined // image removed
+            : matchIndex !== -1 && teamUploads[matchIndex]
+            ? (usedUploadIndexes.add(matchIndex), teamUploads[matchIndex]) // new upload and mark as used
+            : existingCard.image, // keep old one
+      }
+    } else {
+      // 🆕 New card (add) - FIXED LOGIC
+      // Find the next available upload that hasn't been used
+      let availableUploadIndex = -1
+      for (let i = 0; i < teamUploads.length; i++) {
+        if (!usedUploadIndexes.has(i)) {
+          availableUploadIndex = i
+          usedUploadIndexes.add(i)
+          break
+        }
+      }
+
+      const newCard = {
+        ...cardUpdate,
+        _id: cardUpdate._id || new mongoose.Types.ObjectId(), // Ensure new card has an ID
+        image:
+          availableUploadIndex !== -1
+            ? teamUploads[availableUploadIndex]
+            : undefined,
+      }
+
+      updatedCards.push(newCard)
+    }
+  }
+
+  // 4️⃣ Assign updated team cards
+  body.team = body.team || {}
+  body.team.card = updatedCards
 
   // ---- Update ----
   const updated = await About.findByIdAndUpdate(
@@ -289,46 +317,50 @@ export const deleteAbout = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, { statusCode: 200, success: true, message: 'Deleted' })
 })
 
+export const deleteGalleryImage = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id, imageId } = req.params
 
-export const deleteGalleryImage = catchAsync(async (req: Request, res: Response) => {
-  const { id, imageId } = req.params
+    const about = await About.findById(id)
+    if (!about) throw new AppError('About entry not found', 404)
 
-  const about = await About.findById(id)
-  if (!about) throw new AppError('About entry not found', 404)
+    // Find the image object by MongoDB _id
+    // Find the image object by its MongoDB _id
+    const removedImage = about.galleryImages.find(
+      (img: any) => img._id.toString() === imageId
+    )
 
-  // Find the image object by MongoDB _id
-// Find the image object by its MongoDB _id
-const removedImage = about.galleryImages.find((img: any) => img._id.toString() === imageId)
+    if (!removedImage) {
+      throw new AppError('Gallery image not found', 404)
+    }
 
-if (!removedImage) {
-  throw new AppError('Gallery image not found', 404)
-}
+    // Remove the image from the array
+    about.galleryImages = about.galleryImages.filter(
+      (img: any) => img._id.toString() !== imageId
+    )
 
-// Remove the image from the array
-about.galleryImages = about.galleryImages.filter((img: any) => img._id.toString() !== imageId)
+    // Remove the file from Cloudinary if it exists
+    if (removedImage.public_id) {
+      await deleteFromCloudinary(removedImage.public_id)
+    }
 
-// Remove the file from Cloudinary if it exists
-if (removedImage.public_id) {
-  await deleteFromCloudinary(removedImage.public_id)
-}
+    // Save the document
+    await about.save()
 
-// Save the document
-await about.save()
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Gallery image deleted successfully',
+      data: about.galleryImages,
+    })
 
-sendResponse(res, {
-  statusCode: 200,
-  success: true,
-  message: 'Gallery image deleted successfully',
-  data: about.galleryImages,
-})
+    await about.save()
 
-
-  await about.save()
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'Gallery image deleted successfully',
-    data: about.galleryImages,
-  })
-})
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Gallery image deleted successfully',
+      data: about.galleryImages,
+    })
+  }
+)

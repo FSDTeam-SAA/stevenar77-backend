@@ -10,6 +10,8 @@ interface ITeamCard {
   possition: string
   description: string
 
+  toObject(): any
+
   quote: string
   features: string[]
 }
@@ -40,7 +42,6 @@ export interface IAbout extends Document {
 }
 
 const imageObj = {
-  
   public_id: String,
   url: String,
 }
