@@ -12,8 +12,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 });
 
 const createOrder = async (email: string, payload: IOrder,files?: Express.Multer.File[]) => {
-  const { productId, quantity } = payload;
-console.log("email",email);
+  const { productId, quantity,color } = payload;
+// console.log("email",email);
   const user = await User.isUserExistByEmail(email);
   
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
@@ -55,6 +55,7 @@ console.log("email",email);
     totalPrice: price,
     quantity,
     images,
+    color,
     orderData: new Date(),
     orderTime: new Date(),
   });
