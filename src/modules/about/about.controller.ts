@@ -202,6 +202,79 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
   const usedUploadIndexes = new Set<number>()
 
   // Process each card update from the request
+  // for (const cardUpdate of body.team.card || []) {
+  //   // ❌ Remove card if marked for deletion
+  //   // if (cardUpdate._delete) {
+  //   //   updatedCards = updatedCards.filter(
+  //   //     (c) => String(c._id) !== String(cardUpdate._id)
+  //   //   )
+  //   //   continue
+  //   // }
+
+  //   if (cardUpdate._delete || cardUpdate.image === null) {
+  //     updatedCards = updatedCards.filter(
+  //       (c) => String(c._id) !== String(cardUpdate._id)
+  //     )
+  //     continue
+  //   }
+
+  //   // 🧩 Find existing card index
+  //   const existingCardIndex = updatedCards.findIndex(
+  //     (c) => c._id && String(c._id) === String(cardUpdate._id)
+  //   )
+
+  //   if (existingCardIndex !== -1) {
+  //     // 🔄 Update existing card
+  //     const existingCard = updatedCards[existingCardIndex]
+  //     const matchIndex = teamCardIds.findIndex(
+  //       (id) => String(id) === String(cardUpdate._id)
+  //     )
+
+  //     // Handle image removal
+  //     if (cardUpdate.image === null) {
+  //       if (existingCard.image?.public_id) {
+  //         await deleteFromCloudinary(existingCard.image.public_id)
+  //       }
+  //       // Remove image from card
+  //       cardUpdate.image = undefined
+  //     }
+
+  //     // Update the card
+  //     updatedCards[existingCardIndex] = {
+  //       ...(existingCard.toObject?.() || existingCard),
+  //       ...cardUpdate,
+  //       image:
+  //         cardUpdate.image === null
+  //           ? undefined // image removed
+  //           : matchIndex !== -1 && teamUploads[matchIndex]
+  //           ? (usedUploadIndexes.add(matchIndex), teamUploads[matchIndex]) // new upload and mark as used
+  //           : existingCard.image, // keep old one
+  //     }
+  //   } else {
+  //     // 🆕 New card (add) - FIXED LOGIC
+  //     // Find the next available upload that hasn't been used
+  //     let availableUploadIndex = -1
+  //     for (let i = 0; i < teamUploads.length; i++) {
+  //       if (!usedUploadIndexes.has(i)) {
+  //         availableUploadIndex = i
+  //         usedUploadIndexes.add(i)
+  //         break
+  //       }
+  //     }
+
+  //     const newCard = {
+  //       ...cardUpdate,
+  //       _id: cardUpdate._id || new mongoose.Types.ObjectId(), // Ensure new card has an ID
+  //       image:
+  //         availableUploadIndex !== -1
+  //           ? teamUploads[availableUploadIndex]
+  //           : undefined,
+  //     }
+
+  //     updatedCards.push(newCard)
+  //   }
+  // }
+
   for (const cardUpdate of body.team.card || []) {
     // ❌ Remove card if marked for deletion
     if (cardUpdate._delete) {
@@ -223,29 +296,49 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
         (id) => String(id) === String(cardUpdate._id)
       )
 
-      // Handle image removal
+      // let updatedImage = existingCard.image
+      let updatedImage: { public_id: string; url: string } | undefined =
+        existingCard.image
+
+      // 🧹 Handle image removal
       if (cardUpdate.image === null) {
         if (existingCard.image?.public_id) {
           await deleteFromCloudinary(existingCard.image.public_id)
         }
-        // Remove image from card
-        cardUpdate.image = undefined
+        updatedImage = undefined // just remove image, not the card
+      }
+      // 🆕 Handle new uploaded image
+      else if (matchIndex !== -1 && teamUploads[matchIndex]) {
+        updatedImage = teamUploads[matchIndex]
+        usedUploadIndexes.add(matchIndex)
       }
 
-      // Update the card
       updatedCards[existingCardIndex] = {
         ...(existingCard.toObject?.() || existingCard),
         ...cardUpdate,
-        image:
-          cardUpdate.image === null
-            ? undefined // image removed
-            : matchIndex !== -1 && teamUploads[matchIndex]
-            ? (usedUploadIndexes.add(matchIndex), teamUploads[matchIndex]) // new upload and mark as used
-            : existingCard.image, // keep old one
+        image: updatedImage,
+      }
+
+      // 🧹 Handle image removal
+      if (cardUpdate.image === null) {
+        if (existingCard.image?.public_id) {
+          await deleteFromCloudinary(existingCard.image.public_id)
+        }
+        updatedImage = undefined // just remove image, not the card
+      }
+      // 🆕 Handle new uploaded image
+      else if (matchIndex !== -1 && teamUploads[matchIndex]) {
+        updatedImage = teamUploads[matchIndex]
+        usedUploadIndexes.add(matchIndex)
+      }
+
+      updatedCards[existingCardIndex] = {
+        ...(existingCard.toObject?.() || existingCard),
+        ...cardUpdate,
+        image: updatedImage,
       }
     } else {
-      // 🆕 New card (add) - FIXED LOGIC
-      // Find the next available upload that hasn't been used
+      // 🆕 New card (add)
       let availableUploadIndex = -1
       for (let i = 0; i < teamUploads.length; i++) {
         if (!usedUploadIndexes.has(i)) {
@@ -257,7 +350,7 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
 
       const newCard = {
         ...cardUpdate,
-        _id: cardUpdate._id || new mongoose.Types.ObjectId(), // Ensure new card has an ID
+        _id: cardUpdate._id || new mongoose.Types.ObjectId(),
         image:
           availableUploadIndex !== -1
             ? teamUploads[availableUploadIndex]
