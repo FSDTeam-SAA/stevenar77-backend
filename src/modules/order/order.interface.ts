@@ -11,6 +11,7 @@ export interface IOrder {
   orderTime: Date;
   createdAt: Date;
   updatedAt: Date;
+  color:string,
    images: { public_id: string; url: string }[];
      variants?: {
     title: string;      

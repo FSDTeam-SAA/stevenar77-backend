@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
 import { IOrder } from "./order.interface";
+import { string } from "zod";
 
 const orderSchema = new Schema<IOrder>(
   {
@@ -23,6 +24,7 @@ const orderSchema = new Schema<IOrder>(
     quantity: { type: Number, required: true },
     orderData: { type: Date, default: Date.now },
     orderTime: { type: Date, default: Date.now },
+    color:{type:String},
     
     images: [
       {
