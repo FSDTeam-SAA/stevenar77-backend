@@ -380,23 +380,24 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
 
 export const submitBookingForm = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params
+    const { userId } = req.params
 
-    // প্রথমে booking খুঁজে বের করো
-    const booking = await BookingClass.findById(new mongoose.Types.ObjectId(id))
+    // Find the latest pending booking for this user
+    const booking = await BookingClass.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+   
+    }).sort({ createdAt: -1 }) // get latest
+
     if (!booking) {
-      throw new AppError('Booking not found', httpStatus.NOT_FOUND)
+      throw new AppError('Booking not found for this user', httpStatus.NOT_FOUND)
     }
 
-    // files handle
+    // Handle uploaded files
     const uploadedFiles: { public_id: string; url: string }[] = []
     const files = req.files as Express.Multer.File[]
     if (files && files.length > 0) {
       for (const file of files) {
-        const uploadResult = await uploadToCloudinary(
-          file.path,
-          'booking_forms'
-        )
+        const uploadResult = await uploadToCloudinary(file.path, 'booking_forms')
         if (uploadResult) {
           uploadedFiles.push({
             public_id: uploadResult.public_id,
@@ -406,13 +407,13 @@ export const submitBookingForm = async (req: Request, res: Response) => {
       }
     }
 
-    // form data combine করো
+    // Combine form data
     const formData = {
       ...req.body, // text fields
       documents: uploadedFiles, // uploaded files
     }
 
-    // booking update করো
+    // Update booking
     booking.form = formData
     await booking.save()
 

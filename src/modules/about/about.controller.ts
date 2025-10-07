@@ -210,17 +210,17 @@ if (Array.isArray(body.team?.card) && files?.teamImages) {
   const teamUploads = await processImages(files.teamImages)
 
   // Parse JSON array of IDs
-  let teamImageIds = body.teamImageIds
-  if (typeof teamImageIds === "string") {
+  let teamCardIds = body.teamCardIds
+  if (typeof teamCardIds === "string") {
     try {
-      teamImageIds = JSON.parse(teamImageIds)
+      teamCardIds = JSON.parse(teamCardIds)
     } catch (err) {
-      teamImageIds = [teamImageIds]
+      teamCardIds = [teamCardIds]
     }
   }
 
   body.team.card = body.team.card.map((card: any) => {
-    const matchIndex = teamImageIds.findIndex((id: any) => String(id) === String(card._id))
+    const matchIndex = teamCardIds.findIndex((id: any) => String(id) === String(card._id))
     if (matchIndex !== -1 && teamUploads[matchIndex]) {
       return { ...card, image: teamUploads[matchIndex] }
     }
