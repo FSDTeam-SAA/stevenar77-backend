@@ -27,7 +27,7 @@ router.post(
 )
 router.post('/send-form-link', auth('admin'), sendFormLinkToUser)
 router.patch(
-  '/:id/submit-form',
+  '/:userId/submit-form',
   auth('user'),
   upload.array('documents'), 
   submitBookingForm
