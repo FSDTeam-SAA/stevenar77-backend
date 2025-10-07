@@ -206,18 +206,38 @@ body.galleryImages = updatedGallery
 
 
   // ---- Team ----
-if (Array.isArray(body.team?.card) && files?.teamImages) {
-  // 1️⃣ Process uploaded images
-  const teamUploads = await processImages(files.teamImages)
+let teamCardIds: string[] = []
 
-  // 2️⃣ Assign images to cards in order, fallback to existing image if no upload
-  body.team.card = body.team.card.map((card: any, index: number) => {
-    return {
-      ...card,
-      image: teamUploads[index] || existing.team?.card?.[index]?.image || card.image || null,
+if (body.teamCardIds) {
+  if (typeof body.teamCardIds === "string") {
+    try {
+      teamCardIds = JSON.parse(body.teamCardIds)
+      if (!Array.isArray(teamCardIds)) teamCardIds = [teamCardIds]
+    } catch (err) {
+      teamCardIds = [body.teamCardIds]
     }
-  })
+  } else if (Array.isArray(body.teamCardIds)) {
+    teamCardIds = body.teamCardIds
+  } else {
+    teamCardIds = [String(body.teamCardIds)]
+  }
 }
+
+// ---- Team uploads ----
+let teamUploads: { public_id: string; url: string }[] = []
+if (files?.teamImages) {
+  teamUploads = await processImages(files.teamImages)
+}
+
+// Now safe to use findIndex
+body.team.card = body.team.card.map((card: any) => {
+  const matchIndex = teamCardIds.findIndex(id => String(id) === String(card._id))
+  if (matchIndex !== -1 && teamUploads[matchIndex]) {
+    return { ...card, image: teamUploads[matchIndex] }
+  }
+  const existingCard = existing.team?.card?.find(c => String(c._id) === String(card._id))
+  return { ...card, image: existingCard?.image || card.image || null }
+})
 
 
 
