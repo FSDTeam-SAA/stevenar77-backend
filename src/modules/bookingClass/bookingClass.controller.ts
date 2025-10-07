@@ -315,6 +315,7 @@ export const getBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find()
     .populate('classId')
     .populate('userId', 'name email')
+    .sort({ createdAt: -1 }) 
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -386,7 +387,7 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     const booking = await BookingClass.findOne({
       userId: new mongoose.Types.ObjectId(userId),
    
-    }).sort({ createdAt: -1 }) // get latest
+    }).sort({ createdAt: -1 }) 
 
     if (!booking) {
       throw new AppError('Booking not found for this user', httpStatus.NOT_FOUND)

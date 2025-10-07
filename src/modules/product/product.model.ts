@@ -28,6 +28,7 @@ const productSchema = new Schema<IProduct>(
         _id: false,
       },
     ],
+
   },
   {
     timestamps: true,
