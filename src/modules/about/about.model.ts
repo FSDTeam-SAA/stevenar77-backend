@@ -40,6 +40,7 @@ export interface IAbout extends Document {
 }
 
 const imageObj = {
+  
   public_id: String,
   url: String,
 }

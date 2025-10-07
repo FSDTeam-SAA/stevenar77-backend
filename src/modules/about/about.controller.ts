@@ -43,6 +43,7 @@ const processImages = async (
   return successfulUploads.map((u) => ({
     public_id: u.public_id,
     url: u.secure_url,
+    _id: u._id ?? undefined, // Add _id if present, otherwise undefined
   }))
 }
 
@@ -177,29 +178,19 @@ export const updateAbout = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  // ---- Gallery ----
 // ---- Gallery ----
 const existingGallery = existing.galleryImages || []
 
 // 1️⃣ Process new uploads
-let galleryUploads: any[] = []
+let galleryUploads: { public_id: string; url: string }[] = []
 if (files?.galleryImages) {
-  galleryUploads = await processImages(files.galleryImages)
+  galleryUploads = await processImages(files.galleryImages) // should return array of {public_id, url}
 }
 
-// 2️⃣ Determine which existing images to keep
-let galleryKeepIds: string[] = []
-if (Array.isArray(body.galleryKeepIds)) {
-  galleryKeepIds = body.galleryKeepIds.map(String)
-}
+// 2️⃣ Keep all existing images and append new uploads
+const updatedGallery = [...existingGallery, ...galleryUploads]
 
-// 3️⃣ Start with kept existing images
-const updatedGallery = existingGallery.filter(img => galleryKeepIds.includes(img.public_id))
-
-// 4️⃣ Add newly uploaded images
-updatedGallery.push(...galleryUploads)
-
-// 5️⃣ Optional: Replace specific images by index (if provided)
+// 3️⃣ Optional: Replace specific images by index if provided
 let replaceIndexes = body.galleryReplaceIndexes
 if (!Array.isArray(replaceIndexes)) replaceIndexes = replaceIndexes ? [replaceIndexes] : []
 replaceIndexes = replaceIndexes.map((i: any) => Number(i)).filter((i: any) => !isNaN(i))
@@ -210,7 +201,7 @@ replaceIndexes.forEach((replaceIdx: number, i: number) => {
   }
 })
 
-// 6️⃣ Set final gallery in body
+// 4️⃣ Set final gallery in body
 body.galleryImages = updatedGallery
 
 
