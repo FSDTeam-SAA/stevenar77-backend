@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import AppError from '../../errors/AppError'
 import { uploadToCloudinary } from '../../utils/cloudinary'
-import { IProduct } from './product.interface'
+import { IProduct, IVariant } from './product.interface'
 import Product from './product.model'
 
 export const addProduct = async (
@@ -131,46 +131,96 @@ const getSingleProduct = async (productId: string) => {
   return result
 }
 
-const updateProduct = async (
+export const updateProduct = async (
   payload: Partial<IProduct>,
   productId: string,
   files: Express.Multer.File[]
 ) => {
-  const product = await Product.findById(productId)
-  if (!product) {
-    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+  const existing = await Product.findById(productId)
+  if (!existing) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+
+  const productImages: { public_id: string; url: string }[] = [
+    ...(existing.images || []),
+  ]
+  const variantImages: Record<string, { public_id: string; url: string }> = {}
+
+  // 1️⃣ Upload all files
+  for (const file of files) {
+    if (file.fieldname.startsWith('variant_')) {
+      const index = file.fieldname.split('_')[1]
+      const uploadResult = await uploadToCloudinary(
+        file.path,
+        'products/variants'
+      )
+      if (uploadResult) {
+        variantImages[index] = {
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url,
+        }
+      }
+    } else {
+      const uploadResult = await uploadToCloudinary(file.path, 'products')
+      if (uploadResult) {
+        productImages.push({
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url,
+        })
+      }
+    }
   }
 
-  let images = product.images || []
+  // 2️⃣ Handle variants
+  let updatedVariants: IVariant[] = existing.variants || []
 
-  // If new files are uploaded
-  if (files && files.length > 0) {
-    // Optional: delete old images from Cloudinary if you want
-    // for (const img of product.images) {
-    //   await deleteFromCloudinary(img.public_id);
-    // }
+  if (Array.isArray(payload.variants)) {
+    updatedVariants = payload.variants.map((v, i): IVariant => {
+      const existingVariant = existing.variants?.[i]
+      const uploadedImage = variantImages[i]
 
-    const uploadPromises = files.map((file) =>
-      uploadToCloudinary(file.path, 'products')
-    )
-
-    const uploadedResults = await Promise.all(uploadPromises)
-
-    images = uploadedResults.map((result) => ({
-      public_id: result.public_id,
-      url: result.secure_url,
-    }))
+      return {
+        title: v.title ?? existingVariant?.title ?? '',
+        quantity: Number(v.quantity ?? existingVariant?.quantity ?? 0),
+        image:
+          uploadedImage !== undefined
+            ? uploadedImage
+            : v.image === null
+            ? null
+            : existingVariant?.image || null,
+      }
+    })
   }
 
-  // Merge new payload with old product
+  // 3️⃣ Merge data
+  let finalImages = existing.images
+
+  if (Array.isArray(payload.images)) {
+    if (payload.images.length === 0) {
+      finalImages = []
+    } else {
+      finalImages = payload.images
+    }
+  }
+
+  if (productImages.length > 0 && !Array.isArray(payload.images)) {
+    finalImages = productImages
+  }
+
+  const updateData: Partial<IProduct> = {
+    ...payload,
+    price: payload.price ? Number(payload.price) : existing.price,
+    quantity: payload.quantity ? Number(payload.quantity) : existing.quantity,
+    images: finalImages,
+    variants: updatedVariants,
+  }
+
+  // 4️⃣ Update DB
   const updatedProduct = await Product.findByIdAndUpdate(
     productId,
+    updateData,
     {
-      ...payload,
-      price: payload.price ? Number(payload.price) : product.price,
-      images, // replace old images if new ones uploaded
-    },
-    { new: true, runValidators: true }
+      new: true,
+      runValidators: true,
+    }
   )
 
   return updatedProduct
