@@ -1,41 +1,66 @@
-import { StatusCodes } from "http-status-codes";
-import AppError from "../../errors/AppError";
-import { uploadToCloudinary } from "../../utils/cloudinary";
-import { IProduct } from "./product.interface";
-import Product from "./product.model";
+import { StatusCodes } from 'http-status-codes'
+import AppError from '../../errors/AppError'
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import { IProduct } from './product.interface'
+import Product from './product.model'
 
-const addProduct = async (payload: IProduct, files: Express.Multer.File[]) => {
-  // eslint-disable-next-line prefer-const
-  let images: { public_id: string; url: string }[] = [];
+export const addProduct = async (
+  payload: IProduct,
+  files: Express.Multer.File[]
+) => {
+  const productImages: { public_id: string; url: string }[] = []
+  const variantImages: Record<string, { public_id: string; url: string }> = {}
 
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const uploadResult = await uploadToCloudinary(file.path, "products");
+  // 1️⃣ Upload all files
+  for (const file of files) {
+    // detect which file belongs to variant or main product
+    // Use file.fieldname to detect
+    if (file.fieldname.startsWith('variant_')) {
+      // e.g. fieldname = "variant_0", "variant_1"
+      const index = file.fieldname.split('_')[1]
+      const uploadResult = await uploadToCloudinary(
+        file.path,
+        'products/variants'
+      )
       if (uploadResult) {
-        images.push({
+        variantImages[index] = {
           public_id: uploadResult.public_id,
           url: uploadResult.secure_url,
-        });
+        }
+      }
+    } else {
+      const uploadResult = await uploadToCloudinary(file.path, 'products')
+      if (uploadResult) {
+        productImages.push({
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url,
+        })
       }
     }
-  } else {
-    throw new AppError(
-      "At least one image is required",
-      StatusCodes.BAD_REQUEST
-    );
   }
 
+  // 2️⃣ Assign uploaded variant images back to variants
+  const variants = Array.isArray(payload.variants)
+    ? payload.variants.map((v, i) => ({
+        ...v,
+        image: variantImages[i] || (v as any).image || null,
+        quantity: Number(v.quantity),
+      }))
+    : []
+
+  // 3️⃣ Prepare full product data
   const productData = {
     ...payload,
     price: Number(payload.price),
-    images,
-  };
+    quantity: Number(payload.quantity),
+    images: productImages,
+    variants,
+  }
 
-  const result = await Product.create(productData);
-  console.log("prodcut",result);
-
-  return result;
-};
+  // 4️⃣ Save to DB
+  const result = await Product.create(productData)
+  return result
+}
 
 const getAllProducts = async (filters: any) => {
   const {
@@ -46,48 +71,48 @@ const getAllProducts = async (filters: any) => {
     inStock,
     page = 1,
     limit = 10,
-  } = filters;
+  } = filters
 
-  const query: any = {};
+  const query: any = {}
 
   if (category) {
-    query.category = category;
+    query.category = category
   }
 
   if (search) {
     query.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { shortDescription: { $regex: search, $options: "i" } },
-    ];
+      { title: { $regex: search, $options: 'i' } },
+      { shortDescription: { $regex: search, $options: 'i' } },
+    ]
   }
 
   if (minPrice || maxPrice) {
-    query.price = {};
-    if (minPrice) query.price.$gte = Number(minPrice);
-    if (maxPrice) query.price.$lte = Number(maxPrice);
+    query.price = {}
+    if (minPrice) query.price.$gte = Number(minPrice)
+    if (maxPrice) query.price.$lte = Number(maxPrice)
   }
 
   if (inStock !== undefined) {
-    query.inStock = inStock === "true"; // from query param
+    query.inStock = inStock === 'true' // from query param
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const skip = (Number(page) - 1) * Number(limit)
 
   // Count total products for pagination
-  const totalProducts = await Product.countDocuments(query);
+  const totalProducts = await Product.countDocuments(query)
 
   // Get paginated products
-  const products = await Product.find(query).skip(skip).limit(Number(limit));
+  const products = await Product.find(query).skip(skip).limit(Number(limit))
 
   // Get category counts
   const categoryCounts = await Product.aggregate([
     {
       $group: {
-        _id: "$category",
+        _id: '$category',
         count: { $sum: 1 },
       },
     },
-  ]);
+  ])
 
   return {
     products,
@@ -98,25 +123,25 @@ const getAllProducts = async (filters: any) => {
       limit: Number(limit),
       totalPages: Math.ceil(totalProducts / Number(limit)),
     },
-  };
-};
+  }
+}
 
 const getSingleProduct = async (productId: string) => {
-  const result = await Product.findById(productId);
-  return result;
-};
+  const result = await Product.findById(productId)
+  return result
+}
 
 const updateProduct = async (
   payload: Partial<IProduct>,
   productId: string,
   files: Express.Multer.File[]
 ) => {
-  const product = await Product.findById(productId);
+  const product = await Product.findById(productId)
   if (!product) {
-    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
+    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
   }
 
-  let images = product.images || [];
+  let images = product.images || []
 
   // If new files are uploaded
   if (files && files.length > 0) {
@@ -126,15 +151,15 @@ const updateProduct = async (
     // }
 
     const uploadPromises = files.map((file) =>
-      uploadToCloudinary(file.path, "products")
-    );
+      uploadToCloudinary(file.path, 'products')
+    )
 
-    const uploadedResults = await Promise.all(uploadPromises);
+    const uploadedResults = await Promise.all(uploadPromises)
 
     images = uploadedResults.map((result) => ({
       public_id: result.public_id,
       url: result.secure_url,
-    }));
+    }))
   }
 
   // Merge new payload with old product
@@ -146,19 +171,19 @@ const updateProduct = async (
       images, // replace old images if new ones uploaded
     },
     { new: true, runValidators: true }
-  );
+  )
 
-  return updatedProduct;
-};
+  return updatedProduct
+}
 
 const deleteProduct = async (productId: string) => {
-  const product = await Product.findById(productId);
+  const product = await Product.findById(productId)
   if (!product) {
-    throw new AppError("Product not found", StatusCodes.NOT_FOUND);
+    throw new AppError('Product not found', StatusCodes.NOT_FOUND)
   }
 
-  await Product.findByIdAndDelete(productId);
-};
+  await Product.findByIdAndDelete(productId)
+}
 
 const productService = {
   addProduct,
@@ -166,6 +191,6 @@ const productService = {
   getSingleProduct,
   updateProduct,
   deleteProduct,
-};
+}
 
-export default productService;
+export default productService
