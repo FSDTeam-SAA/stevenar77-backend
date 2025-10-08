@@ -60,8 +60,24 @@ const getSingleProduct = catchAsync(async (req, res) => {
 
 const updateProduct = catchAsync(async (req, res) => {
   const { productId } = req.params
-  const files = req.files as any[]
-  const result = await productService.updateProduct(req.body, productId, files)
+  const files = Object.values(req.files || {}).flat() as Express.Multer.File[]
+
+  // Parse variants JSON if provided
+  let variants = []
+  if (req.body.variants) {
+    try {
+      variants = JSON.parse(req.body.variants)
+    } catch {
+      throw new AppError(
+        'Invalid JSON format for variants',
+        StatusCodes.BAD_REQUEST
+      )
+    }
+  }
+
+  const payload = { ...req.body, variants }
+
+  const result = await productService.updateProduct(payload, productId, files)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -70,6 +86,7 @@ const updateProduct = catchAsync(async (req, res) => {
     data: result,
   })
 })
+
 
 const deleteProduct = catchAsync(async (req, res) => {
   const { productId } = req.params
