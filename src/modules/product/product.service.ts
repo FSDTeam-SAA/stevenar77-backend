@@ -182,20 +182,34 @@ export const updateProduct = async (
         quantity: Number(v.quantity ?? existingVariant?.quantity ?? 0),
         image:
           uploadedImage !== undefined
-            ? uploadedImage // নতুন ইমেজ আপলোড হলে সেটাও ব্যবহার করো
+            ? uploadedImage
             : v.image === null
-            ? null // যদি ক্লায়েন্ট থেকে ইমেজ null পাঠায়, তাহলে মুছে ফেলো
-            : existingVariant?.image || null, // না থাকলে পুরনোটা রাখো
+            ? null
+            : existingVariant?.image || null,
       }
     })
   }
 
   // 3️⃣ Merge data
+  let finalImages = existing.images
+
+  if (Array.isArray(payload.images)) {
+    if (payload.images.length === 0) {
+      finalImages = []
+    } else {
+      finalImages = payload.images
+    }
+  }
+
+  if (productImages.length > 0 && !Array.isArray(payload.images)) {
+    finalImages = productImages
+  }
+
   const updateData: Partial<IProduct> = {
     ...payload,
     price: payload.price ? Number(payload.price) : existing.price,
     quantity: payload.quantity ? Number(payload.quantity) : existing.quantity,
-    images: productImages.length > 0 ? productImages : existing.images,
+    images: finalImages,
     variants: updatedVariants,
   }
 
