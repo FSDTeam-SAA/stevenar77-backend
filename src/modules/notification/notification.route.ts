@@ -11,6 +11,6 @@ const router = express.Router()
 router.get('/', auth('admin'), getAllNotifications)
 
 router.get('/:userId', getUserNotifications)
-router.patch('/read/:userId', markAllAsRead)
+router.patch('/read/all', markAllAsRead)
 
 export default router
