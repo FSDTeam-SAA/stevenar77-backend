@@ -28,10 +28,9 @@ export const getUserNotifications = catchAsync(
  * MARK ALL NOTIFICATIONS AS READ *
  **********************************/
 export const markAllAsRead = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params
 
   const result = await Notification.updateMany(
-    { to: userId, isViewed: false },
+    { isViewed: false },
     { isViewed: true }
   )
 
