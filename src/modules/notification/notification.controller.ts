@@ -14,10 +14,12 @@ export const getUserNotifications = catchAsync(
       createdAt: -1,
     })
 
+    const unreadCount = await Notification.countDocuments({ isViewed: false })
+
     res.status(httpStatus.OK).json({
       success: true,
       message: 'Notifications fetched successfully',
-      data: notifications,
+      data: { notifications, unreadCount },
     })
   }
 )
