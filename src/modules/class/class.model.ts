@@ -1,5 +1,24 @@
-import { model, Schema } from "mongoose";
-import { IClass } from "./class.interface";
+import { model, Schema } from 'mongoose'
+import { IClass } from './class.interface'
+
+// Each individual date in a schedule
+const dateSchema = new Schema(
+  {
+    date: { type: Date, required: true },
+    location: { type: String },
+    type: { type: String, enum: ['pool', 'islands'], required: true },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false }
+)
+
+// Each schedule has multiple dates
+const scheduleSchema = new Schema(
+  {
+    dates: [dateSchema], // array of dates
+  },
+  { _id: false }
+)
 
 const classSchema = new Schema<IClass>(
   {
@@ -17,7 +36,6 @@ const classSchema = new Schema<IClass>(
     participates: { type: Number, default: 0 },
     totalParticipates: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
-    classDates: [{ type: Date, required: true }],
     index: { type: Number, required: true },
     formTitle: [{ type: String }],
     maxAge: { type: Number },
@@ -29,16 +47,17 @@ const classSchema = new Schema<IClass>(
         price: { type: Number },
       },
     ],
+    schedule: [scheduleSchema], // array of schedules
   },
   {
     timestamps: true,
     versionKey: false,
   }
-);
+)
 
-// Example of adding a static method if needed
+// Example static method
 classSchema.statics.findByTitle = async function (title: string) {
-  return this.findOne({ title });
-};
+  return this.findOne({ title })
+}
 
-export const Class = model<IClass>("Class", classSchema);
+export const Class = model<IClass>('Class', classSchema)

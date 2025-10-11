@@ -4,43 +4,97 @@ import catchAsync from '../../utils/catchAsync'
 import sendResponse from '../../utils/sendResponse'
 import AppError from '../../errors/AppError'
 import { IClass } from './class.interface'
-import { deleteFromCloudinary, uploadToCloudinary } from '../../utils/cloudinary'
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from '../../utils/cloudinary'
 import { StatusCodes } from 'http-status-codes'
 
 export const createClass = catchAsync(async (req, res) => {
-  const file = req.file as Express.Multer.File;
-  const { index, duration, addOnce, ...rest } = req.body;
+  const file = req.file as Express.Multer.File
+  const {
+    index,
+    duration,
+    addOnce,
+    courseIncludes,
+    schedule,
+    formTitle,
+    ...rest
+  } = req.body
 
-  console.log(file);
-
+  // ---- Validate image ----
   if (!file) {
-    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
+    throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
   }
 
-  // Upload to Cloudinary
-  const uploadResult = await uploadToCloudinary(file.path, "classes");
+  // ---- Upload image ----
+  const uploadResult = await uploadToCloudinary(file.path, 'classes')
 
-  // ----- Handle index logic -----
-  let insertIndex: number;
-
+  // ---- Handle index shifting ----
+  let insertIndex: number
   if (index !== undefined) {
-    const newIndex = Number(index);
-
-    // Shift classes >= newIndex
+    const newIndex = Number(index)
     await Class.updateMany(
       { index: { $gte: newIndex } },
       { $inc: { index: 1 } }
-    );
-
-    insertIndex = newIndex;
+    )
+    insertIndex = newIndex
   } else {
-    // If no index provided, append at the end
-    const maxIndexClass = await Class.findOne().sort({ index: -1 });
-    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1;
+    const maxIndexClass = await Class.findOne().sort({ index: -1 })
+    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1
   }
 
+  // ---- Parse array fields properly ----
+  let parsedAddOnce = []
+  if (addOnce) {
+    try {
+      parsedAddOnce =
+        typeof addOnce === 'string' ? JSON.parse(addOnce) : addOnce
+    } catch (e) {
+      throw new AppError('Invalid addOnce format', StatusCodes.BAD_REQUEST)
+    }
+  }
 
-  // ----- Create new class -----
+  let parsedCourseIncludes: string[] = []
+  if (courseIncludes) {
+    parsedCourseIncludes =
+      typeof courseIncludes === 'string'
+        ? JSON.parse(courseIncludes)
+        : courseIncludes
+  }
+
+  let parsedFormTitle: string[] = []
+  if (formTitle) {
+    parsedFormTitle =
+      typeof formTitle === 'string' ? JSON.parse(formTitle) : formTitle
+  }
+
+  // ---- Parse schedule properly ----
+  let parsedSchedule: any[] = []
+
+  if (schedule) {
+    try {
+      const sched =
+        typeof schedule === 'string' ? JSON.parse(schedule) : schedule
+      if (!Array.isArray(sched)) throw new Error()
+      parsedSchedule = sched.map((s: any) => {
+        if (!Array.isArray(s.dates)) throw new Error()
+        return {
+          dates: s.dates.map((d: any) => ({
+            date: new Date(d.date),
+            location: d.location,
+            type: d.type,
+            isActive: d.isActive ?? true,
+          })),
+        }
+      })
+    } catch (e) {
+      console.log('Schedule parsing error:', e)
+      throw new AppError('Invalid schedule format', StatusCodes.BAD_REQUEST)
+    }
+  }
+
+  // ---- Create new class ----
   const result = await Class.create({
     ...rest,
     duration,
@@ -49,29 +103,33 @@ export const createClass = catchAsync(async (req, res) => {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url,
     },
-    addOnce,
-  });
+    addOnce: parsedAddOnce,
+    courseIncludes: parsedCourseIncludes,
+    formTitle: parsedFormTitle,
+    schedule: parsedSchedule,
+  })
 
+  // ---- Send response ----
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: "Class created successfully",
+    message: 'Class created successfully',
     data: result,
-  });
+  })
 })
 
 
+// update class by id
 export const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const files = req.files as {
     image?: Express.Multer.File[]
   }
-  const { index, duration, classDates, price, addOnce, ...rest } = req.body
+  const { index, duration, schedule, price, addOnce, ...rest } = req.body
 
   const updateData: any = {
     duration,
     ...rest,
-    addOnce,
   }
 
   // ----- Handle price parsing -----
@@ -92,20 +150,58 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  // ----- Handle classDates parsing -----
-  if (classDates !== undefined) {
+  // ----- Handle addOnce parsing -----
+  if (addOnce !== undefined) {
     try {
-      const parsed =
-        typeof classDates === 'string' ? JSON.parse(classDates) : classDates
+      const parsed = typeof addOnce === 'string' ? JSON.parse(addOnce) : addOnce
 
       if (!Array.isArray(parsed)) {
-        throw new Error('classDates must be an array')
+        throw new Error('addOnce must be an array of objects')
       }
 
-      updateData.classDates = parsed.map((d: string) => new Date(d))
+      updateData.addOnce = parsed.map((item: any) => ({
+        title: item.title,
+        price: Number(item.price),
+      }))
     } catch (err) {
       throw new AppError(
-        'Invalid classDates format. Must be a JSON array of ISO date strings.',
+        'Invalid addOnce format. Must be a JSON array of objects with title and price.',
+        StatusCodes.BAD_REQUEST
+      )
+    }
+  }
+
+  // ----- Handle schedule parsing -----
+  if (schedule !== undefined) {
+    try {
+      const parsed =
+        typeof schedule === 'string' ? JSON.parse(schedule) : schedule
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('schedule must be an array')
+      }
+
+      // Validate and transform schedule data
+      updateData.schedule = parsed.map((scheduleItem: any) => {
+        if (!scheduleItem.dates || !Array.isArray(scheduleItem.dates)) {
+          throw new Error('Each schedule item must have a dates array')
+        }
+
+        return {
+          dates: scheduleItem.dates.map((dateItem: any) => ({
+            date: new Date(dateItem.date),
+            location: dateItem.location || undefined,
+            type: dateItem.type, // Should be either 'pool' or 'islands'
+            isActive:
+              dateItem.isActive !== undefined
+                ? Boolean(dateItem.isActive)
+                : true,
+          })),
+        }
+      })
+    } catch (err) {
+      throw new AppError(
+        'Invalid schedule format. Must be a JSON array of schedule objects with dates.',
         StatusCodes.BAD_REQUEST
       )
     }
