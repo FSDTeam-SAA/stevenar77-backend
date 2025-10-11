@@ -123,8 +123,8 @@ export const createBooking = async (
 
     if (
       updatedClass &&
-      updatedClass.totalParticipates > 0 &&
-      updatedClass.participates >= updatedClass.totalParticipates
+      (updatedClass.totalParticipates ?? 0) > 0 &&
+      (updatedClass.participates ?? 0) >= (updatedClass.totalParticipates ?? 0)
     ) {
       await Class.findByIdAndUpdate(classId, { isActive: false })
     }
@@ -315,7 +315,7 @@ export const getBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find()
     .populate('classId')
     .populate('userId', 'name email')
-    .sort({ createdAt: -1 }) 
+    .sort({ createdAt: -1 })
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -386,11 +386,13 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     // Find the latest pending booking for this user
     const booking = await BookingClass.findOne({
       userId: new mongoose.Types.ObjectId(userId),
-   
-    }).sort({ createdAt: -1 }) 
+    }).sort({ createdAt: -1 })
 
     if (!booking) {
-      throw new AppError('Booking not found for this user', httpStatus.NOT_FOUND)
+      throw new AppError(
+        'Booking not found for this user',
+        httpStatus.NOT_FOUND
+      )
     }
 
     // Handle uploaded files
@@ -398,7 +400,10 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[]
     if (files && files.length > 0) {
       for (const file of files) {
-        const uploadResult = await uploadToCloudinary(file.path, 'booking_forms')
+        const uploadResult = await uploadToCloudinary(
+          file.path,
+          'booking_forms'
+        )
         if (uploadResult) {
           uploadedFiles.push({
             public_id: uploadResult.public_id,
