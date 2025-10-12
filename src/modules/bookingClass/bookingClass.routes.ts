@@ -9,6 +9,7 @@ import {
   getBookings,
   sendFormLinkToUser,
   submitBookingForm,
+  updateBooking,
 } from './bookingClass.controller'
 import auth from '../../middleware/auth'
 import { upload } from '../../middleware/multer.middleware'
@@ -29,8 +30,14 @@ router.post('/send-form-link', auth('admin'), sendFormLinkToUser)
 router.patch(
   '/:userId/submit-form',
   auth('user'),
-  upload.array('documents'), 
+  upload.array('documents'),
   submitBookingForm
+)
+
+router.patch(
+  '/:id',
+  upload.array('medicalDocuments'), // Multer middleware for file uploads
+  updateBooking
 )
 
 // Delete booking

@@ -41,7 +41,7 @@ export const createBooking = async (
     const userId = req.user?.id
 
     // Basic validation
-    if (!classId || !participant || !classDate) {
+    if (!classId) {
       res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -63,9 +63,9 @@ export const createBooking = async (
       throw new AppError('Class not found', httpStatus.NOT_FOUND)
     }
 
-    if (!classData.isActive) {
-      throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
-    }
+    // if (!classData.isActive) {
+    //   throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
+    // }
 
     // Get values safely with defaults
     const participates = classData.participates ?? 0
@@ -104,7 +104,7 @@ export const createBooking = async (
       totalPrice,
       status: 'pending',
       gender,
-      shoeSize: Number(shoeSize), // ✅ convert to number
+      shoeSize: Number(shoeSize),
       hight,
       weight: Number(weight),
       Username,
@@ -146,8 +146,7 @@ export const createBooking = async (
     }
 
     // Stripe Checkout
-    const successUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
+    const successUrl = `${process.env.FRONTEND_URL}/booking-successcourses/book/forms/${classId}`
     const cancelUrl =
       process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
 
@@ -190,6 +189,159 @@ export const createBooking = async (
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to create booking',
+    })
+  }
+}
+
+/************************
+ * UPDATE BOOKING BY ID *
+ ************************/
+export const updateBooking = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params // Booking ID from URL params
+    console.log('Update req.body', req.body)
+
+    const {
+      participant,
+      classDate,
+      gender,
+      shoeSize,
+      hight,
+      weight,
+      Username,
+      email,
+      phoneNumber,
+      emergencyName,
+      emergencyPhoneNumber,
+    } = req.body
+
+    // Validate booking exists
+    const existingBooking = await BookingClass.findById(id)
+    if (!existingBooking) {
+      res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      })
+      return
+    }
+
+    // Optional: Check if user owns this booking or is admin
+    const userId = req.user?.id
+    if (
+      existingBooking.userId.toString() !== userId &&
+      req.user?.role !== 'admin'
+    ) {
+      res.status(403).json({
+        success: false,
+        message: 'You are not authorized to update this booking',
+      })
+      return
+    }
+
+    // Validate classDate if provided
+    if (classDate && (!Array.isArray(classDate) || classDate.length === 0)) {
+      res.status(400).json({
+        success: false,
+        message: 'classDate must be a non-empty array',
+      })
+      return
+    }
+
+    // Handle medical document uploads if files are provided
+    let medicalDocuments = existingBooking.medicalDocuments
+    const files = req.files as Express.Multer.File[]
+
+    if (files && files.length > 0) {
+      const uploadResults = await Promise.all(
+        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+      )
+
+      medicalDocuments = uploadResults.map((uploaded) => ({
+        public_id: uploaded.public_id,
+        url: uploaded.secure_url,
+      }))
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      ...(participant !== undefined && { participant }),
+      ...(classDate !== undefined && { classDate }),
+      ...(gender !== undefined && { gender }),
+      ...(shoeSize !== undefined && { shoeSize: Number(shoeSize) }),
+      ...(hight !== undefined && { hight }),
+      ...(weight !== undefined && { weight: Number(weight) }),
+      ...(Username !== undefined && { Username }),
+      ...(email !== undefined && { email }),
+      ...(phoneNumber !== undefined && { phoneNumber }),
+      ...(emergencyName !== undefined && { emergencyName }),
+      ...(emergencyPhoneNumber !== undefined && { emergencyPhoneNumber }),
+      ...(status !== undefined && { status }),
+      medicalDocuments,
+    }
+
+    // Remove undefined values
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] === undefined) {
+        delete updateData[key]
+      }
+    })
+
+    // Update booking
+    const updatedBooking = await BookingClass.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    )
+      .populate('classId')
+      .populate('userId')
+
+    // Handle participant count changes for class statistics
+    if (
+      participant !== undefined &&
+      participant !== existingBooking.participant
+    ) {
+      const classId = existingBooking.classId
+      const participantDiff = participant - (existingBooking.participant || 0)
+
+      const updatedClass = await Class.findByIdAndUpdate(
+        classId,
+        { $inc: { totalBookings: participantDiff } },
+        { new: true }
+      )
+
+      // Check if class needs to be deactivated due to being full
+      if (
+        updatedClass &&
+        (updatedClass.totalParticipates ?? 0) > 0 &&
+        (updatedClass.participates ?? 0) >=
+          (updatedClass.totalParticipates ?? 0)
+      ) {
+        await Class.findByIdAndUpdate(classId, { isActive: false })
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Booking updated successfully',
+      data: updatedBooking,
+    })
+  } catch (error: any) {
+    console.error('Error updating booking:', error)
+
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      })
+      return
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update booking',
     })
   }
 }

@@ -4,9 +4,9 @@ import { BookingClassModel, IBookingClass } from './bookingClass.interface'
 const bookingClassSchema = new Schema<IBookingClass>(
   {
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User' },
-    participant: { type: Number, required: true },
-    classDate: [{ type: Date, required: true }],
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    participant: { type: Number },
+    classDate: [{ type: Date }],
 
     medicalDocuments: [
       {
@@ -19,23 +19,25 @@ const bookingClassSchema = new Schema<IBookingClass>(
       default: null,
     },
 
-    totalPrice: { type: Number, required: true },
+    totalPrice: { type: Number },
     status: {
       type: String,
       enum: ['pending', 'paid', 'cancelled'],
       default: 'pending',
     },
     stripePaymentIntentId: { type: String },
-    gender: { type: String, enum: ['male', 'female'], required: true },
-    shoeSize: { type: Number, required: true },
+    gender: { type: String, enum: ['male', 'female'] },
+    shoeSize: { type: Number },
     hight: {
       type: String,
       required: true,
     },
-    weight: { type: Number, required: true },
-    Username: { type: String, required: true },
-    email: { type: String, required: true },
+    weight: { type: Number },
+
+    Username: { type: String },
+    email: { type: String },
     phoneNumber: { type: String },
+
     emergencyName: { type: String },
     emergencyPhoneNumber: { type: String },
   },
