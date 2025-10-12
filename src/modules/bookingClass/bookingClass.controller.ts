@@ -41,7 +41,7 @@ export const createBooking = async (
     const userId = req.user?.id
 
     // Basic validation
-    if (!classId || !participant || !classDate) {
+    if (!classId) {
       res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -63,9 +63,9 @@ export const createBooking = async (
       throw new AppError('Class not found', httpStatus.NOT_FOUND)
     }
 
-    if (!classData.isActive) {
-      throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
-    }
+    // if (!classData.isActive) {
+    //   throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
+    // }
 
     // Get values safely with defaults
     const participates = classData.participates ?? 0
@@ -104,7 +104,7 @@ export const createBooking = async (
       totalPrice,
       status: 'pending',
       gender,
-      shoeSize: Number(shoeSize), // ✅ convert to number
+      shoeSize: Number(shoeSize),
       hight,
       weight: Number(weight),
       Username,
@@ -146,8 +146,7 @@ export const createBooking = async (
     }
 
     // Stripe Checkout
-    const successUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5000/booking-success'
+    const successUrl = `${process.env.FRONTEND_URL}/booking-successcourses/book/forms/${classId}`
     const cancelUrl =
       process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
 
