@@ -216,6 +216,7 @@ export const updateBooking = async (
       phoneNumber,
       emergencyName,
       emergencyPhoneNumber,
+      status
     } = req.body
 
     // Validate booking exists
@@ -229,17 +230,17 @@ export const updateBooking = async (
     }
 
     // Optional: Check if user owns this booking or is admin
-    const userId = req.user?.id
-    if (
-      existingBooking.userId.toString() !== userId &&
-      req.user?.role !== 'admin'
-    ) {
-      res.status(403).json({
-        success: false,
-        message: 'You are not authorized to update this booking',
-      })
-      return
-    }
+    // const userId = req.user?.id
+    // if (
+    //   existingBooking.userId.toString() !== userId &&
+    //   req.user?.role !== 'admin'
+    // ) {
+    //   res.status(403).json({
+    //     success: false,
+    //     message: 'You are not authorized to update this booking',
+    //   })
+    //   return
+    // }
 
     // Validate classDate if provided
     if (classDate && (!Array.isArray(classDate) || classDate.length === 0)) {

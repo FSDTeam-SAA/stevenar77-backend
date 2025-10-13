@@ -35,7 +35,7 @@ router.patch(
 )
 
 router.patch(
-  '/:id',
+  '/update/medical-documents/:id',
   upload.array('medicalDocuments'), // Multer middleware for file uploads
   updateBooking
 )
