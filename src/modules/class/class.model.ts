@@ -15,7 +15,7 @@ const dateSchema = new Schema(
 // Each schedule has multiple dates
 const scheduleSchema = new Schema(
   {
-    dates: [dateSchema], // array of dates
+    sets: [dateSchema], // array of dates
   },
   { _id: false }
 )
