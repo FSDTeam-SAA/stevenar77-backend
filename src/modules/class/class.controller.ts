@@ -78,9 +78,9 @@ export const createClass = catchAsync(async (req, res) => {
         typeof schedule === 'string' ? JSON.parse(schedule) : schedule
       if (!Array.isArray(sched)) throw new Error()
       parsedSchedule = sched.map((s: any) => {
-        if (!Array.isArray(s.dates)) throw new Error()
+        if (!Array.isArray(s.sets)) throw new Error()
         return {
-          dates: s.dates.map((d: any) => ({
+          sets: s.sets.map((d: any) => ({
             date: new Date(d.date),
             location: d.location,
             type: d.type,
@@ -183,12 +183,12 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
 
       // Validate and transform schedule data
       updateData.schedule = parsed.map((scheduleItem: any) => {
-        if (!scheduleItem.dates || !Array.isArray(scheduleItem.dates)) {
-          throw new Error('Each schedule item must have a dates array')
+        if (!scheduleItem.sets || !Array.isArray(scheduleItem.sets)) {
+          throw new Error('Each schedule item must have a sets array')
         }
 
         return {
-          dates: scheduleItem.dates.map((dateItem: any) => ({
+          sets: scheduleItem.sets.map((dateItem: any) => ({
             date: new Date(dateItem.date),
             location: dateItem.location || undefined,
             type: dateItem.type, // Should be either 'pool' or 'islands'
@@ -201,7 +201,7 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
       })
     } catch (err) {
       throw new AppError(
-        'Invalid schedule format. Must be a JSON array of schedule objects with dates.',
+        'Invalid schedule format. Must be a JSON array of schedule objects with sets.',
         StatusCodes.BAD_REQUEST
       )
     }
