@@ -5,9 +5,21 @@ import productService from './product.service'
 import AppError from '../../errors/AppError'
 import { IProduct } from './product.interface'
 
-const addProduct = catchAsync(async (req, res) => {
-  const files = Object.values(req.files || {}).flat() as Express.Multer.File[]
+interface IVariant {
+  title: string
+  quantity: number
+  image?: string | null
+}
 
+const addProduct = catchAsync(async (req, res) => {
+  // Collect all uploaded files
+  const files = req.files as Express.Multer.File[]
+
+  // Separate main product images and variant images
+  const mainImages = files.filter((f) => f.fieldname === 'image')
+  const variantImages = files.filter((f) => f.fieldname.startsWith('variant_'))
+
+  // Parse variants JSON if exists
   let variants = []
   if (req.body.variants) {
     try {
@@ -23,6 +35,16 @@ const addProduct = catchAsync(async (req, res) => {
       }
     }
   }
+
+  // Map variant images to their respective variants (optional)
+  variants = variants.map((variant: IVariant, index: number) => {
+    const fieldName = `variant_${index}`
+    const file = variantImages.find((img) => img.fieldname === fieldName)
+    return {
+      ...variant,
+      image: file ?? null, // attach image file if exists
+    }
+  })
 
   const payload = { ...req.body, variants }
   const result = await productService.addProduct(payload as IProduct, files)
@@ -86,7 +108,6 @@ const updateProduct = catchAsync(async (req, res) => {
     data: result,
   })
 })
-
 
 const deleteProduct = catchAsync(async (req, res) => {
   const { productId } = req.params
