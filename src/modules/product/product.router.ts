@@ -16,15 +16,9 @@ router.get('/:productId', productController.getSingleProduct)
 
 router.put(
   '/update/:productId',
-  upload.fields([
-    { name: 'image', maxCount: 5 }, // main product images
-    { name: 'variant_0', maxCount: 1 }, // variant 0 image
-    { name: 'variant_1', maxCount: 1 }, // variant 1 image
-    { name: 'variant_2', maxCount: 1 }, // add more dynamically as needed
-  ]),
+  upload.any(), // accept any number of files dynamically
   productController.updateProduct
 )
-
 
 router.delete('/delete/:productId', productController.deleteProduct)
 

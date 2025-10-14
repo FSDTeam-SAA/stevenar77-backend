@@ -82,20 +82,40 @@ const getSingleProduct = catchAsync(async (req, res) => {
 
 const updateProduct = catchAsync(async (req, res) => {
   const { productId } = req.params
-  const files = Object.values(req.files || {}).flat() as Express.Multer.File[]
+  const files = req.files as Express.Multer.File[] // since we're using upload.any()
+
+  // Separate main product images and variant images
+  const mainImages = files.filter((file) => file.fieldname === 'image')
+  const variantImages = files.filter((file) =>
+    file.fieldname.startsWith('variant_')
+  )
 
   // Parse variants JSON if provided
   let variants = []
   if (req.body.variants) {
     try {
       variants = JSON.parse(req.body.variants)
-    } catch {
-      throw new AppError(
-        'Invalid JSON format for variants',
-        StatusCodes.BAD_REQUEST
-      )
+    } catch (err) {
+      try {
+        variants = JSON.parse(req.body.variants.replace(/'/g, '"'))
+      } catch {
+        throw new AppError(
+          'Invalid JSON format for variants',
+          StatusCodes.BAD_REQUEST
+        )
+      }
     }
   }
+
+  // Map variant images to variants based on index (e.g., variant_0 → variants[0])
+  variants = variants.map((variant: IVariant, index: number) => {
+    const fieldName = `variant_${index}`
+    const file = variantImages.find((img) => img.fieldname === fieldName)
+    return {
+      ...variant,
+      image: file ?? variant.image ?? null, // keep existing image if not replaced
+    }
+  })
 
   const payload = { ...req.body, variants }
 
