@@ -146,7 +146,9 @@ export const createBooking = async (
     }
 
     // Stripe Checkout
-    const successUrl = `http://localhost:50001/booking-successcourses/book/forms/${classId}`
+
+
+    const successUrl = `http://localhost:3000/courses/book/forms/${classId}`
     const cancelUrl =
       process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
 
