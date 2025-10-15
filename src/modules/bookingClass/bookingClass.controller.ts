@@ -147,10 +147,10 @@ export const createBooking = async (
 
     // Stripe Checkout
 
-
-    const successUrl = `http://localhost:3000/courses/book/forms/${classId}`
+    const successUrl = `https://stevenar77-website.vercel.app/courses/book/forms/${classId}`
     const cancelUrl =
-      process.env.FRONTEND_URL || 'http://localhost:5000/booking-cancel'
+      process.env.FRONTEND_URL ||
+      'https://stevenar77-website.vercel.app/booking-cancel'
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -218,7 +218,7 @@ export const updateBooking = async (
       phoneNumber,
       emergencyName,
       emergencyPhoneNumber,
-      status
+      status,
     } = req.body
 
     // Validate booking exists
