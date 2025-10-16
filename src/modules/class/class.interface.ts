@@ -1,4 +1,6 @@
 export interface IClassDate {
+  toObject(): any;
+  _id?: string;
   date: Date;
   location?: string;
   type: "pool" | "islands";
@@ -16,6 +18,8 @@ export interface IImage {
 }
 
 export interface ISchedule {
+  toObject(): any;
+  _id?: string;
   title: string;
   description?: string;
   participents?: number;

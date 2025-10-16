@@ -16,7 +16,7 @@ const router = Router()
 router.post('/', upload.single('image'), createClass)
 router.get('/', getAllClasses)
 router.get('/:id', getClassById)
-router.put('/update/:id', upload.single('image'), updateClass)
+router.patch('/update/:id', upload.single('image'), updateClass)
 router.put('/update-status/:id', auth(USER_ROLE.ADMIN), toggleCourseStatus)
 router.delete('/delete/:id', deleteClass)
 

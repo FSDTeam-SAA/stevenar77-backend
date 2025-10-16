@@ -6,10 +6,9 @@ const dateSchema = new Schema(
   {
     date: { type: Date, required: true },
     location: { type: String },
-    type: { type: String, enum: ['pool', 'islands'], required: true },
+    type: { type: String, enum: ['pool', 'islands']},
     isActive: { type: Boolean, default: true },
   },
-  { _id: false }
 )
 
 // Each schedule has multiple dates
@@ -21,7 +20,6 @@ const scheduleSchema = new Schema(
     totalParticipents: { type: Number, default: 0 },
     sets: [dateSchema],
   },
-  { _id: false }
 );
 
 const classSchema = new Schema<IClass>(
