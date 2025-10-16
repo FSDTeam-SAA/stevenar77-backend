@@ -77,7 +77,7 @@ export const createClass = catchAsync(async (req, res) => {
       const schedArray =
         typeof schedule === "string" ? JSON.parse(schedule) : schedule;
       if (!Array.isArray(schedArray)) throw new Error();
-      
+
       parsedSchedule = schedArray.map((s: any) => ({
         title: s.title,
         description: s.description,
@@ -124,136 +124,387 @@ export const createClass = catchAsync(async (req, res) => {
 
 
 // update class by id
-export const updateClass = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const files = req.files as {
-    image?: Express.Multer.File[]
-  }
-  const { index, duration, schedule, price, addOnce, ...rest } = req.body
+// export const updateClass = catchAsync(async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const files = req.files as { image?: Express.Multer.File[] };
+//   const { index, duration, schedule, price, addOnce, ...rest } = req.body;
 
-  const updateData: any = {
-    duration,
-    ...rest,
-  }
+//   // Extract query parameters for targeted updates
+//   const { scheduleId, setId } = req.query;
+
+//   const updateData: any = { ...rest };
+//   if (duration !== undefined) updateData.duration = duration;
+
+//   // ----- Handle price parsing -----
+//   if (price !== undefined && price !== "" && price !== "null") {
+//     try {
+//       const parsed = typeof price === "string" ? JSON.parse(price) : price;
+//       if (!Array.isArray(parsed))
+//         throw new Error("price must be an array of numbers");
+//       updateData.price = parsed.map((p: any) => Number(p));
+//     } catch {
+//       throw new AppError(
+//         "Invalid price format. Must be a JSON array of numbers.",
+//         StatusCodes.BAD_REQUEST
+//       );
+//     }
+//   }
+
+//   // ----- Handle addOnce parsing -----
+//   if (addOnce !== undefined && addOnce !== "" && addOnce !== "null") {
+//     try {
+//       const parsed =
+//         typeof addOnce === "string" ? JSON.parse(addOnce) : addOnce;
+//       if (!Array.isArray(parsed))
+//         throw new Error("addOnce must be an array of objects");
+//       updateData.addOnce = parsed.map((item: any) => ({
+//         title: item.title,
+//         price: Number(item.price),
+//       }));
+//     } catch {
+//       throw new AppError(
+//         "Invalid addOnce format. Must be a JSON array of objects with title and price.",
+//         StatusCodes.BAD_REQUEST
+//       );
+//     }
+//   }
+
+//   // ----- Handle schedule parsing (with targeted updates) -----
+//   if (schedule !== undefined && schedule !== "" && schedule !== "null") {
+//     try {
+//       const parsedSchedule =
+//         typeof schedule === "string" ? JSON.parse(schedule) : schedule;
+
+//       if (!Array.isArray(parsedSchedule))
+//         throw new Error("schedule must be an array");
+
+//       const existingClass = await Class.findById(id);
+//       if (!existingClass)
+//         throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+
+//       let mergedSchedule;
+
+//       // Check if we're doing a targeted update (specific schedule and set)
+//       if (scheduleId && setId) {
+//         // Targeted update: update only specific set in specific schedule
+//         mergedSchedule = existingClass.schedule!.map((existingItem) => {
+//           // Find the matching schedule by _id
+//           if (existingItem._id?.toString() === scheduleId) {
+//             const newItem = parsedSchedule.find(
+//               (s: any) => s._id === scheduleId
+//             );
+
+//             if (newItem) {
+//               // Update only the specific set within this schedule
+//               const updatedSets = existingItem.sets.map((existingSet) => {
+//                 if (existingSet._id?.toString() === setId) {
+//                   const newSet = newItem.sets?.find(
+//                     (s: any) => s._id === setId
+//                   );
+
+//                   if (newSet) {
+//                     // Merge the specific set data
+//                     return {
+//                       ...existingSet.toObject(),
+//                       date: newSet.date
+//                         ? new Date(newSet.date)
+//                         : existingSet.date,
+//                       location: newSet.location ?? existingSet.location,
+//                       type: newSet.type ?? existingSet.type,
+//                       isActive:
+//                         newSet.isActive !== undefined
+//                           ? Boolean(newSet.isActive)
+//                           : existingSet.isActive ?? true,
+//                     };
+//                   }
+//                 }
+//                 return existingSet;
+//               });
+
+//               return {
+//                 ...existingItem.toObject(),
+//                 title: newItem.title ?? existingItem.title,
+//                 description: newItem.description ?? existingItem.description,
+//                 participents:
+//                   newItem.participents !== undefined
+//                     ? Number(newItem.participents)
+//                     : existingItem.participents,
+//                 totalParticipents:
+//                   newItem.totalParticipents !== undefined
+//                     ? Number(newItem.totalParticipents)
+//                     : existingItem.totalParticipents,
+//                 sets: updatedSets,
+//               };
+//             }
+//           }
+//           return existingItem;
+//         });
+//       } else {
+//         // Full schedule update (your existing logic)
+//         mergedSchedule = existingClass.schedule!.map((existingItem) => {
+//           const newItem = parsedSchedule.find(
+//             (s: any) =>
+//               s._id === existingItem._id?.toString() ||
+//               s.title === existingItem.title
+//           );
+//           if (!newItem) return existingItem;
+
+//           let mergedSets = existingItem.sets;
+//           if (Array.isArray(newItem.sets)) {
+//             mergedSets = newItem.sets.map((dateItem: any, i: number) => {
+//               const existingDate = existingItem.sets[i] || {};
+//               return {
+//                 date: dateItem.date
+//                   ? new Date(dateItem.date)
+//                   : existingDate.date,
+//                 location: dateItem.location ?? existingDate.location,
+//                 type: dateItem.type ?? existingDate.type,
+//                 isActive:
+//                   dateItem.isActive !== undefined
+//                     ? Boolean(dateItem.isActive)
+//                     : existingDate.isActive ?? true,
+//               };
+//             });
+
+//             if (existingItem.sets.length > newItem.sets.length) {
+//               mergedSets = mergedSets.concat(
+//                 existingItem.sets.slice(newItem.sets.length)
+//               );
+//             }
+//           }
+
+//           return {
+//             ...existingItem.toObject(),
+//             title: newItem.title ?? existingItem.title,
+//             description: newItem.description ?? existingItem.description,
+//             participents:
+//               newItem.participents !== undefined
+//                 ? Number(newItem.participents)
+//                 : existingItem.participents,
+//             totalParticipents:
+//               newItem.totalParticipents !== undefined
+//                 ? Number(newItem.totalParticipents)
+//                 : existingItem.totalParticipents,
+//             sets: mergedSets,
+//           };
+//         });
+//       }
+
+//       updateData.schedule = mergedSchedule;
+//     } catch (err) {
+//       console.error("Schedule parsing error:", err);
+//       throw new AppError(
+//         "Invalid schedule format. Must be a JSON array of schedule objects.",
+//         StatusCodes.BAD_REQUEST
+//       );
+//     }
+//   }
+
+//   // ----- Handle image upload -----
+//   if (files?.image && files.image.length > 0) {
+//     const file = files.image[0];
+//     const uploadResult = await uploadToCloudinary(file.path, "classes");
+
+//     const existingClass = await Class.findById(id);
+//     if (existingClass?.image?.public_id) {
+//       await deleteFromCloudinary(existingClass.image.public_id);
+//     }
+
+//     updateData.image = {
+//       public_id: uploadResult.public_id,
+//       url: uploadResult.secure_url,
+//     };
+//   }
+
+//   // ----- Handle index logic -----
+//   if (index !== undefined && index !== "" && index !== "null") {
+//     const currentClass = await Class.findById(id);
+//     if (!currentClass)
+//       throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+
+//     const oldIndex = currentClass.index;
+//     const newIndex = Number(index);
+
+//     if (oldIndex !== newIndex) {
+//       if (newIndex < oldIndex!) {
+//         await Class.updateMany(
+//           { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
+//           { $inc: { index: 1 } }
+//         );
+//       } else {
+//         await Class.updateMany(
+//           { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
+//           { $inc: { index: -1 } }
+//         );
+//       }
+//       updateData.index = newIndex;
+//     }
+//   }
+
+//   // ----- Update the class -----
+//   const updatedClass = await Class.findByIdAndUpdate(
+//     id,
+//     { $set: updateData },
+//     { new: true, runValidators: true }
+//   );
+//   if (!updatedClass)
+//     throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: "Class updated successfully",
+//     data: updatedClass,
+//   });
+// });
+
+
+export const updateClass = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const files = req.files as { image?: Express.Multer.File[] };
+  const { index, duration, schedule, price, addOnce, ...rest } = req.body;
+
+  const updateData: any = { ...rest };
+  if (duration !== undefined) updateData.duration = duration;
 
   // ----- Handle price parsing -----
-  if (price !== undefined) {
+  if (price !== undefined && price !== "" && price !== "null") {
     try {
-      const parsed = typeof price === 'string' ? JSON.parse(price) : price
-
-      if (!Array.isArray(parsed)) {
-        throw new Error('price must be an array of numbers')
-      }
-
-      updateData.price = parsed.map((p: any) => Number(p))
-    } catch (err) {
+      const parsed = typeof price === "string" ? JSON.parse(price) : price;
+      if (!Array.isArray(parsed)) throw new Error("price must be an array");
+      updateData.price = parsed.map((p: any) => Number(p));
+    } catch {
       throw new AppError(
-        'Invalid price format. Must be a JSON array of numbers.',
+        "Invalid price format. Must be a JSON array of numbers.",
         StatusCodes.BAD_REQUEST
-      )
+      );
     }
   }
 
   // ----- Handle addOnce parsing -----
-  if (addOnce !== undefined) {
+  if (addOnce !== undefined && addOnce !== "" && addOnce !== "null") {
     try {
-      const parsed = typeof addOnce === 'string' ? JSON.parse(addOnce) : addOnce
-
-      if (!Array.isArray(parsed)) {
-        throw new Error('addOnce must be an array of objects')
-      }
-
+      const parsed =
+        typeof addOnce === "string" ? JSON.parse(addOnce) : addOnce;
+      if (!Array.isArray(parsed))
+        throw new Error("addOnce must be an array of objects");
       updateData.addOnce = parsed.map((item: any) => ({
         title: item.title,
         price: Number(item.price),
-      }))
-    } catch (err) {
+      }));
+    } catch {
       throw new AppError(
-        'Invalid addOnce format. Must be a JSON array of objects with title and price.',
+        "Invalid addOnce format. Must be a JSON array of objects with title and price.",
         StatusCodes.BAD_REQUEST
-      )
+      );
     }
   }
 
   // ----- Handle schedule parsing -----
-  if (schedule !== undefined) {
+  if (schedule !== undefined && schedule !== "" && schedule !== "null") {
     try {
-      const parsed =
-        typeof schedule === 'string' ? JSON.parse(schedule) : schedule
+      const parsedSchedule =
+        typeof schedule === "string" ? JSON.parse(schedule) : schedule;
 
-      if (!Array.isArray(parsed)) {
-        throw new Error('schedule must be an array')
-      }
+      if (!Array.isArray(parsedSchedule))
+        throw new Error("schedule must be an array");
 
-      // Validate and transform schedule data
-      updateData.schedule = parsed.map((scheduleItem: any) => {
-        if (!scheduleItem.sets || !Array.isArray(scheduleItem.sets)) {
-          throw new Error('Each schedule item must have a sets array')
-        }
+      const existingClass = await Class.findById(id);
+      if (!existingClass)
+        throw new AppError("Class not found", StatusCodes.NOT_FOUND);
+
+      // Merge schedules
+      const mergedSchedule = existingClass.schedule!.map((existingItem) => {
+        const incomingSchedule = parsedSchedule.find(
+          (s: any) => s._id === existingItem._id?.toString()
+        );
+        if (!incomingSchedule) return existingItem;
+
+        // Merge sets
+        const mergedSets = existingItem.sets.map((existingSet) => {
+          const incomingSet = (incomingSchedule.sets || []).find(
+            (s: any) => s._id === existingSet._id?.toString()
+          );
+          if (!incomingSet) return existingSet;
+
+          return {
+            ...existingSet.toObject(),
+            date: incomingSet.date
+              ? new Date(incomingSet.date)
+              : existingSet.date,
+            location: incomingSet.location ?? existingSet.location,
+            type: incomingSet.type ?? existingSet.type,
+            isActive:
+              incomingSet.isActive !== undefined
+                ? Boolean(incomingSet.isActive)
+                : existingSet.isActive ?? true,
+          };
+        });
 
         return {
-          sets: scheduleItem.sets.map((dateItem: any) => ({
-            date: new Date(dateItem.date),
-            location: dateItem.location || undefined,
-            type: dateItem.type, // Should be either 'pool' or 'islands'
-            isActive:
-              dateItem.isActive !== undefined
-                ? Boolean(dateItem.isActive)
-                : true,
-          })),
-        }
-      })
+          ...existingItem.toObject(),
+          title: incomingSchedule.title ?? existingItem.title,
+          description: incomingSchedule.description ?? existingItem.description,
+          participents:
+            incomingSchedule.participents !== undefined
+              ? Number(incomingSchedule.participents)
+              : existingItem.participents,
+          totalParticipents:
+            incomingSchedule.totalParticipents !== undefined
+              ? Number(incomingSchedule.totalParticipents)
+              : existingItem.totalParticipents,
+          sets: mergedSets,
+        };
+      });
+
+      updateData.schedule = mergedSchedule;
     } catch (err) {
+      console.error("Schedule parsing error:", err);
       throw new AppError(
-        'Invalid schedule format. Must be a JSON array of schedule objects with sets.',
+        "Invalid schedule format. Must be a JSON array of schedule objects.",
         StatusCodes.BAD_REQUEST
-      )
+      );
     }
   }
 
-  // ----- Handle image upload if provided -----
+  // ----- Handle image upload -----
   if (files?.image && files.image.length > 0) {
-    const file = files.image[0]
-    const uploadResult = await uploadToCloudinary(file.path, 'classes')
+    const file = files.image[0];
+    const uploadResult = await uploadToCloudinary(file.path, "classes");
 
-    // Delete old image from Cloudinary if exists
-    const existingClass = await Class.findById(id)
+    const existingClass = await Class.findById(id);
     if (existingClass?.image?.public_id) {
-      await deleteFromCloudinary(existingClass.image.public_id)
+      await deleteFromCloudinary(existingClass.image.public_id);
     }
 
     updateData.image = {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url,
-    }
+    };
   }
 
-  // ----- Handle index logic if provided -----
-  if (index !== undefined) {
-    const currentClass = await Class.findById(id)
-    if (!currentClass) {
-      throw new AppError('Class not found', StatusCodes.NOT_FOUND)
-    }
+  // ----- Handle index logic -----
+  if (index !== undefined && index !== "" && index !== "null") {
+    const currentClass = await Class.findById(id);
+    if (!currentClass)
+      throw new AppError("Class not found", StatusCodes.NOT_FOUND);
 
-    const oldIndex = currentClass.index
-    const newIndex = Number(index)
+    const oldIndex = currentClass.index;
+    const newIndex = Number(index);
 
-    if (oldIndex !== undefined && oldIndex !== newIndex) {
-      if (newIndex < oldIndex) {
-        // Moving UP: shift other classes DOWN
+    if (oldIndex !== newIndex) {
+      if (newIndex < oldIndex!) {
         await Class.updateMany(
           { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
           { $inc: { index: 1 } }
-        )
+        );
       } else {
-        // Moving DOWN: shift other classes UP
         await Class.updateMany(
           { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
           { $inc: { index: -1 } }
-        )
+        );
       }
-
-      updateData.index = newIndex
+      updateData.index = newIndex;
     }
   }
 
@@ -262,19 +513,19 @@ export const updateClass = catchAsync(async (req: Request, res: Response) => {
     id,
     { $set: updateData },
     { new: true, runValidators: true }
-  )
-
-  if (!updatedClass) {
-    throw new AppError('Class not found', StatusCodes.NOT_FOUND)
-  }
+  );
+  if (!updatedClass)
+    throw new AppError("Class not found", StatusCodes.NOT_FOUND);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Class updated successfully',
+    message: "Class updated successfully",
     data: updatedClass,
-  })
-})
+  });
+});
+
+
 
 export const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const page = Number(req.query.page) || 1

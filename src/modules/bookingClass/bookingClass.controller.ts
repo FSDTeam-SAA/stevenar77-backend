@@ -68,14 +68,14 @@ export const createBooking = async (
     // }
 
     // Get values safely with defaults
-    const participates = classData.participates ?? 0
-    const totalParticipates = classData.totalParticipates ?? 0
+    // const participates = classData.participates ?? 0
+    // const totalParticipates = classData.totalParticipates ?? 0
 
     // If no limit was set (0), treat it as "unlimited"
-    if (totalParticipates > 0 && participates >= totalParticipates) {
-      await Class.findByIdAndUpdate(classId, { isActive: false })
-      throw new AppError('Class is full', httpStatus.BAD_REQUEST)
-    }
+    // if (totalParticipates > 0 && participates >= totalParticipates) {
+    //   await Class.findByIdAndUpdate(classId, { isActive: false })
+    //   throw new AppError('Class is full', httpStatus.BAD_REQUEST)
+    // }
     let medicalDocuments: { public_id: string; url: string }[] = []
 
     const files = req.files as Express.Multer.File[] // multer.array() gives array of files
@@ -121,13 +121,13 @@ export const createBooking = async (
       { new: true }
     )
 
-    if (
-      updatedClass &&
-      (updatedClass.totalParticipates ?? 0) > 0 &&
-      (updatedClass.participates ?? 0) >= (updatedClass.totalParticipates ?? 0)
-    ) {
-      await Class.findByIdAndUpdate(classId, { isActive: false })
-    }
+    // if (
+    //   updatedClass &&
+    //   (updatedClass.totalParticipates ?? 0) > 0 &&
+    //   (updatedClass.participates ?? 0) >= (updatedClass.totalParticipates ?? 0)
+    // ) {
+    //   await Class.findByIdAndUpdate(classId, { isActive: false })
+    // }
 
     /***********************
      * 🔔 Notify the admin *
@@ -316,14 +316,14 @@ export const updateBooking = async (
       )
 
       // Check if class needs to be deactivated due to being full
-      if (
-        updatedClass &&
-        (updatedClass.totalParticipates ?? 0) > 0 &&
-        (updatedClass.participates ?? 0) >=
-          (updatedClass.totalParticipates ?? 0)
-      ) {
-        await Class.findByIdAndUpdate(classId, { isActive: false })
-      }
+      // if (
+      //   updatedClass &&
+      //   (updatedClass.totalParticipates ?? 0) > 0 &&
+      //   (updatedClass.participates ?? 0) >=
+      //     (updatedClass.totalParticipates ?? 0)
+      // ) {
+      //   await Class.findByIdAndUpdate(classId, { isActive: false })
+      // }
     }
 
     res.status(200).json({
