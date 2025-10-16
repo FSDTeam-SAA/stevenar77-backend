@@ -15,10 +15,14 @@ const dateSchema = new Schema(
 // Each schedule has multiple dates
 const scheduleSchema = new Schema(
   {
-    sets: [dateSchema], // array of dates
+    title: { type: String, required: true },
+    description: { type: String },
+    participents: { type: Number, default: 0 },
+    totalParticipents: { type: Number, default: 0 },
+    sets: [dateSchema],
   },
   { _id: false }
-)
+);
 
 const classSchema = new Schema<IClass>(
   {
@@ -33,8 +37,6 @@ const classSchema = new Schema<IClass>(
     duration: { type: String, required: true },
     totalReviews: { type: Number, default: 0 },
     avgRating: { type: Number, default: 0 },
-    participates: { type: Number, default: 0 },
-    totalParticipates: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     index: { type: Number, required: true },
     formTitle: [{ type: String }],

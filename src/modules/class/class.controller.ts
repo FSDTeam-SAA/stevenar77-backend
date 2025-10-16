@@ -11,7 +11,7 @@ import {
 import { StatusCodes } from 'http-status-codes'
 
 export const createClass = catchAsync(async (req, res) => {
-  const file = req.file as Express.Multer.File
+  const file = req.file as Express.Multer.File;
   const {
     index,
     duration,
@@ -19,78 +19,82 @@ export const createClass = catchAsync(async (req, res) => {
     courseIncludes,
     schedule,
     formTitle,
+
     ...rest
-  } = req.body
+  } = req.body;
 
   // ---- Validate image ----
   if (!file) {
-    throw new AppError('Image is required', StatusCodes.BAD_REQUEST)
+    throw new AppError("Image is required", StatusCodes.BAD_REQUEST);
   }
 
   // ---- Upload image ----
-  const uploadResult = await uploadToCloudinary(file.path, 'classes')
+  const uploadResult = await uploadToCloudinary(file.path, "classes");
 
   // ---- Handle index shifting ----
-  let insertIndex: number
+  let insertIndex: number;
   if (index !== undefined) {
-    const newIndex = Number(index)
+    const newIndex = Number(index);
     await Class.updateMany(
       { index: { $gte: newIndex } },
       { $inc: { index: 1 } }
-    )
-    insertIndex = newIndex
+    );
+    insertIndex = newIndex;
   } else {
-    const maxIndexClass = await Class.findOne().sort({ index: -1 })
-    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1
+    const maxIndexClass = await Class.findOne().sort({ index: -1 });
+    insertIndex = maxIndexClass ? (maxIndexClass.index ?? 0) + 1 : 1;
   }
 
   // ---- Parse array fields properly ----
-  let parsedAddOnce = []
+  let parsedAddOnce = [];
   if (addOnce) {
     try {
       parsedAddOnce =
-        typeof addOnce === 'string' ? JSON.parse(addOnce) : addOnce
+        typeof addOnce === "string" ? JSON.parse(addOnce) : addOnce;
     } catch (e) {
-      throw new AppError('Invalid addOnce format', StatusCodes.BAD_REQUEST)
+      throw new AppError("Invalid addOnce format", StatusCodes.BAD_REQUEST);
     }
   }
 
-  let parsedCourseIncludes: string[] = []
+  let parsedCourseIncludes: string[] = [];
   if (courseIncludes) {
     parsedCourseIncludes =
-      typeof courseIncludes === 'string'
+      typeof courseIncludes === "string"
         ? JSON.parse(courseIncludes)
-        : courseIncludes
+        : courseIncludes;
   }
 
-  let parsedFormTitle: string[] = []
+  let parsedFormTitle: string[] = [];
   if (formTitle) {
     parsedFormTitle =
-      typeof formTitle === 'string' ? JSON.parse(formTitle) : formTitle
+      typeof formTitle === "string" ? JSON.parse(formTitle) : formTitle;
   }
 
-  // ---- Parse schedule properly ----
-  let parsedSchedule: any[] = []
-
+  // ---- Parse schedule ----
+  let parsedSchedule: any[] = [];
   if (schedule) {
     try {
-      const sched =
-        typeof schedule === 'string' ? JSON.parse(schedule) : schedule
-      if (!Array.isArray(sched)) throw new Error()
-      parsedSchedule = sched.map((s: any) => {
-        if (!Array.isArray(s.sets)) throw new Error()
-        return {
-          sets: s.sets.map((d: any) => ({
-            date: new Date(d.date),
-            location: d.location,
-            type: d.type,
-            isActive: d.isActive ?? true,
-          })),
-        }
-      })
-    } catch (e) {
-      console.log('Schedule parsing error:', e)
-      throw new AppError('Invalid schedule format', StatusCodes.BAD_REQUEST)
+      const schedArray =
+        typeof schedule === "string" ? JSON.parse(schedule) : schedule;
+      if (!Array.isArray(schedArray)) throw new Error();
+      
+      parsedSchedule = schedArray.map((s: any) => ({
+        title: s.title,
+        description: s.description,
+        participents: s.participents ?? 0,
+        totalParticipents: s.totalParticipents ?? 0,
+        sets: Array.isArray(s.sets)
+          ? s.sets.map((d: any) => ({
+              date: new Date(d.date),
+              location: d.location,
+              type: d.type,
+              isActive: d.isActive ?? true,
+            }))
+          : [],
+      }));
+    } catch (err) {
+      console.error("Schedule parsing error:", err);
+      throw new AppError("Invalid schedule format", StatusCodes.BAD_REQUEST);
     }
   }
 
@@ -107,15 +111,15 @@ export const createClass = catchAsync(async (req, res) => {
     courseIncludes: parsedCourseIncludes,
     formTitle: parsedFormTitle,
     schedule: parsedSchedule,
-  })
+  });
 
   // ---- Send response ----
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Class created successfully',
+    message: "Class created successfully",
     data: result,
-  })
+  });
 })
 
 
