@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { Request, Response, NextFunction } from 'express'
 import { Class } from './class.model'
 import catchAsync from '../../utils/catchAsync'
@@ -134,10 +135,9 @@ export const updateClass = catchAsync(async (req: Request, res: Response)=>{
     const { scheduleId, setsId } = req.query;
     const updateData = req.body;
 
-    let updateQuery = {};
+    
+    // let updateQuery = {};
     let options = { new: true, session };
-
-
 
     // 🟢 if scheduleId and setsId not add in query — main class update
     if (!scheduleId && !setsId) {
@@ -174,8 +174,6 @@ export const updateClass = catchAsync(async (req: Request, res: Response)=>{
         addOnceData.forEach((obj: any) => {
           if (obj.price) obj.price = Number(obj.price);
         });
-
-        console.log("Parsed addOnceData:", addOnceData);
 
         const updatedClass = await Class.findByIdAndUpdate(
           id,
@@ -269,7 +267,7 @@ export const updateClass = catchAsync(async (req: Request, res: Response)=>{
   } finally {
     session.endSession();
   }
-});
+}); 
 
 
 
