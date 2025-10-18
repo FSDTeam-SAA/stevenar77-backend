@@ -9,6 +9,7 @@ import {
   uploadToCloudinary,
 } from '../../utils/cloudinary'
 import { StatusCodes } from 'http-status-codes'
+import mongoose from 'mongoose'
 
 export const createClass = catchAsync(async (req, res) => {
   const file = req.file as Express.Multer.File;
@@ -123,406 +124,151 @@ export const createClass = catchAsync(async (req, res) => {
 })
 
 
-// update class by id
-// export const updateClass = catchAsync(async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const files = req.files as { image?: Express.Multer.File[] };
-//   const { index, duration, schedule, price, addOnce, ...rest } = req.body;
+export const updateClass = catchAsync(async (req: Request, res: Response)=>{
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-//   // Extract query parameters for targeted updates
-//   const { scheduleId, setId } = req.query;
+  try {
+    const { id } = req.params;
+    const file = req.file;
+    const { scheduleId, setsId } = req.query;
+    const updateData = req.body;
 
-//   const updateData: any = { ...rest };
-//   if (duration !== undefined) updateData.duration = duration;
-
-//   // ----- Handle price parsing -----
-//   if (price !== undefined && price !== "" && price !== "null") {
-//     try {
-//       const parsed = typeof price === "string" ? JSON.parse(price) : price;
-//       if (!Array.isArray(parsed))
-//         throw new Error("price must be an array of numbers");
-//       updateData.price = parsed.map((p: any) => Number(p));
-//     } catch {
-//       throw new AppError(
-//         "Invalid price format. Must be a JSON array of numbers.",
-//         StatusCodes.BAD_REQUEST
-//       );
-//     }
-//   }
-
-//   // ----- Handle addOnce parsing -----
-//   if (addOnce !== undefined && addOnce !== "" && addOnce !== "null") {
-//     try {
-//       const parsed =
-//         typeof addOnce === "string" ? JSON.parse(addOnce) : addOnce;
-//       if (!Array.isArray(parsed))
-//         throw new Error("addOnce must be an array of objects");
-//       updateData.addOnce = parsed.map((item: any) => ({
-//         title: item.title,
-//         price: Number(item.price),
-//       }));
-//     } catch {
-//       throw new AppError(
-//         "Invalid addOnce format. Must be a JSON array of objects with title and price.",
-//         StatusCodes.BAD_REQUEST
-//       );
-//     }
-//   }
-
-//   // ----- Handle schedule parsing (with targeted updates) -----
-//   if (schedule !== undefined && schedule !== "" && schedule !== "null") {
-//     try {
-//       const parsedSchedule =
-//         typeof schedule === "string" ? JSON.parse(schedule) : schedule;
-
-//       if (!Array.isArray(parsedSchedule))
-//         throw new Error("schedule must be an array");
-
-//       const existingClass = await Class.findById(id);
-//       if (!existingClass)
-//         throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-//       let mergedSchedule;
-
-//       // Check if we're doing a targeted update (specific schedule and set)
-//       if (scheduleId && setId) {
-//         // Targeted update: update only specific set in specific schedule
-//         mergedSchedule = existingClass.schedule!.map((existingItem) => {
-//           // Find the matching schedule by _id
-//           if (existingItem._id?.toString() === scheduleId) {
-//             const newItem = parsedSchedule.find(
-//               (s: any) => s._id === scheduleId
-//             );
-
-//             if (newItem) {
-//               // Update only the specific set within this schedule
-//               const updatedSets = existingItem.sets.map((existingSet) => {
-//                 if (existingSet._id?.toString() === setId) {
-//                   const newSet = newItem.sets?.find(
-//                     (s: any) => s._id === setId
-//                   );
-
-//                   if (newSet) {
-//                     // Merge the specific set data
-//                     return {
-//                       ...existingSet.toObject(),
-//                       date: newSet.date
-//                         ? new Date(newSet.date)
-//                         : existingSet.date,
-//                       location: newSet.location ?? existingSet.location,
-//                       type: newSet.type ?? existingSet.type,
-//                       isActive:
-//                         newSet.isActive !== undefined
-//                           ? Boolean(newSet.isActive)
-//                           : existingSet.isActive ?? true,
-//                     };
-//                   }
-//                 }
-//                 return existingSet;
-//               });
-
-//               return {
-//                 ...existingItem.toObject(),
-//                 title: newItem.title ?? existingItem.title,
-//                 description: newItem.description ?? existingItem.description,
-//                 participents:
-//                   newItem.participents !== undefined
-//                     ? Number(newItem.participents)
-//                     : existingItem.participents,
-//                 totalParticipents:
-//                   newItem.totalParticipents !== undefined
-//                     ? Number(newItem.totalParticipents)
-//                     : existingItem.totalParticipents,
-//                 sets: updatedSets,
-//               };
-//             }
-//           }
-//           return existingItem;
-//         });
-//       } else {
-//         // Full schedule update (your existing logic)
-//         mergedSchedule = existingClass.schedule!.map((existingItem) => {
-//           const newItem = parsedSchedule.find(
-//             (s: any) =>
-//               s._id === existingItem._id?.toString() ||
-//               s.title === existingItem.title
-//           );
-//           if (!newItem) return existingItem;
-
-//           let mergedSets = existingItem.sets;
-//           if (Array.isArray(newItem.sets)) {
-//             mergedSets = newItem.sets.map((dateItem: any, i: number) => {
-//               const existingDate = existingItem.sets[i] || {};
-//               return {
-//                 date: dateItem.date
-//                   ? new Date(dateItem.date)
-//                   : existingDate.date,
-//                 location: dateItem.location ?? existingDate.location,
-//                 type: dateItem.type ?? existingDate.type,
-//                 isActive:
-//                   dateItem.isActive !== undefined
-//                     ? Boolean(dateItem.isActive)
-//                     : existingDate.isActive ?? true,
-//               };
-//             });
-
-//             if (existingItem.sets.length > newItem.sets.length) {
-//               mergedSets = mergedSets.concat(
-//                 existingItem.sets.slice(newItem.sets.length)
-//               );
-//             }
-//           }
-
-//           return {
-//             ...existingItem.toObject(),
-//             title: newItem.title ?? existingItem.title,
-//             description: newItem.description ?? existingItem.description,
-//             participents:
-//               newItem.participents !== undefined
-//                 ? Number(newItem.participents)
-//                 : existingItem.participents,
-//             totalParticipents:
-//               newItem.totalParticipents !== undefined
-//                 ? Number(newItem.totalParticipents)
-//                 : existingItem.totalParticipents,
-//             sets: mergedSets,
-//           };
-//         });
-//       }
-
-//       updateData.schedule = mergedSchedule;
-//     } catch (err) {
-//       console.error("Schedule parsing error:", err);
-//       throw new AppError(
-//         "Invalid schedule format. Must be a JSON array of schedule objects.",
-//         StatusCodes.BAD_REQUEST
-//       );
-//     }
-//   }
-
-//   // ----- Handle image upload -----
-//   if (files?.image && files.image.length > 0) {
-//     const file = files.image[0];
-//     const uploadResult = await uploadToCloudinary(file.path, "classes");
-
-//     const existingClass = await Class.findById(id);
-//     if (existingClass?.image?.public_id) {
-//       await deleteFromCloudinary(existingClass.image.public_id);
-//     }
-
-//     updateData.image = {
-//       public_id: uploadResult.public_id,
-//       url: uploadResult.secure_url,
-//     };
-//   }
-
-//   // ----- Handle index logic -----
-//   if (index !== undefined && index !== "" && index !== "null") {
-//     const currentClass = await Class.findById(id);
-//     if (!currentClass)
-//       throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-//     const oldIndex = currentClass.index;
-//     const newIndex = Number(index);
-
-//     if (oldIndex !== newIndex) {
-//       if (newIndex < oldIndex!) {
-//         await Class.updateMany(
-//           { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
-//           { $inc: { index: 1 } }
-//         );
-//       } else {
-//         await Class.updateMany(
-//           { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
-//           { $inc: { index: -1 } }
-//         );
-//       }
-//       updateData.index = newIndex;
-//     }
-//   }
-
-//   // ----- Update the class -----
-//   const updatedClass = await Class.findByIdAndUpdate(
-//     id,
-//     { $set: updateData },
-//     { new: true, runValidators: true }
-//   );
-//   if (!updatedClass)
-//     throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-//   sendResponse(res, {
-//     statusCode: StatusCodes.OK,
-//     success: true,
-//     message: "Class updated successfully",
-//     data: updatedClass,
-//   });
-// });
+    let updateQuery = {};
+    let options = { new: true, session };
 
 
-export const updateClass = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const files = req.files as { image?: Express.Multer.File[] };
-  const { index, duration, schedule, price, addOnce, ...rest } = req.body;
 
-  const updateData: any = { ...rest };
-  if (duration !== undefined) updateData.duration = duration;
+    // 🟢 if scheduleId and setsId not add in query — main class update
+    if (!scheduleId && !setsId) {
+       if (file) {
+         const uploadResult = await uploadToCloudinary(file.path, "classes");
 
-  // ----- Handle price parsing -----
-  if (price !== undefined && price !== "" && price !== "null") {
-    try {
-      const parsed = typeof price === "string" ? JSON.parse(price) : price;
-      if (!Array.isArray(parsed)) throw new Error("price must be an array");
-      updateData.price = parsed.map((p: any) => Number(p));
-    } catch {
-      throw new AppError(
-        "Invalid price format. Must be a JSON array of numbers.",
-        StatusCodes.BAD_REQUEST
-      );
-    }
-  }
+         const existingClass = await Class.findById(id);
+         if (existingClass?.image?.public_id) {
+           await deleteFromCloudinary(existingClass.image.public_id);
+         }
 
-  // ----- Handle addOnce parsing -----
-  if (addOnce !== undefined && addOnce !== "" && addOnce !== "null") {
-    try {
-      const parsed =
-        typeof addOnce === "string" ? JSON.parse(addOnce) : addOnce;
-      if (!Array.isArray(parsed))
-        throw new Error("addOnce must be an array of objects");
-      updateData.addOnce = parsed.map((item: any) => ({
-        title: item.title,
-        price: Number(item.price),
-      }));
-    } catch {
-      throw new AppError(
-        "Invalid addOnce format. Must be a JSON array of objects with title and price.",
-        StatusCodes.BAD_REQUEST
-      );
-    }
-  }
+         updateData.image = {
+           public_id: uploadResult.public_id,
+           url: uploadResult.secure_url,
+         };
+       }
 
-  // ----- Handle schedule parsing -----
-  if (schedule !== undefined && schedule !== "" && schedule !== "null") {
-    try {
-      const parsedSchedule =
-        typeof schedule === "string" ? JSON.parse(schedule) : schedule;
+      // ✅ If user sent new addOnce item(s)
+      if (Object.keys(req.body).some((k) => k.startsWith("addOnce["))) {
+        const addOnceData: any = [];
 
-      if (!Array.isArray(parsedSchedule))
-        throw new Error("schedule must be an array");
+        Object.keys(req.body).forEach((key) => {
+          const match = key.match(/addOnce\[(\d+)\]\[(\w+)\]/);
+          if (match) {
+            const index = parseInt(match[1]);
+            const field = match[2];
 
-      const existingClass = await Class.findById(id);
-      if (!existingClass)
-        throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-      // Merge schedules
-      const mergedSchedule = existingClass.schedule!.map((existingItem) => {
-        const incomingSchedule = parsedSchedule.find(
-          (s: any) => s._id === existingItem._id?.toString()
-        );
-        if (!incomingSchedule) return existingItem;
-
-        // Merge sets
-        const mergedSets = existingItem.sets.map((existingSet) => {
-          const incomingSet = (incomingSchedule.sets || []).find(
-            (s: any) => s._id === existingSet._id?.toString()
-          );
-          if (!incomingSet) return existingSet;
-
-          return {
-            ...existingSet.toObject(),
-            date: incomingSet.date
-              ? new Date(incomingSet.date)
-              : existingSet.date,
-            location: incomingSet.location ?? existingSet.location,
-            type: incomingSet.type ?? existingSet.type,
-            isActive:
-              incomingSet.isActive !== undefined
-                ? Boolean(incomingSet.isActive)
-                : existingSet.isActive ?? true,
-          };
+            if (!addOnceData[index]) addOnceData[index] = {};
+            addOnceData[index][field] = req.body[key];
+          }
         });
 
-        return {
-          ...existingItem.toObject(),
-          title: incomingSchedule.title ?? existingItem.title,
-          description: incomingSchedule.description ?? existingItem.description,
-          participents:
-            incomingSchedule.participents !== undefined
-              ? Number(incomingSchedule.participents)
-              : existingItem.participents,
-          totalParticipents:
-            incomingSchedule.totalParticipents !== undefined
-              ? Number(incomingSchedule.totalParticipents)
-              : existingItem.totalParticipents,
-          sets: mergedSets,
-        };
-      });
+        // Convert numeric fields like price to number
+        addOnceData.forEach((obj: any) => {
+          if (obj.price) obj.price = Number(obj.price);
+        });
 
-      updateData.schedule = mergedSchedule;
-    } catch (err) {
-      console.error("Schedule parsing error:", err);
-      throw new AppError(
-        "Invalid schedule format. Must be a JSON array of schedule objects.",
-        StatusCodes.BAD_REQUEST
-      );
-    }
-  }
+        console.log("Parsed addOnceData:", addOnceData);
 
-  // ----- Handle image upload -----
-  if (files?.image && files.image.length > 0) {
-    const file = files.image[0];
-    const uploadResult = await uploadToCloudinary(file.path, "classes");
-
-    const existingClass = await Class.findById(id);
-    if (existingClass?.image?.public_id) {
-      await deleteFromCloudinary(existingClass.image.public_id);
-    }
-
-    updateData.image = {
-      public_id: uploadResult.public_id,
-      url: uploadResult.secure_url,
-    };
-  }
-
-  // ----- Handle index logic -----
-  if (index !== undefined && index !== "" && index !== "null") {
-    const currentClass = await Class.findById(id);
-    if (!currentClass)
-      throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-    const oldIndex = currentClass.index;
-    const newIndex = Number(index);
-
-    if (oldIndex !== newIndex) {
-      if (newIndex < oldIndex!) {
-        await Class.updateMany(
-          { _id: { $ne: id }, index: { $gte: newIndex, $lt: oldIndex } },
-          { $inc: { index: 1 } }
+        const updatedClass = await Class.findByIdAndUpdate(
+          id,
+          { $push: { addOnce: { $each: addOnceData } } },
+          { new: true, session }
         );
-      } else {
-        await Class.updateMany(
-          { _id: { $ne: id }, index: { $gt: oldIndex, $lte: newIndex } },
-          { $inc: { index: -1 } }
-        );
+
+        await session.commitTransaction();
+        sendResponse(res, {
+          statusCode: 200,
+          success: true,
+          message: "Class updated successfully",
+          data: updatedClass,
+        })
       }
-      updateData.index = newIndex;
+
+      // 🔹 Normal update (no addOnce)
+      const updatedClass = await Class.findByIdAndUpdate(id, updateData, {
+        new: true,
+        session,
+      });
+      await session.commitTransaction();
+
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Class updated successfully",
+        data: updatedClass,
+      });
     }
+
+    // 🟠 if you want to schedule update
+    if (scheduleId && !setsId) {
+      const updatedClass = await Class.findOneAndUpdate(
+        { _id: id, "schedule._id": scheduleId },
+        {
+          $set: {
+            "schedule.$.title": updateData.title,
+            "schedule.$.description": updateData.description,
+            "schedule.$.participents": updateData.participents,
+            "schedule.$.totalParticipents": updateData.totalParticipents,
+          },
+        },
+        options
+      );
+
+      await session.commitTransaction();
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Class updated successfully",
+        data: updatedClass,
+      });
+    }
+
+    // 🔵 if sets update  (scheduleId + setsId in query)
+    if (scheduleId && setsId) {
+      const updatedClass = await Class.findOneAndUpdate(
+        { _id: id },
+        {
+          $set: {
+            "schedule.$[s].sets.$[set].date": updateData.date,
+            "schedule.$[s].sets.$[set].location": updateData.location,
+            "schedule.$[s].sets.$[set].type": updateData.type,
+            "schedule.$[s].sets.$[set].isActive": updateData.isActive,
+          },
+        },
+        {
+          arrayFilters: [{ "s._id": scheduleId }, { "set._id": setsId }],
+          new: true,
+          session,
+        }
+      );
+
+      await session.commitTransaction();
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Sets updated successfully",
+        data: updatedClass,
+      });
+    }
+  } catch (error: any) {
+    await session.abortTransaction();
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update class",
+      error: error.message,
+    });
+  } finally {
+    session.endSession();
   }
-
-  // ----- Update the class -----
-  const updatedClass = await Class.findByIdAndUpdate(
-    id,
-    { $set: updateData },
-    { new: true, runValidators: true }
-  );
-  if (!updatedClass)
-    throw new AppError("Class not found", StatusCodes.NOT_FOUND);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Class updated successfully",
-    data: updatedClass,
-  });
 });
 
 

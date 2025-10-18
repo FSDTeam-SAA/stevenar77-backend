@@ -22,7 +22,6 @@ export const createBooking = async (
   res: Response
 ): Promise<void> => {
   try {
-    console.log('req.body', req.body)
     const {
       classId,
       participant,
@@ -63,19 +62,14 @@ export const createBooking = async (
       throw new AppError('Class not found', httpStatus.NOT_FOUND)
     }
 
-    // if (!classData.isActive) {
-    //   throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
-    // }
+    if (!classData.isActive) {
+      throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
+    }
 
-    // Get values safely with defaults
-    // const participates = classData.participates ?? 0
-    // const totalParticipates = classData.totalParticipates ?? 0
 
-    // If no limit was set (0), treat it as "unlimited"
-    // if (totalParticipates > 0 && participates >= totalParticipates) {
-    //   await Class.findByIdAndUpdate(classId, { isActive: false })
-    //   throw new AppError('Class is full', httpStatus.BAD_REQUEST)
-    // }
+
+    
+
     let medicalDocuments: { public_id: string; url: string }[] = []
 
     const files = req.files as Express.Multer.File[] // multer.array() gives array of files
@@ -121,13 +115,7 @@ export const createBooking = async (
       { new: true }
     )
 
-    // if (
-    //   updatedClass &&
-    //   (updatedClass.totalParticipates ?? 0) > 0 &&
-    //   (updatedClass.participates ?? 0) >= (updatedClass.totalParticipates ?? 0)
-    // ) {
-    //   await Class.findByIdAndUpdate(classId, { isActive: false })
-    // }
+
 
     /***********************
      * 🔔 Notify the admin *
@@ -169,7 +157,7 @@ export const createBooking = async (
       success_url: `${successUrl}?bookingId=${booking._id}`,
       cancel_url: cancelUrl,
     })
-    console.log('session', session)
+
 
     if (session.payment_intent) {
       booking.stripePaymentIntentId = session.payment_intent.toString()
@@ -195,9 +183,7 @@ export const createBooking = async (
   }
 }
 
-/************************
- * UPDATE BOOKING BY ID *
- ************************/
+
 export const updateBooking = async (
   req: Request,
   res: Response
@@ -349,9 +335,7 @@ export const updateBooking = async (
   }
 }
 
-/*****************
- * DELETE BOOKING
- *****************/
+
 export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
 
@@ -366,9 +350,7 @@ export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-/*****************
- * GET ALL BOOKINGS FOR USER
- *****************/
+
 export const getUserBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find({ userId: req.user.id })
     .populate('classId')
@@ -382,9 +364,7 @@ export const getUserBookings = catchAsync(async (req, res) => {
   })
 })
 
-/*****************
- * GET SINGLE BOOKING
- *****************/
+
 export const getSingleBooking = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params
@@ -404,9 +384,7 @@ export const getSingleBooking = catchAsync(
   }
 )
 
-/*****************
- * CHANGE STATUS
- *****************/
+
 export const changeBookingStatus = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params
