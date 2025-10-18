@@ -22,7 +22,7 @@ export default defineConfig([
       "eslint prefer-const": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "eslint-disable-next-line prefer-const": "off",
-      
+      "eslint prefer-const": "off",
     },
   },
 ]);
