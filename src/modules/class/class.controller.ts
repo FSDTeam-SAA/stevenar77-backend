@@ -135,7 +135,9 @@ export const updateClass = catchAsync(async (req: Request, res: Response)=>{
     const { scheduleId, setsId } = req.query;
     const updateData = req.body;
 
-    
+    if (updateData.schedule && typeof updateData.schedule === "string") {
+  updateData.schedule = JSON.parse(updateData.schedule);
+}
     // let updateQuery = {};
     let options = { new: true, session };
 
