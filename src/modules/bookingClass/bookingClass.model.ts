@@ -40,6 +40,8 @@ const bookingClassSchema = new Schema<IBookingClass>(
 
     emergencyName: { type: String },
     emergencyPhoneNumber: { type: String },
+    scheduleId: { type: Schema.Types.ObjectId, required: true },
+
   },
   { timestamps: true }
 )

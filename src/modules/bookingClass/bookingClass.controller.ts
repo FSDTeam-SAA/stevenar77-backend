@@ -24,6 +24,7 @@ export const createBooking = async (
   try {
     const {
       classId,
+      scheduleId,
       participant,
       classDate,
       price,
@@ -66,6 +67,39 @@ export const createBooking = async (
       throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
     }
 
+// ✅ Validate scheduleId exists
+if (!scheduleId) {
+  throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST);
+}
+// ✅ Ensure schedule array exists
+if (!classData.schedule || classData.schedule.length === 0) {
+  throw new AppError('No schedules found for this class', httpStatus.NOT_FOUND);
+}
+
+// ✅ Find the selected schedule safely
+const selectedSchedule = classData.schedule.find(
+  (s: any) => s._id.toString() === scheduleId
+);
+
+if (!selectedSchedule) {
+  throw new AppError('Schedule not found for this class', httpStatus.NOT_FOUND);
+}
+
+// ✅ Check available seats (guard against undefined participents)
+const availableSeats = Number(selectedSchedule.participents ?? 0);
+const requestedSeats = Number(participant ?? 1);
+
+if (availableSeats < requestedSeats) {
+  throw new AppError(
+    `Only ${availableSeats} seats available in this schedule`,
+    httpStatus.BAD_REQUEST
+  );
+}
+
+
+
+
+
 
 
     
@@ -93,6 +127,7 @@ export const createBooking = async (
       classId: new mongoose.Types.ObjectId(classId),
       userId: new mongoose.Types.ObjectId(userId),
       participant,
+      scheduleId,
       classDate,
       medicalDocuments,
       totalPrice,
@@ -109,6 +144,18 @@ export const createBooking = async (
     })
 
     const bookingCount = participant && participant > 0 ? participant : 1
+
+    await Class.updateOne(
+  { _id: classId, 'schedule._id': scheduleId },
+  {
+    $inc: {
+      'schedule.$.participents': -requestedSeats,       // decrease available seats
+      'schedule.$.totalParticipents': requestedSeats,  // increase total booked
+    },
+  }
+);
+
+    
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
       { $inc: { totalBookings: bookingCount } },
