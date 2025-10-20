@@ -10,6 +10,7 @@ import {
   sendFormLinkToUser,
   submitBookingForm,
   updateBooking,
+  reAssignAnotherSchedule,
 } from './bookingClass.controller'
 import auth from '../../middleware/auth'
 import { upload } from '../../middleware/multer.middleware'
@@ -47,12 +48,14 @@ router.delete('/:id', auth('user'), deleteBooking)
 router.get('/my-bookings', auth('user'), getUserBookings)
 
 // Get single booking
-router.get('/:id', auth('user'), getSingleBooking)
+router.get('/:id', getSingleBooking)
 
 // Change booking status
 router.put('/:id/status', auth('admin'), changeBookingStatus)
 
 router.get('/payment/history', auth('admin'), getSuccessfulPayments)
+
+router.put('/re-assign/:bookingId', reAssignAnotherSchedule)
 
 const bookingClassRoutes = router
 export default bookingClassRoutes
