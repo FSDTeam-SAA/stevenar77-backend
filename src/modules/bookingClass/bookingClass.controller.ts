@@ -156,11 +156,17 @@ if (availableSeats < requestedSeats) {
 );
 
     
-    const updatedClass = await Class.findByIdAndUpdate(
+     await Class.findByIdAndUpdate(
       classId,
       { $inc: { totalBookings: bookingCount } },
       { new: true }
     )
+
+
+    // if (classData.schedule.participents === 0) {
+    //   await Class.findByIdAndUpdate(classId, { isActive: false });
+    // }
+
 
 
 
@@ -237,7 +243,7 @@ export const updateBooking = async (
 ): Promise<void> => {
   try {
     const { id } = req.params // Booking ID from URL params
-    console.log('Update req.body', req.body)
+    // console.log('Update req.body', req.body)
 
     const {
       participant,
@@ -506,7 +512,6 @@ export const getBookings = catchAsync(async (req, res) => {
 })
 
 // Send mail  by admin to the user with form
-
 export const sendFormLinkToUser = async (req: Request, res: Response) => {
   try {
     const { userId, formLink } = req.body
@@ -558,7 +563,6 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
 }
 
 // update form
-
 export const submitBookingForm = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
@@ -616,3 +620,52 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     })
   }
 }
+
+export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
+  const { bookingId } = req.params;
+  const { newScheduleId } = req.body;
+
+  const booking = await BookingClass.findById(bookingId);
+  if (!booking) {
+    throw new AppError("Booking not found", httpStatus.NOT_FOUND);
+  }
+
+  const classData = await Class.findById(booking.classId);
+  if (!classData) {
+    throw new AppError("Class not found", httpStatus.NOT_FOUND);
+  }
+
+  if (booking.scheduleId.toString() === newScheduleId) {
+    throw new AppError(
+      "Booking is already assigned to this schedule",
+      httpStatus.BAD_REQUEST
+    );
+  }
+
+  const updatedBooking = await BookingClass.findByIdAndUpdate(
+    bookingId,
+    { scheduleId: newScheduleId },
+    { new: true, runValidators: true }
+  );
+
+  await Class.updateOne(
+    { _id: classData._id, "schedule._id": booking.scheduleId },
+    { $inc: { "schedule.$.participents": -1 } },
+    { new: true, runValidators: true }
+  );
+
+  await Class.updateOne(
+    { _id: classData._id, "schedule._id": newScheduleId },
+    { $inc: { "schedule.$.totalParticipents": 1 } }
+    
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Booking re-assigned to new schedule successfully",
+    data: updatedBooking,
+  });
+});
+
+
