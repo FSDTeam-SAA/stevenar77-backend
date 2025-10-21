@@ -62,9 +62,11 @@ export class TripBookingService {
 
     // 5. Use URLs from environment variables
     const successUrl =
-      process.env.frontend_url || 'http://localhost:5000/booking-success'
+      process.env.trip_frontend_url_success ||
+      'https://stevenar77-website.vercel.app/booking-success'
     const cancelUrl =
-      process.env.frontend_url || 'http://localhost:5000/booking-cancel'
+      process.env.trip_frontend_url_cancel ||
+      'http://localhost:5000/booking-cancel'
 
     // 6. Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
