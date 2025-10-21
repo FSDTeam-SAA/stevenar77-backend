@@ -69,15 +69,15 @@ const registerUser = async (payload: IUser) => {
     config.JWT_EXPIRES_IN as string
   );
 
-  const refreshToken = createToken(
-    JwtToken,
-    config.refreshTokenSecret as string,
-    config.jwtRefreshTokenExpiresIn as string
-  );
+  // const refreshToken = createToken(
+  //   JwtToken,
+  //   config.refreshTokenSecret as string,
+  //   config.jwtRefreshTokenExpiresIn as string
+  // );
 
   return {
     accessToken,
-    refreshToken,
+    // refreshToken,
     user: {
       _id: result._id,
       firstName: result.firstName,
