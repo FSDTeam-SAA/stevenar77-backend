@@ -37,6 +37,7 @@ export const createBooking = async (
       phoneNumber,
       emergencyName,
       emergencyPhoneNumber,
+      age,
     } = req.body
     const userId = req.user?.id
 
@@ -67,42 +68,40 @@ export const createBooking = async (
       throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
     }
 
-// ✅ Validate scheduleId exists
-if (!scheduleId) {
-  throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST);
-}
-// ✅ Ensure schedule array exists
-if (!classData.schedule || classData.schedule.length === 0) {
-  throw new AppError('No schedules found for this class', httpStatus.NOT_FOUND);
-}
+    // ✅ Validate scheduleId exists
+    if (!scheduleId) {
+      throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST)
+    }
+    // ✅ Ensure schedule array exists
+    if (!classData.schedule || classData.schedule.length === 0) {
+      throw new AppError(
+        'No schedules found for this class',
+        httpStatus.NOT_FOUND
+      )
+    }
 
-// ✅ Find the selected schedule safely
-const selectedSchedule = classData.schedule.find(
-  (s: any) => s._id.toString() === scheduleId
-);
+    // ✅ Find the selected schedule safely
+    const selectedSchedule = classData.schedule.find(
+      (s: any) => s._id.toString() === scheduleId
+    )
 
-if (!selectedSchedule) {
-  throw new AppError('Schedule not found for this class', httpStatus.NOT_FOUND);
-}
+    if (!selectedSchedule) {
+      throw new AppError(
+        'Schedule not found for this class',
+        httpStatus.NOT_FOUND
+      )
+    }
 
-// ✅ Check available seats (guard against undefined participents)
-const availableSeats = Number(selectedSchedule.participents ?? 0);
-const requestedSeats = Number(participant ?? 1);
+    // ✅ Check available seats (guard against undefined participents)
+    const availableSeats = Number(selectedSchedule.participents ?? 0)
+    const requestedSeats = Number(participant ?? 1)
 
-if (availableSeats < requestedSeats) {
-  throw new AppError(
-    `Only ${availableSeats} seats available in this schedule`,
-    httpStatus.BAD_REQUEST
-  );
-}
-
-
-
-
-
-
-
-    
+    if (availableSeats < requestedSeats) {
+      throw new AppError(
+        `Only ${availableSeats} seats available in this schedule`,
+        httpStatus.BAD_REQUEST
+      )
+    }
 
     let medicalDocuments: { public_id: string; url: string }[] = []
 
@@ -141,34 +140,30 @@ if (availableSeats < requestedSeats) {
       phoneNumber,
       emergencyName,
       emergencyPhoneNumber,
+      age,
     })
 
     const bookingCount = participant && participant > 0 ? participant : 1
 
     await Class.updateOne(
-  { _id: classId, 'schedule._id': scheduleId },
-  {
-    $inc: {
-      'schedule.$.participents': -requestedSeats,       // decrease available seats
-      'schedule.$.totalParticipents': requestedSeats,  // increase total booked
-    },
-  }
-);
+      { _id: classId, 'schedule._id': scheduleId },
+      {
+        $inc: {
+          'schedule.$.participents': -requestedSeats, // decrease available seats
+          'schedule.$.totalParticipents': requestedSeats, // increase total booked
+        },
+      }
+    )
 
-    
-     await Class.findByIdAndUpdate(
+    await Class.findByIdAndUpdate(
       classId,
       { $inc: { totalBookings: bookingCount } },
       { new: true }
     )
 
-
     // if (classData.schedule.participents === 0) {
     //   await Class.findByIdAndUpdate(classId, { isActive: false });
     // }
-
-
-
 
     /***********************
      * 🔔 Notify the admin *
@@ -211,7 +206,6 @@ if (availableSeats < requestedSeats) {
       cancel_url: cancelUrl,
     })
 
-
     if (session.payment_intent) {
       booking.stripePaymentIntentId = session.payment_intent.toString()
       await booking.save()
@@ -235,7 +229,6 @@ if (availableSeats < requestedSeats) {
     })
   }
 }
-
 
 export const updateBooking = async (
   req: Request,
@@ -388,7 +381,6 @@ export const updateBooking = async (
   }
 }
 
-
 export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
 
@@ -403,7 +395,6 @@ export const deleteBooking = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-
 export const getUserBookings = catchAsync(async (req, res) => {
   const bookings = await BookingClass.find({ userId: req.user.id })
     .populate('classId')
@@ -416,7 +407,6 @@ export const getUserBookings = catchAsync(async (req, res) => {
     data: bookings,
   })
 })
-
 
 export const getSingleBooking = catchAsync(
   async (req: Request, res: Response) => {
@@ -436,7 +426,6 @@ export const getSingleBooking = catchAsync(
     })
   }
 )
-
 
 export const changeBookingStatus = catchAsync(
   async (req: Request, res: Response) => {
@@ -622,50 +611,47 @@ export const submitBookingForm = async (req: Request, res: Response) => {
 }
 
 export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
-  const { bookingId } = req.params;
-  const { newScheduleId } = req.body;
+  const { bookingId } = req.params
+  const { newScheduleId } = req.body
 
-  const booking = await BookingClass.findById(bookingId);
+  const booking = await BookingClass.findById(bookingId)
   if (!booking) {
-    throw new AppError("Booking not found", httpStatus.NOT_FOUND);
+    throw new AppError('Booking not found', httpStatus.NOT_FOUND)
   }
 
-  const classData = await Class.findById(booking.classId);
+  const classData = await Class.findById(booking.classId)
   if (!classData) {
-    throw new AppError("Class not found", httpStatus.NOT_FOUND);
+    throw new AppError('Class not found', httpStatus.NOT_FOUND)
   }
 
   if (booking.scheduleId.toString() === newScheduleId) {
     throw new AppError(
-      "Booking is already assigned to this schedule",
+      'Booking is already assigned to this schedule',
       httpStatus.BAD_REQUEST
-    );
+    )
   }
 
   const updatedBooking = await BookingClass.findByIdAndUpdate(
     bookingId,
     { scheduleId: newScheduleId },
     { new: true, runValidators: true }
-  );
+  )
 
   await Class.updateOne(
-    { _id: classData._id, "schedule._id": booking.scheduleId },
-    { $inc: { "schedule.$.participents": -1 } },
+    { _id: classData._id, 'schedule._id': booking.scheduleId },
+    { $inc: { 'schedule.$.participents': -1 } },
     { new: true, runValidators: true }
-  );
+  )
 
   await Class.updateOne(
-    { _id: classData._id, "schedule._id": newScheduleId },
-    { $inc: { "schedule.$.totalParticipents": 1 } }
-    
-  );
+    { _id: classData._id, 'schedule._id': newScheduleId },
+    { $inc: { 'schedule.$.totalParticipents': 1 } }
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Booking re-assigned to new schedule successfully",
+    message: 'Booking re-assigned to new schedule successfully',
     data: updatedBooking,
-  });
-});
-
-
+  })
+})
