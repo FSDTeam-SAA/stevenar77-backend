@@ -9,7 +9,7 @@ export interface IBookingClass extends Document {
     url: string
   }[]
   participant: number
-  scheduleId:mongoose.Types.ObjectId
+  scheduleId: mongoose.Types.ObjectId
   classDate: Date[] // multiple dates allowed
   totalPrice: number
   stripePaymentIntentId?: string
@@ -22,6 +22,7 @@ export interface IBookingClass extends Document {
   phoneNumber: string
   emergencyName: string
   emergencyPhoneNumber: string
+  age: number
   form?: {
     [key: string]: any
     documents?: {
