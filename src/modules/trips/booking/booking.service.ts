@@ -33,7 +33,9 @@ export class TripBookingService {
       throw new Error('Not enough spots available')
 
     // 3. Calculate total price
-    const totalPrice = Number(trip.price) * participants.length
+    const totalPrice = Number(trip.price) * totalParticipants
+
+    // console.log('totalPrice', totalPrice)
 
     // 4. Create booking with 'pending' status
     const booking = await Booking.create({
@@ -78,7 +80,7 @@ export class TripBookingService {
             currency: 'usd',
             product_data: {
               name: trip.title,
-              description: trip.description,
+              // description: trip.description,
             },
             unit_amount: Math.round((totalPrice / participants.length) * 100), // in cents per participant
           },
