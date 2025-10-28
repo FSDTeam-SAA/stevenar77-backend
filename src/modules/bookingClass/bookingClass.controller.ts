@@ -185,8 +185,7 @@ export const createBooking = async (
 
     const successUrl = `https://scuba-life.net/courses/book/forms/${classId}`
     const cancelUrl =
-      process.env.FRONTEND_URL ||
-      'https://scuba-life.net/booking-cancel'
+      process.env.FRONTEND_URL || 'https://scuba-life.net/booking-cancel'
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -614,16 +613,19 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
   const { bookingId } = req.params
   const { newScheduleId } = req.body
 
+  // 1️⃣ Find booking
   const booking = await BookingClass.findById(bookingId)
   if (!booking) {
     throw new AppError('Booking not found', httpStatus.NOT_FOUND)
   }
 
+  // 2️⃣ Find class
   const classData = await Class.findById(booking.classId)
   if (!classData) {
     throw new AppError('Class not found', httpStatus.NOT_FOUND)
   }
 
+  // 3️⃣ Prevent reassigning to same schedule
   if (booking.scheduleId.toString() === newScheduleId) {
     throw new AppError(
       'Booking is already assigned to this schedule',
@@ -631,23 +633,36 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
     )
   }
 
+  // 4️⃣ Update booking to new scheduleId
   const updatedBooking = await BookingClass.findByIdAndUpdate(
     bookingId,
     { scheduleId: newScheduleId },
     { new: true, runValidators: true }
   )
 
+  // 5️⃣ Update OLD schedule: participents +1, totalParticipents -1
   await Class.updateOne(
     { _id: classData._id, 'schedule._id': booking.scheduleId },
-    { $inc: { 'schedule.$.participents': -1 } },
-    { new: true, runValidators: true }
+    {
+      $inc: {
+        'schedule.$.participents': 1,
+        'schedule.$.totalParticipents': -1,
+      },
+    }
   )
 
+  // 6️⃣ Update NEW schedule: participents -1, totalParticipents +1
   await Class.updateOne(
     { _id: classData._id, 'schedule._id': newScheduleId },
-    { $inc: { 'schedule.$.totalParticipents': 1 } }
+    {
+      $inc: {
+        'schedule.$.participents': -1,
+        'schedule.$.totalParticipents': 1,
+      },
+    }
   )
 
+  // 7️⃣ Send response
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
