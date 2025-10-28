@@ -12,6 +12,7 @@ import { uploadToCloudinary } from '../../utils/cloudinary'
 import { createNotification } from '../../socket/notification.service'
 import { User } from '../user/user.model'
 import sendEmail from '../../utils/sendEmail'
+import { IClass } from '../class/class.interface'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
@@ -410,6 +411,7 @@ export const getUserBookings = catchAsync(async (req, res) => {
 export const getSingleBooking = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params
+    console.log('hitting this API ', id)
 
     const booking = await BookingClass.findById(id)
       .populate('classId')
@@ -417,11 +419,23 @@ export const getSingleBooking = catchAsync(
 
     if (!booking) throw new AppError('Booking not found', httpStatus.NOT_FOUND)
 
+    // ✅ Convert to unknown first, then to your interface type
+    const classData = booking.classId as unknown as mongoose.Document & IClass
+
+    const scheduleData = classData.schedule?.find(
+      (s: any) => s._id.toString() === booking.scheduleId?.toString()
+    )
+
+    const responseData = {
+      ...booking.toObject(),
+      scheduleData: scheduleData || null,
+    }
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Booking fetched successfully',
-      data: booking,
+      data: responseData,
     })
   }
 )
