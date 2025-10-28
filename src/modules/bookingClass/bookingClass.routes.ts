@@ -42,7 +42,7 @@ router.patch(
 )
 
 // Delete booking
-router.delete('/:id', auth('user'), deleteBooking)
+router.delete('/:id', auth('admin'), deleteBooking)
 
 // Get all bookings for logged-in user
 router.get('/my-bookings', auth('user'), getUserBookings)
