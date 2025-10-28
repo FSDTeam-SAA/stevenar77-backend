@@ -183,10 +183,10 @@ export const createBooking = async (
 
     // Stripe Checkout
 
-    const successUrl = `https://stevenar77-website.vercel.app/courses/book/forms/${classId}`
+    const successUrl = `https://scuba-life.net/courses/book/forms/${classId}`
     const cancelUrl =
       process.env.FRONTEND_URL ||
-      'https://stevenar77-website.vercel.app/booking-cancel'
+      'https://scuba-life.net/booking-cancel'
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
