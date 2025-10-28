@@ -613,60 +613,83 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
   const { bookingId } = req.params
   const { newScheduleId } = req.body
 
-  // 1️⃣ Find booking
+  // Step 1: Find booking
   const booking = await BookingClass.findById(bookingId)
   if (!booking) {
     throw new AppError('Booking not found', httpStatus.NOT_FOUND)
   }
 
-  // 2️⃣ Find class
+  // Step 2: Find class
   const classData = await Class.findById(booking.classId)
   if (!classData) {
     throw new AppError('Class not found', httpStatus.NOT_FOUND)
   }
 
-  // 3️⃣ Prevent reassigning to same schedule
-  if (booking.scheduleId.toString() === newScheduleId) {
+  const oldScheduleId = booking.scheduleId.toString()
+  const newSchedObjId = newScheduleId.toString()
+
+  // Step 3: Prevent re-assigning to same schedule
+  if (oldScheduleId === newSchedObjId) {
     throw new AppError(
       'Booking is already assigned to this schedule',
       httpStatus.BAD_REQUEST
     )
   }
 
-  // 4️⃣ Update booking to new scheduleId
-  const updatedBooking = await BookingClass.findByIdAndUpdate(
-    bookingId,
-    { scheduleId: newScheduleId },
-    { new: true, runValidators: true }
-  )
+  // Step 4: Start transaction for safety
+  const session = await mongoose.startSession()
+  session.startTransaction()
 
-  // 5️⃣ Update OLD schedule: participents +1, totalParticipents -1
-  await Class.updateOne(
-    { _id: classData._id, 'schedule._id': booking.scheduleId },
-    {
-      $inc: {
-        'schedule.$.participents': 1,
-        'schedule.$.totalParticipents': -1,
-      },
+  try {
+    // Update booking to new schedule
+    const updatedBooking = await BookingClass.findByIdAndUpdate(
+      bookingId,
+      { scheduleId: newScheduleId },
+      { new: true, runValidators: true, session }
+    )
+
+    // Find schedules in class
+    const oldSchedule = classData.schedule!.find(
+      (s) => s._id!.toString() === oldScheduleId
+    )
+    const newSchedule = classData.schedule!.find(
+      (s) => s._id!.toString() === newSchedObjId
+    )
+
+    if (!oldSchedule || !newSchedule) {
+      throw new AppError(
+        'One or both schedules not found',
+        httpStatus.NOT_FOUND
+      )
     }
-  )
 
-  // 6️⃣ Update NEW schedule: participents -1, totalParticipents +1
-  await Class.updateOne(
-    { _id: classData._id, 'schedule._id': newScheduleId },
-    {
-      $inc: {
-        'schedule.$.participents': -1,
-        'schedule.$.totalParticipents': 1,
-      },
-    }
-  )
+    // Apply your logic
+    // Old schedule: participents +1, totalParticipents -1
+    oldSchedule.participents = Math.max(0, oldSchedule.participents! + 1)
+    oldSchedule.totalParticipents = Math.max(
+      0,
+      oldSchedule.totalParticipents! - 1
+    )
 
-  // 7️⃣ Send response
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Booking re-assigned to new schedule successfully',
-    data: updatedBooking,
-  })
+    // New schedule: participents -1, totalParticipents +1
+    newSchedule.participents = Math.max(0, newSchedule.participents! - 1)
+    newSchedule.totalParticipents = newSchedule.totalParticipents! + 1
+
+    // Save class
+    await classData.save({ session })
+
+    await session.commitTransaction()
+    session.endSession()
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Booking re-assigned to new schedule successfully',
+      data: updatedBooking,
+    })
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    throw error
+  }
 })
