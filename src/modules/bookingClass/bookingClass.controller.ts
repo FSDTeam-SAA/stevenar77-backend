@@ -650,46 +650,41 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
     )
   }
 
-  // Step 4: Start transaction for safety
+  // Step 4: Start transaction
   const session = await mongoose.startSession()
   session.startTransaction()
 
   try {
-    // Update booking to new schedule
+    // Update booking schedule
     const updatedBooking = await BookingClass.findByIdAndUpdate(
       bookingId,
       { scheduleId: newScheduleId },
       { new: true, runValidators: true, session }
     )
 
-    // Find schedules in class
-    const oldSchedule = classData.schedule!.find(
-      (s) => s._id!.toString() === oldScheduleId
+    // Find schedules (if available)
+    const oldSchedule = classData.schedule?.find(
+      (s) => s._id?.toString() === oldScheduleId
     )
-    const newSchedule = classData.schedule!.find(
-      (s) => s._id!.toString() === newSchedObjId
+    const newSchedule = classData.schedule?.find(
+      (s) => s._id?.toString() === newSchedObjId
     )
 
-    if (!oldSchedule || !newSchedule) {
-      throw new AppError(
-        'One or both schedules not found',
-        httpStatus.NOT_FOUND
+    // Update counts only if schedules exist
+    if (oldSchedule) {
+      oldSchedule.participents = Math.max(0, oldSchedule.participents! + 1)
+      oldSchedule.totalParticipents = Math.max(
+        0,
+        oldSchedule.totalParticipents! - 1
       )
     }
 
-    // Apply your logic
-    // Old schedule: participents +1, totalParticipents -1
-    oldSchedule.participents = Math.max(0, oldSchedule.participents! + 1)
-    oldSchedule.totalParticipents = Math.max(
-      0,
-      oldSchedule.totalParticipents! - 1
-    )
+    if (newSchedule) {
+      newSchedule.participents = Math.max(0, newSchedule.participents! - 1)
+      newSchedule.totalParticipents = newSchedule.totalParticipents! + 1
+    }
 
-    // New schedule: participents -1, totalParticipents +1
-    newSchedule.participents = Math.max(0, newSchedule.participents! - 1)
-    newSchedule.totalParticipents = newSchedule.totalParticipents! + 1
-
-    // Save class
+    // Save class changes
     await classData.save({ session })
 
     await session.commitTransaction()
@@ -698,7 +693,7 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Booking re-assigned to new schedule successfully',
+      message: 'Booking re-assigned successfully',
       data: updatedBooking,
     })
   } catch (error) {
