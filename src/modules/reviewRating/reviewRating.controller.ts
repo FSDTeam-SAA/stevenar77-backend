@@ -98,7 +98,7 @@ export const getReviewsByClassId = catchAsync(
 
     const reviews = await ReviewRating.find({ classId }).populate(
       'userId',
-      'name avatar'
+      'firstName lastName image'
     )
 
     sendResponse(res, {
@@ -119,7 +119,7 @@ export const getReviewsByTripId = catchAsync(
 
     const reviews = await ReviewRating.find({ productId }).populate(
       'userId',
-      'name avatar'
+      'firstName lastName image'
     )
 
     sendResponse(res, {
