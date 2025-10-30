@@ -4,19 +4,19 @@ import { Conversation } from '../modules/conversation/conversation.model'
 
 export const initSocket = (io: Server) => {
   io.on('connection', (socket: Socket) => {
-    console.log('✅ Client connected:', socket.id)
+    //console.log('✅ Client connected:', socket.id)
 
     // Register user for personal notifications
     socket.on('register', (userId: string) => {
       socket.data.userId = userId
       socket.join(userId)
-      console.log(`User ${userId} joined personal room`)
+      //console.log(`User ${userId} joined personal room`)
     })
 
     // Join a specific conversation room for live chat
     socket.on('joinRoom', (conversationId: string) => {
       socket.join(conversationId)
-      console.log(`Joined conversation ${conversationId}`)
+      //console.log(`Joined conversation ${conversationId}`)
     })
 
     // Handle sending messages
@@ -82,7 +82,7 @@ export const initSocket = (io: Server) => {
     })
 
     socket.on('disconnect', () => {
-      console.log(' Client disconnected', socket.id)
+      //console.log(' Client disconnected', socket.id)
     })
   })
 }

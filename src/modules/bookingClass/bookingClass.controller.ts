@@ -42,6 +42,10 @@ export const createBooking = async (
     } = req.body
     const userId = req.user?.id
 
+    //console.log(4,req.user)
+
+    //console.log(0, userId)
+
     // Basic validation
     if (!classId) {
       res.status(400).json({
@@ -166,6 +170,9 @@ export const createBooking = async (
     //   await Class.findByIdAndUpdate(classId, { isActive: false });
     // }
 
+    //console.log(1, req.user?.firstName)
+    //console.log(2, userId)
+
     /***********************
      * 🔔 Notify the admin *
      ***********************/
@@ -210,7 +217,7 @@ export const createBooking = async (
       booking.stripePaymentIntentId = session.payment_intent.toString()
       await booking.save()
     }
-    console.log('booking', booking)
+    //console.log('booking', booking)
 
     res.status(200).json({
       success: true,
@@ -236,7 +243,7 @@ export const updateBooking = async (
 ): Promise<void> => {
   try {
     const { id } = req.params // Booking ID from URL params
-    // console.log('Update req.body', req.body)
+    // //console.log('Update req.body', req.body)
 
     const {
       participant,
@@ -411,7 +418,7 @@ export const getUserBookings = catchAsync(async (req, res) => {
 export const getSingleBooking = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params
-    console.log('hitting this API ', id)
+    //console.log('hitting this API ', id)
 
     const booking = await BookingClass.findById(id)
       .populate('classId')
