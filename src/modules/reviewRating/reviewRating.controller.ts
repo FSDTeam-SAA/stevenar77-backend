@@ -130,3 +130,21 @@ export const getReviewsByTripId = catchAsync(
     })
   }
 )
+
+export const getAllClassReviews = catchAsync(
+  async (req: Request, res: Response) => {
+    const reviews = await ReviewRating.find({ classId: { $ne: null } })
+      .populate('userId', 'firstName lastName image')
+      .populate({
+        path: 'classId',
+        select: 'title image',
+      })
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'All class reviews fetched successfully',
+      data: reviews,
+    })
+  }
+)
