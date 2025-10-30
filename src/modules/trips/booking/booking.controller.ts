@@ -4,7 +4,7 @@ import Booking from './booking.model'
 import mongoose from 'mongoose'
 import Trip from '../trip.model'
 import { createNotification } from '../../../socket/notification.service'
-import { User } from '../../user/user.model';
+import { User } from '../../user/user.model'
 
 export class TripBookingController {
   /**
@@ -51,7 +51,7 @@ export class TripBookingController {
   }
 
   static async getMyPaidBookings(req: Request, res: Response): Promise<void> {
-    // console.log('called')
+    // //console.log('called')
     try {
       const { userId } = req.params
 
@@ -86,7 +86,7 @@ export class TripBookingController {
         .skip(skip)
         .limit(limit)
 
-      console.log('bookings', bookings)
+      //console.log('bookings', bookings)
 
       res.status(200).json({
         success: true,

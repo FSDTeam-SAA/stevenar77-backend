@@ -11,7 +11,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
 })
 
-
 const createOrder = async (
   email: string,
   payload: IOrder,
@@ -116,7 +115,6 @@ const createOrder = async (
 
   return { order: result, sessionUrl: session.url }
 }
-
 
 const getMyOder = async (
   email: string,
@@ -253,7 +251,7 @@ const updateOrderStatus = async (orderId: string, status: string) => {
 
 const getAllPaid = async () => {
   const paidOrders = await order.find({ status: 'paid' })
-  // console.log("asa",paidOrders);
+  // //console.log("asa",paidOrders);
   if (!paidOrders || paidOrders.length === 0) {
     throw new AppError('No paid orders found', StatusCodes.NOT_FOUND)
   }

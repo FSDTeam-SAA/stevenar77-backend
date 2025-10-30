@@ -61,7 +61,7 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
   const body = JSON.parse(req.body.data)
 
   const files = req.files as AboutMulterFiles | undefined
-  console.log('Gallery files received:', files?.galleryImages?.length)
+  //console.log('Gallery files received:', files?.galleryImages?.length)
 
   body.section1.images = await processImages(files?.section1Images)
   body.section2.images = await processImages(files?.section2Images)
@@ -75,7 +75,7 @@ export const createAbout = catchAsync(async (req: Request, res: Response) => {
     })
   }
 
-  console.log('Gallery files received:', files?.galleryImages?.length)
+  //console.log('Gallery files received:', files?.galleryImages?.length)
 
   const result = await About.create(body)
   sendResponse(res, {

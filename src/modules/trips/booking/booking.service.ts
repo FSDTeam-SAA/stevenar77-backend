@@ -35,7 +35,7 @@ export class TripBookingService {
     // 3. Calculate total price
     const totalPrice = Number(trip.price) * totalParticipants
 
-    // console.log('totalPrice', totalPrice)
+    // ////console.log('totalPrice', totalPrice)
 
     // 4. Create booking with 'pending' status
     const booking = await Booking.create({

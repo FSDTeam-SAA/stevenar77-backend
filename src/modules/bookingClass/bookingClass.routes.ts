@@ -23,7 +23,7 @@ router.get('/all-bookings', auth('admin'), getBookings)
 // Create booking
 router.post(
   '/',
-  // auth('admin', 'user'),
+  auth('admin', 'user'),
   upload.array('medicalDocuments'),
   createBooking
 )
