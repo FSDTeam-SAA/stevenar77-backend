@@ -11,15 +11,111 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
 })
 
+// const createOrder = async (
+//   email: string,
+//   payload: IOrder,
+//   files?: Express.Multer.File[]
+// ) => {
+//   const { productId, quantity, color } = payload
+//   // console.log("email",email);
+//   const user = await User.isUserExistByEmail(email)
+
+//   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
+
+//   const product = await Product.findById(productId)
+//   if (!product) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+
+//   if (product.inStock === false)
+//     throw new AppError('Product is out of stock', StatusCodes.BAD_REQUEST)
+
+//   if (product.quantity < quantity)
+//     throw new AppError(
+//       'Product quantity is not enough',
+//       StatusCodes.BAD_REQUEST
+//     )
+
+//   const price = product.price * quantity
+
+//   // **Handle images**
+//   const images: { public_id: string; url: string }[] = []
+
+//   if (files && files.length > 0) {
+//     for (const file of files) {
+//       const uploadResult = await uploadToCloudinary(file.path, 'orders')
+//       if (uploadResult) {
+//         images.push({
+//           public_id: uploadResult.public_id,
+//           url: uploadResult.secure_url,
+//         })
+//       }
+//     }
+//   } else {
+//     throw new AppError(
+//       'At least one image is required',
+//       StatusCodes.BAD_REQUEST
+//     )
+//   }
+
+//   const result = await order.create({
+//     userId: user._id,
+//     productId,
+//     totalPrice: price,
+//     quantity,
+//     images,
+//     color,
+//     orderData: new Date(),
+//     orderTime: new Date(),
+//   })
+
+//   const updatedProduct = await Product.findOneAndUpdate(
+//     { _id: productId },
+//     { $inc: { quantity: -quantity } },
+//     { new: true }
+//   )
+
+//   if (updatedProduct && updatedProduct.quantity <= 0) {
+//     await Product.findByIdAndUpdate(productId, { inStock: false })
+//   }
+
+//   // Step 2: Create Stripe Checkout session
+//   const session = await stripe.checkout.sessions.create({
+//     payment_method_types: ['card'],
+//     mode: 'payment',
+//     customer_email: email,
+//     line_items: [
+//       {
+//         price_data: {
+//           currency: 'usd',
+//           product_data: {
+//             name: product.title,
+//             images: images.map((img) => img.url),
+//           },
+//           unit_amount: product.price * 100, // cents
+//         },
+//         quantity,
+//       },
+//     ],
+//     success_url: process.env.product_frontend_url_success,
+//     cancel_url: process.env.product_frontend_url_cancel,
+//     metadata: {
+//       orderId: result._id.toString(),
+//       productId: productId.toString(),
+//       quantity: quantity.toString(),
+//     },
+//   })
+
+//   return { order: result, sessionUrl: session.url }
+// }
+
+
 const createOrder = async (
   email: string,
   payload: IOrder,
   files?: Express.Multer.File[]
 ) => {
   const { productId, quantity, color } = payload
-  // console.log("email",email);
-  const user = await User.isUserExistByEmail(email)
 
+  const user = await User.isUserExistByEmail(email)
   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
   const product = await Product.findById(productId)
@@ -56,6 +152,7 @@ const createOrder = async (
     )
   }
 
+  // ✅ Step 1: Create order in DB first
   const result = await order.create({
     userId: user._id,
     productId,
@@ -65,19 +162,10 @@ const createOrder = async (
     color,
     orderData: new Date(),
     orderTime: new Date(),
+    status: 'pending',
   })
 
-  const updatedProduct = await Product.findOneAndUpdate(
-    { _id: productId },
-    { $inc: { quantity: -quantity } },
-    { new: true }
-  )
-
-  if (updatedProduct && updatedProduct.quantity <= 0) {
-    await Product.findByIdAndUpdate(productId, { inStock: false })
-  }
-
-  // Step 2: Create Stripe Checkout session
+  // ✅ Step 2: Create Stripe Checkout session
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -90,7 +178,7 @@ const createOrder = async (
             name: product.title,
             images: images.map((img) => img.url),
           },
-          unit_amount: product.price * 100, // cents
+          unit_amount: product.price * 100,
         },
         quantity,
       },
@@ -104,8 +192,27 @@ const createOrder = async (
     },
   })
 
+  //  Save Stripe Payment Intent ID
+  if (session.payment_intent) {
+    await order.findByIdAndUpdate(result._id, {
+      stripePaymentIntentId: session.payment_intent,
+    })
+  }
+
+  //  Update product stock
+  const updatedProduct = await Product.findOneAndUpdate(
+    { _id: productId },
+    { $inc: { quantity: -quantity } },
+    { new: true }
+  )
+
+  if (updatedProduct && updatedProduct.quantity <= 0) {
+    await Product.findByIdAndUpdate(productId, { inStock: false })
+  }
+
   return { order: result, sessionUrl: session.url }
 }
+
 
 const getMyOder = async (
   email: string,
