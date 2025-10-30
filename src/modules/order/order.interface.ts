@@ -12,6 +12,7 @@ export interface IOrder {
   createdAt: Date;
   updatedAt: Date;
   color:string,
+  stripePaymentIntentId?: string
    images: { public_id: string; url: string }[];
      variants?: {
     title: string;      

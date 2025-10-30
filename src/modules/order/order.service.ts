@@ -11,15 +11,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
 })
 
+
 const createOrder = async (
   email: string,
   payload: IOrder,
   files?: Express.Multer.File[]
 ) => {
   const { productId, quantity, color } = payload
-  // console.log("email",email);
-  const user = await User.isUserExistByEmail(email)
 
+  const user = await User.isUserExistByEmail(email)
   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
   const product = await Product.findById(productId)
@@ -56,6 +56,7 @@ const createOrder = async (
     )
   }
 
+  // ✅ Step 1: Create order in DB first
   const result = await order.create({
     userId: user._id,
     productId,
@@ -65,19 +66,10 @@ const createOrder = async (
     color,
     orderData: new Date(),
     orderTime: new Date(),
+    status: 'pending',
   })
 
-  const updatedProduct = await Product.findOneAndUpdate(
-    { _id: productId },
-    { $inc: { quantity: -quantity } },
-    { new: true }
-  )
-
-  if (updatedProduct && updatedProduct.quantity <= 0) {
-    await Product.findByIdAndUpdate(productId, { inStock: false })
-  }
-
-  // Step 2: Create Stripe Checkout session
+  // ✅ Step 2: Create Stripe Checkout session
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -90,7 +82,7 @@ const createOrder = async (
             name: product.title,
             images: images.map((img) => img.url),
           },
-          unit_amount: product.price * 100, // cents
+          unit_amount: product.price * 100,
         },
         quantity,
       },
@@ -104,8 +96,27 @@ const createOrder = async (
     },
   })
 
+  //  Save Stripe Payment Intent ID
+  if (session.payment_intent) {
+    await order.findByIdAndUpdate(result._id, {
+      stripePaymentIntentId: session.payment_intent,
+    })
+  }
+
+  //  Update product stock
+  const updatedProduct = await Product.findOneAndUpdate(
+    { _id: productId },
+    { $inc: { quantity: -quantity } },
+    { new: true }
+  )
+
+  if (updatedProduct && updatedProduct.quantity <= 0) {
+    await Product.findByIdAndUpdate(productId, { inStock: false })
+  }
+
   return { order: result, sessionUrl: session.url }
 }
+
 
 const getMyOder = async (
   email: string,
