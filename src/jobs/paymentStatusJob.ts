@@ -45,8 +45,8 @@ const checkAndUpdateStatus = async (
   }
 }
 
-// Run every 15 minutes
-cron.schedule('*/15 * * * *', async () => {
+// Run every 2 minutes
+cron.schedule('*/02 * * * *', async () => {
   console.log('🔁 Checking pending Stripe payments...')
 
   await Promise.all([

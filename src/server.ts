@@ -5,6 +5,7 @@ import app from './app'
 import config from './config'
 import { initSocket } from './socket'
 import { initNotificationSocket } from './socket/notification.service'
+import './jobs/paymentStatusJob' 
 
 async function main() {
   try {
