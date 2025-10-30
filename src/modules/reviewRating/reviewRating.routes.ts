@@ -11,7 +11,7 @@ import auth from '../../middleware/auth'
 const router = Router()
 
 router.post('/', auth('user'), createReview)
-router.delete('/:id', auth('user'), deleteReview)
+router.delete('/:id', auth('admin'), deleteReview)
 router.get('/class/:classId', getReviewsByClassId)
 router.get('/product/:productId', getReviewsByTripId)
 router.get('/all', getAllClassReviews)
