@@ -193,7 +193,8 @@ export const createBooking = async (
 
     const successUrl = `https://scuba-life.net/courses/book/forms/${classId}`
     const cancelUrl =
-      process.env.FRONTEND_URL || 'https://scuba-life.net/booking-cancel'
+      process.env.FRONTEND_URL ||
+      'https://scuba-life.net/courses/CourseBooking/Cancle'
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
