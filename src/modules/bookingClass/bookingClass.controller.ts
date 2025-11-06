@@ -720,14 +720,13 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
 
   try {
     session = await mongoose.startSession();
-    session.startTransaction();
+    session.startTransaction(); 
 
     if (bookingIds) {
       const idsArray = Array.isArray(bookingIds)
         ? bookingIds
         : (bookingIds as string).split(",");
 
-      // Validate and convert to ObjectId
       const validObjectIds = [];
       for (const id of idsArray) {
         if (mongoose.Types.ObjectId.isValid(id as string)) {
@@ -743,8 +742,7 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
       const existingBookings = await BookingClass.find({
         _id: { $in: validObjectIds },
       }).session(session);
-
-      // **Check each ID individually**
+      
       for (const id of validObjectIds) {
         const singleBooking = await BookingClass.findById(id).session(session);
 
