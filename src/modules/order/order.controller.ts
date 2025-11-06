@@ -100,23 +100,23 @@ const fetchPaidOrders = async (req: Request, res: Response) => {
   }
 };
 
-const deleteAllOrderClass = catchAsync(async (req, res) => {
-  const { deleteAll, bookingIds } = req.query;
+// const deleteAllOrderClass = catchAsync(async (req, res) => {
+//   const { deleteAll, bookingIds } = req.query;
 
-  const result = await orderService.deleteAllOrderClass(
-    deleteAll === "true",
-    bookingIds
-  );
+//   const result = await orderService.deleteAllOrderClass(
+//     deleteAll === "true",
+//     bookingIds
+//   );
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message:
-      deleteAll === "true"
-        ? "All bookings deleted successfully"
-        : "Selected bookings deleted successfully",
-  });
-});
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message:
+//       deleteAll === "true"
+//         ? "All bookings deleted successfully"
+//         : "Selected bookings deleted successfully",
+//   });
+// });
 
 const orderController = {
   createOrder,
@@ -125,7 +125,7 @@ const orderController = {
   orderCancelByUser,
   updateOrderStatus,
   fetchPaidOrders,
-  deleteAllOrderClass,
+  // deleteAllOrderClass,
 };
 
 export default orderController;
