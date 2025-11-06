@@ -713,7 +713,7 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
 });
 
 export const deleteAllBookingClass = catchAsync(async (req, res) => {
-  const { bookingIds } = req.query;
+  const { bookingIds } = req.body;
 
   let deletedBookings;
   let session;
