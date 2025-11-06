@@ -1,13 +1,13 @@
-import { StatusCodes } from "http-status-codes";
 import { Request, Response } from "express";
+import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import orderService from "./order.service";
 
 const createOrder = catchAsync(async (req, res) => {
   const { email } = req.user;
-   const files = req.files as Express.Multer.File[];
-  const result = await orderService.createOrder(email, req.body,files);
+  const files = req.files as Express.Multer.File[];
+  const result = await orderService.createOrder(email, req.body, files);
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -100,8 +100,23 @@ const fetchPaidOrders = async (req: Request, res: Response) => {
   }
 };
 
+const deleteAllOrderClass = catchAsync(async (req, res) => {
+  const { deleteAll, bookingIds } = req.query;
 
-//!deleted api is not add. after add it
+  const result = await orderService.deleteAllOrderClass(
+    deleteAll === "true",
+    bookingIds
+  );
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message:
+      deleteAll === "true"
+        ? "All bookings deleted successfully"
+        : "Selected bookings deleted successfully",
+  });
+});
 
 const orderController = {
   createOrder,
@@ -109,7 +124,8 @@ const orderController = {
   getAllOrder,
   orderCancelByUser,
   updateOrderStatus,
-  fetchPaidOrders
+  fetchPaidOrders,
+  deleteAllOrderClass,
 };
 
 export default orderController;
