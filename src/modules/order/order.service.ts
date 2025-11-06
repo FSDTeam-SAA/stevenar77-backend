@@ -6,6 +6,7 @@ import Product from '../product/product.model'
 import order from './order.model'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 import Stripe from 'stripe'
+import mongoose from 'mongoose'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
@@ -262,6 +263,84 @@ const getAllPaid = async () => {
   }
 }
 
+const deleteAllOrderClass = async ( deleteAll: boolean, bookingIds: string) => {
+  
+  let deletedBookings;
+  let session;
+
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    if (deleteAll === "true") {
+      deletedBookings = await order.deleteMany().session(session);
+    } else if (bookingIds) {
+      const idsArray = Array.isArray(bookingIds)
+        ? bookingIds
+        : (bookingIds as string).split(",");
+
+      // Validate and convert to ObjectId
+      const validObjectIds = [];
+      for (const id of idsArray) {
+        if (mongoose.Types.ObjectId.isValid(id as string)) {
+          validObjectIds.push(new mongoose.Types.ObjectId(id as string));
+        } else {
+          throw new AppError(
+            `Invalid booking ID: ${id}`,
+            StatusCodes.BAD_REQUEST
+          );
+        }
+      }
+
+      const existingBookings = await order
+        .find({
+          _id: { $in: validObjectIds },
+        })
+        .session(session);
+
+      // **Check each ID individually**
+      for (const id of validObjectIds) {
+        const singleBooking = await order.findById(id).session(session);
+
+        if (!singleBooking) {
+          throw new AppError(`Booking not found`, StatusCodes.NOT_FOUND);
+        }
+      }
+
+      if (existingBookings.length === 0) {
+        await order.find({}).select("_id").limit(10);
+        throw new AppError(`No bookings found`, StatusCodes.NOT_FOUND);
+      }
+
+      // Delete the found bookings
+      deletedBookings = await order
+        .deleteMany({
+          _id: { $in: validObjectIds },
+        })
+        .session(session);
+    } else {
+      throw new AppError(
+        "Please provide bookingIds or set deleteAll=true",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    await session.commitTransaction();
+
+    return deletedBookings;
+  } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+    }
+    throw error;
+  } finally {
+    if (session) {
+      session.endSession();
+    }
+  }
+}
+
+
 const orderService = {
   createOrder,
   getMyOder,
@@ -269,6 +348,7 @@ const orderService = {
   orderCancelByUser,
   updateOrderStatus,
   getAllPaid,
-}
+  deleteAllOrderClass,
+};
 
 export default orderService

@@ -713,7 +713,7 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
 });
 
 export const deleteAllBookingClass = catchAsync(async (req, res) => {
-  const { deleteAll, bookingIds } = req.query;
+  const { bookingIds } = req.query;
 
   let deletedBookings;
   let session;
@@ -722,9 +722,7 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
     session = await mongoose.startSession();
     session.startTransaction();
 
-    if (deleteAll === "true") {
-      deletedBookings = await BookingClass.deleteMany().session(session);
-    } else if (bookingIds) {
+    if (bookingIds) {
       const idsArray = Array.isArray(bookingIds)
         ? bookingIds
         : (bookingIds as string).split(",");
@@ -776,10 +774,7 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
     sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
-      message:
-        deleteAll === "true"
-          ? "All bookings deleted successfully"
-          : "Selected bookings deleted successfully",
+      message: "Selected bookings deleted successfully",
     });
   } catch (error) {
     if (session) {
