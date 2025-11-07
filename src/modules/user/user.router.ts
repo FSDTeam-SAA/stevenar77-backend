@@ -1,10 +1,10 @@
 import { Router } from "express";
-import userController from "./user.controller";
-import validateRequest from "../../middleware/validateRequest";
-import { userValidation } from "./user.validation";
 import auth from "../../middleware/auth";
-import { USER_ROLE } from "./user.constant";
 import { upload } from "../../middleware/multer.middleware";
+import validateRequest from "../../middleware/validateRequest";
+import { USER_ROLE } from "./user.constant";
+import userController from "./user.controller";
+import { userValidation } from "./user.validation";
 
 const router = Router();
 
@@ -38,6 +38,12 @@ router.put(
   upload.single("image"),
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   userController.updateUserProfile
+);
+
+router.put(
+  "/profile/:userId",
+  upload.single("image"),
+  userController.updateProfile
 );
 
 router.get(
