@@ -210,6 +210,16 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
   return result;
 };
 
+const getSingleUser = async (userId: string) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  const result = await User.findById(userId).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires"
+  );
+  return result;
+};
+
 const updateUser = async (payload: any, userId: string, file: any) => {
   const user = await User.findById(userId).select("image");
   if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
@@ -241,6 +251,13 @@ const updateUser = async (payload: any, userId: string, file: any) => {
   return result;
 };
 
+const deletedUserProfile = async (userId: string) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+
+  await User.findOneAndDelete({ _id: userId });
+};
+
 const userService = {
   registerUser,
   verifyEmail,
@@ -250,6 +267,8 @@ const userService = {
   updateUserProfile,
   getAdminId,
   updateUser,
+  deletedUserProfile,
+  getSingleUser,
 };
 
 export default userService;
