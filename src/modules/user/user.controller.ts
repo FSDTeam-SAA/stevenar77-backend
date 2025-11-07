@@ -95,6 +95,18 @@ const updateUserProfile = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleUser = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await userService.getSingleUser(userId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User fetched successfully",
+    data: result,
+  });
+});
+
 const updateProfile = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const result = await userService.updateUser(req.body, userId, req.file);
@@ -107,6 +119,17 @@ const updateProfile = catchAsync(async (req, res) => {
   });
 });
 
+const deletedUserProfile = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  await userService.deletedUserProfile(userId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User deleted successfully",
+  });
+});
+
 const userController = {
   registerUser,
   verifyEmail,
@@ -116,6 +139,8 @@ const userController = {
   updateUserProfile,
   getAdminId,
   updateProfile,
+  deletedUserProfile,
+  getSingleUser,
 };
 
 export default userController;
