@@ -295,7 +295,7 @@ const deleteAllOrderClass = async (orderIds: string) => {
         })
         .session(session);
 
-      // **Check each ID individually**
+     
       for (const id of validObjectIds) {
         const singleBooking = await order.findById(id).session(session);
 
