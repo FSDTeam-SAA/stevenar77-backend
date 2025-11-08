@@ -15,75 +15,79 @@ import productRouter from "../modules/Shop/shop.routes";
 import socialRouter from "../modules/social/social.routes";
 import TripRoutes from "../modules/trips/trip.routes";
 import userRouter from "../modules/user/user.router";
-
+import { messageTemplateRouter } from '../modules/messageTemplate/messageTemplate.route';
 const router = Router();
 
 const moduleRoutes = [
   {
-    path: "/user",
+    path: '/user',
     route: userRouter,
   },
   {
-    path: "/auth",
+    path: '/auth',
     route: authRouter,
   },
   {
-    path: "/class",
+    path: '/class',
     route: classRouter,
   },
   {
-    path: "/class/bookings",
+    path: '/class/bookings',
     route: classBookingRouter,
   },
   {
-    path: "/product",
+    path: '/product',
     route: productRouter,
   },
   {
-    path: "/contact",
+    path: '/contact',
     route: contactRouter,
   },
   {
-    path: "/order",
+    path: '/order',
     route: orderRouter,
   },
   {
-    path: "/trip",
+    path: '/trip',
     route: TripRoutes,
   },
   {
-    path: "/reviews",
+    path: '/reviews',
     route: reviewsRouter,
   },
   {
-    path: "/conversation",
+    path: '/conversation',
     route: conversationRoutes,
   },
   {
-    path: "/message",
+    path: '/message',
     route: messageRoutes,
   },
   {
-    path: "/dashboard",
+    path: '/dashboard',
     route: dashboardRouter,
   },
   {
-    path: "/notifications",
+    path: '/notifications',
     route: notificationRouter,
   },
   {
-    path: "/shop",
+    path: '/shop',
     route: shopRouter,
   },
   {
-    path: "/about",
+    path: '/about',
     route: aboutRouter,
   },
   {
-    path: "/social",
+    path: '/social',
     route: socialRouter,
   },
-];
+  {
+    path: '/message-template',
+    route: messageTemplateRouter,
+  },
+]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 
