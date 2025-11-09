@@ -10,7 +10,7 @@ const messageTemplateSchema = new Schema<IMessageTemplate>(
     emailSubject: { type: String, required: true },
     type: {
       type: String,
-      enum: ['tour', 'product', 'courses'],
+      enum: ['trips', 'product', 'courses'],
       required: true,
     },
     status: {
