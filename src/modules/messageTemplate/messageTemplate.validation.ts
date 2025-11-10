@@ -5,7 +5,6 @@ const createMessageTemplateSchema = z.object({
     tempName: z.string().min(1, 'Template name is required'),
     emailSubject: z.string().min(1, 'Email subject is required'),
     type: z.enum(['trips', 'product', 'courses']),
-    status: z.enum(['active', 'deactivate']).optional(),
     messageBody: z.string().min(1, 'Message body is required'),
   }),
 })
