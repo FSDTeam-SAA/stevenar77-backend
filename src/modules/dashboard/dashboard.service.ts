@@ -10,10 +10,11 @@ const getDashboardStats = async () => {
   const totalTripBookings = await Booking.countDocuments({ status: "paid" });
   const totalBookings = totalClassBookings + totalTripBookings;
 
-  const paidOrders = await order.find({ status: "paid" });
+  const paidOrders = await order.find({ status: "paid" }).lean();
   const totalPaidOrders = paidOrders.length;
+
   const totalSales = paidOrders.reduce(
-    (sum, ord) => sum + (ord.totalPrice || 0),
+    (sum, ord) => sum + Number(ord.totalPrice || 0),
     0
   );
 
@@ -23,7 +24,12 @@ const getDashboardStats = async () => {
       $group: {
         _id: null,
         total: {
-          $sum: { $multiply: ["$participant", "$totalPrice"] },
+          $sum: {
+            $multiply: [
+              { $ifNull: ["$participant", 1] },
+              { $ifNull: ["$pricePerParticipant", "$totalPrice"] },
+            ],
+          },
         },
       },
     },
@@ -34,15 +40,14 @@ const getDashboardStats = async () => {
     {
       $group: {
         _id: null,
-        total: { $sum: "$totalPrice" },
+        total: { $sum: { $ifNull: ["$totalPrice", 0] } },
       },
     },
   ]);
 
-  const totalRevenue =
-    (classRevenueAgg[0]?.total || 0) +
-    (tripRevenueAgg[0]?.total || 0) +
-    totalSales;
+  const classRevenue = Number(classRevenueAgg[0]?.total || 0);
+  const tripRevenue = Number(tripRevenueAgg[0]?.total || 0);
+  const totalRevenue = Math.round(classRevenue + tripRevenue );
 
   const popularCoursesCount = await Class.countDocuments({
     totalReviews: { $gt: 0 },
@@ -58,6 +63,7 @@ const getDashboardStats = async () => {
     orders: paidOrders,
   };
 };
+
 
 const getChartData = async (year: number) => {
   const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
