@@ -50,15 +50,19 @@ const resendOtpCode = catchAsync(async (req, res) => {
 });
 
 const getAllUsers = catchAsync(async (req, res) => {
-  const result = await userService.getAllUsers();
+  const { page = 1, limit = 10 } = req.query;
+
+  const result = await userService.getAllUsers(Number(page), Number(limit));
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Users fetched successfully",
-    data: result,
+    data: result.users,
+    meta: result.meta,
   });
 });
+
 
 const getAdminId = catchAsync(async (req, res) => {
   const result = await userService.getAdminId();

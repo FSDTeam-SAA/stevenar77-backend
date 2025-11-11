@@ -157,12 +157,26 @@ const resendOtpCode = async (email: string) => {
   return result;
 };
 
-const getAllUsers = async () => {
-  const result = await User.find().select(
-    "username firstName lastName email role"
-  );
-  return result;
+const getAllUsers = async (page: number, limit: number) => {
+  const skip = (page - 1) * limit;
+  const total = await User.countDocuments();
+
+  const users = await User.find()
+    .select("username firstName lastName email role")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 }); 
+
+  const meta = {
+    limit,
+    page,
+    total,
+    totalPage: Math.ceil(total / limit),
+  };
+
+  return { users, meta };
 };
+
 
 const getAdminId = async () => {
   const admin = await User.findOne({ role: "admin" }).select("_id");
