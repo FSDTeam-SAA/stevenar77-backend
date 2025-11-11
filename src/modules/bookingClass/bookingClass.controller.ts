@@ -172,7 +172,7 @@ export const createBooking = async (
     //   await Class.findByIdAndUpdate(classId, { isActive: false });
     // }
 
-    //console.log(1, req.user?.firstName)
+    ////console.log(1, req.user?.firstName)
     //console.log(2, userId)
 
     /***********************
@@ -272,9 +272,10 @@ export const updateBooking = async (
       })
       return
     }
+    // console.log("existing booking",existingBooking)
 
     const user = await User.findById(existingBooking.userId)
-    console.log('update booking class', user?.email)
+    // console.log('update booking class', user?.email)
 
     // Optional: Check if user owns this booking or is admin
     // const userId = req.user?.id
