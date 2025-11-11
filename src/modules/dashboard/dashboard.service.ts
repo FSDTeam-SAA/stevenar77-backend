@@ -8,14 +8,13 @@ const getDashboardStats = async () => {
   const totalTripBookings = await Booking.countDocuments({});
   const totalBookings = totalClassBookings + totalTripBookings;
 
-   const paidOrders = await order.find({ status: "paid" });
+  const paidOrders = await order.find({ status: "paid" });
 
   const totalPaidOrders = paidOrders.length;
   const totalSales = paidOrders.reduce((sum, ord) => sum + ord.totalPrice, 0);
 
-
   const classRevenueAgg = await BookingClass.aggregate([
-    { $match: { status: "success" } },
+    { $match: { status: "paid" } },
     {
       $group: {
         _id: null,
@@ -28,7 +27,7 @@ const getDashboardStats = async () => {
   ]);
 
   const tripRevenueAgg = await Booking.aggregate([
-    { $match: { status: "success" } },
+    { $match: { status: "paid" } },
     {
       $group: {
         _id: null,
@@ -38,7 +37,9 @@ const getDashboardStats = async () => {
   ]);
 
   const totalRevenue =
-    (classRevenueAgg[0]?.total || 0) + (tripRevenueAgg[0]?.total || 0)+ totalSales;
+    (classRevenueAgg[0]?.total || 0) +
+    (tripRevenueAgg[0]?.total || 0) +
+    totalSales;
 
   const popularCoursesCount = await Class.countDocuments({
     totalReviews: { $gt: 0 },
