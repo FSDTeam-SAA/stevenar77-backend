@@ -64,7 +64,7 @@ const getChartData = async (year: any) => {
   const classRevenue = await BookingClass.aggregate([
     {
       $match: {
-        status: "success",
+        status: "paid",
         createdAt: { $gte: startDate, $lte: endDate },
       },
     },
@@ -83,7 +83,7 @@ const getChartData = async (year: any) => {
   const tripRevenue = await Booking.aggregate([
     {
       $match: {
-        status: "success",
+        status: "paid",
         createdAt: { $gte: startDate, $lte: endDate },
       },
     },
