@@ -23,16 +23,17 @@ const createOrder = async (
   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
   const product = await Product.findById(productId)
+  console.log("kjhjkn",product)
   if (!product) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
   if (product.inStock === false)
     throw new AppError('Product is out of stock', StatusCodes.BAD_REQUEST)
 
-  if (product.quantity < quantity)
-    throw new AppError(
-      'Product quantity is not enough',
-      StatusCodes.BAD_REQUEST
-    )
+  // if (product.quantity < quantity)
+  //   throw new AppError(
+  //     'Product quantity is not enough',
+  //     StatusCodes.BAD_REQUEST
+  //   )
 
   const price = product.price * quantity
 
