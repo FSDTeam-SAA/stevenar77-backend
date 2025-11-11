@@ -25,7 +25,7 @@ router.delete("/:tripId", TripController.deleteTrip);
 
 router.post(
   '/:tripId/checkout',
-    // auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+    auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   TripBookingController.createCheckoutSession
 );
 

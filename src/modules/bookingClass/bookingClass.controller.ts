@@ -273,6 +273,9 @@ export const updateBooking = async (
       return
     }
 
+    const user = await User.findById(existingBooking.userId)
+    console.log('update booking class', user?.email)
+
     // Optional: Check if user owns this booking or is admin
     // const userId = req.user?.id
     // if (
@@ -373,6 +376,8 @@ export const updateBooking = async (
       message: 'Booking updated successfully',
       data: updatedBooking,
     })
+
+    sendTemplateEmail(user?.email ?? '', 'courses')
   } catch (error: any) {
     console.error('Error updating booking:', error)
 
@@ -579,7 +584,7 @@ export const submitBookingForm = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const user = await User.findById(userId)
+    // const user = await User.findById(userId)
 
     // Find the latest pending booking for this user
     const booking = await BookingClass.findOne({
@@ -621,7 +626,7 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     booking.form = formData
     await booking.save()
 
-    await sendTemplateEmail(user?.email ?? '', 'courses')
+    // await sendTemplateEmail(user?.email ?? '', 'courses')
 
     res.status(200).json({
       success: true,
