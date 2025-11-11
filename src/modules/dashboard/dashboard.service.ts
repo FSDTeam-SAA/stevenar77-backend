@@ -56,55 +56,75 @@ const getDashboardStats = async () => {
   };
 };
 
-const getChartData = async (year: any) => {
+const getChartData = async (year: number) => {
   const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
   const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
 
-  // Class revenue grouped by month
+  // ---- BookingClass ----
   const classRevenue = await BookingClass.aggregate([
     {
-      $match: {
-        status: "paid",
-        createdAt: { $gte: startDate, $lte: endDate },
+      $match: { status: "paid", createdAt: { $gte: startDate, $lte: endDate } },
+    },
+    {
+      $project: {
+        month: { $month: "$createdAt" },
+        participant: { $ifNull: ["$participant", 0] },
+        totalPriceNum: {
+          $convert: {
+            input: "$totalPrice",
+            to: "double",
+            onError: 0,
+            onNull: 0,
+          },
+        },
       },
     },
     {
-      $group: {
-        _id: { $month: "$createdAt" },
-        //!Possible issue there multiply by participant count with totalPrice
-        total: {
-          $sum: { $multiply: ["$participant", { $avg: "$totalPrice" }] },
-        }, // adjust if price is elsewhere
+      $project: {
+        month: 1,
+        revenue: {
+          $cond: [
+            { $gt: ["$participant", 0] },
+            { $multiply: ["$participant", "$totalPriceNum"] },
+            "$totalPriceNum",
+          ],
+        },
       },
     },
+    { $group: { _id: "$month", total: { $sum: "$revenue" } } },
   ]);
 
-  // Trip revenue grouped by month
+  // ---- Booking (trips) ----
   const tripRevenue = await Booking.aggregate([
     {
-      $match: {
-        status: "paid",
-        createdAt: { $gte: startDate, $lte: endDate },
-      },
+      $match: { status: "paid", createdAt: { $gte: startDate, $lte: endDate } },
     },
     {
-      $group: {
-        _id: { $month: "$createdAt" },
-        total: { $sum: "$totalPrice" },
+      $project: {
+        month: { $month: "$createdAt" },
+        revenue: {
+          $convert: {
+            input: "$totalPrice",
+            to: "double",
+            onError: 0,
+            onNull: 0,
+          },
+        },
       },
     },
+    { $group: { _id: "$month", total: { $sum: "$revenue" } } },
   ]);
 
-  // Merge results
+  // ---- Merge Results ----
   const revenueMap: Record<number, number> = {};
-  classRevenue.forEach((item) => {
-    revenueMap[item._id] = (revenueMap[item._id] || 0) + item.total;
+  classRevenue.forEach((it: any) => {
+    revenueMap[it._id] = (revenueMap[it._id] || 0) + (it.total || 0);
   });
-  tripRevenue.forEach((item) => {
-    revenueMap[item._id] = (revenueMap[item._id] || 0) + item.total;
+  tripRevenue.forEach((it: any) => {
+    revenueMap[it._id] = (revenueMap[it._id] || 0) + (it.total || 0);
   });
 
-  // Build chart data for 12 months
+  // ---- Build Month Data ----
   const months = [
     "Jan",
     "Feb",
@@ -121,9 +141,10 @@ const getChartData = async (year: any) => {
   ];
   return months.map((month, index) => ({
     month,
-    revenue: revenueMap[index + 1] || 0,
+    revenue: +(revenueMap[index + 1] || 0),
   }));
 };
+
 
 export const dashboardService = {
   getDashboardStats,
