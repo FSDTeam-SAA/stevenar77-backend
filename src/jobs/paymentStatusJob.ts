@@ -47,7 +47,9 @@ const checkAndUpdateStatus = async (
             let recipientEmail = ''
 
             if (model.modelName === 'TripBooking') {
-              recipientEmail = item.participants?.[0]?.email || ''
+              const populatedBooking = await item.populate('user', 'email')
+              const recipientEmail = populatedBooking.user?.email || ''
+              
             } else if (model.modelName === 'Order') {
               const populatedOrder = await item.populate('userId', 'email')
               recipientEmail = populatedOrder.userId?.email || ''
