@@ -4,8 +4,10 @@ import order from "../order/order.model";
 import Booking from "../trips/booking/booking.model";
 
 const getDashboardStats = async () => {
-  const totalClassBookings = await BookingClass.countDocuments({});
-  const totalTripBookings = await Booking.countDocuments({});
+  const totalClassBookings = await BookingClass.countDocuments({
+    status: "paid",
+  });
+  const totalTripBookings = await Booking.countDocuments({ status: "paid" });
   const totalBookings = totalClassBookings + totalTripBookings;
 
   const paidOrders = await order.find({ status: "paid" });
@@ -144,7 +146,6 @@ const getChartData = async (year: number) => {
     revenue: +(revenueMap[index + 1] || 0),
   }));
 };
-
 
 export const dashboardService = {
   getDashboardStats,
