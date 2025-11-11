@@ -1,5 +1,5 @@
 import sendEmail from './sendEmail'
-import { MessageTemplate } from '../modules/messageTemplate/messageTemplate.model';
+import { MessageTemplate } from '../modules/messageTemplate/messageTemplate.model'
 
 /**
  * Sends an email using an active message template for a given type.
@@ -14,6 +14,7 @@ export const sendTemplateEmail = async (
   placeholders: Record<string, string> = {}
 ): Promise<void> => {
   try {
+    console.log('Email send to ', to)
     // 1️⃣ Find the active message template for the given type
     const template = await MessageTemplate.findOne({ type, status: 'active' })
     if (!template) {

@@ -92,6 +92,11 @@ export class TripBookingService {
       cancel_url: cancelUrl,
     })
 
+    if (session.id) {
+      booking.stripePaymentIntentId = session.id
+      await booking.save()
+    }
+
     return {
       sessionUrl:
         session.url ?? `https://checkout.stripe.com/pay/${session.id}`,

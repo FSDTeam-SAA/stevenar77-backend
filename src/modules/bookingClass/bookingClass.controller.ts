@@ -168,13 +168,6 @@ export const createBooking = async (
       { new: true }
     )
 
-    // if (classData.schedule.participents === 0) {
-    //   await Class.findByIdAndUpdate(classId, { isActive: false });
-    // }
-
-    ////console.log(1, req.user?.firstName)
-    //console.log(2, userId)
-
     /***********************
      * 🔔 Notify the admin *
      ***********************/
@@ -216,8 +209,10 @@ export const createBooking = async (
       cancel_url: cancelUrl,
     })
 
-    if (session.payment_intent) {
-      booking.stripePaymentIntentId = session.payment_intent.toString()
+    console.log('bookign class', session)
+
+    if (session.id) {
+      booking.stripePaymentIntentId = session.id.toString()
       await booking.save()
     }
     //console.log('booking', booking)
@@ -275,20 +270,6 @@ export const updateBooking = async (
     // console.log("existing booking",existingBooking)
 
     const user = await User.findById(existingBooking.userId)
-    // console.log('update booking class', user?.email)
-
-    // Optional: Check if user owns this booking or is admin
-    // const userId = req.user?.id
-    // if (
-    //   existingBooking.userId.toString() !== userId &&
-    //   req.user?.role !== 'admin'
-    // ) {
-    //   res.status(403).json({
-    //     success: false,
-    //     message: 'You are not authorized to update this booking',
-    //   })
-    //   return
-    // }
 
     // Validate classDate if provided
     if (classDate && (!Array.isArray(classDate) || classDate.length === 0)) {
