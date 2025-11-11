@@ -11,19 +11,20 @@ const getDashboardStats = async () => {
   const totalBookings = totalClassBookings + totalTripBookings;
 
   const paidOrders = await order.find({ status: "paid" });
-
   const totalPaidOrders = paidOrders.length;
-  const totalSales = paidOrders.reduce((sum, ord) => sum + ord.totalPrice, 0);
+  const totalSales = paidOrders.reduce(
+    (sum, ord) => sum + (ord.totalPrice || 0),
+    0
+  );
 
   const classRevenueAgg = await BookingClass.aggregate([
     { $match: { status: "paid" } },
     {
       $group: {
         _id: null,
-        //!Possible issue there multiply by participant count with totalPrice
         total: {
-          $sum: { $multiply: ["$participant", { $avg: "$totalPrice" }] },
-        }, // if price exists
+          $sum: { $multiply: ["$participant", "$totalPrice"] },
+        },
       },
     },
   ]);
