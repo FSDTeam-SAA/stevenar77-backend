@@ -2,7 +2,6 @@ import { Request, Response } from 'express'
 import httpStatus from 'http-status'
 import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
-import Stripe from 'stripe'
 import AppError from '../../errors/AppError'
 import { createNotification } from '../../socket/notification.service'
 import catchAsync from '../../utils/catchAsync'
@@ -15,10 +14,8 @@ import Booking from '../trips/booking/booking.model'
 import { User } from '../user/user.model'
 import { BookingClass } from './bookingClass.model'
 import { sendTemplateEmail } from '../../utils/sendTemplateEmail'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-08-27.basil',
-})
+import cartService from '../cart/cart.service'
+import { ICart } from '../cart/cart.interface'
 
 export const createBooking = async (
   req: Request,
@@ -43,10 +40,6 @@ export const createBooking = async (
       age,
     } = req.body
     const userId = req.user?.id
-
-    //console.log(4,req.user)
-
-    //console.log(0, userId)
 
     // Basic validation
     if (!classId) {
@@ -183,47 +176,22 @@ export const createBooking = async (
         id: booking._id,
       })
     }
-
-    // Stripe Checkout
-
-    const successUrl = `https://scuba-life.net/courses/book/forms/${classId}`
-    const cancelUrl =
-      process.env.FRONTEND_URL ||
-      'https://scuba-life.net/courses/CourseBooking/Cancle'
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: { name: classData.title },
-            unit_amount: Math.round(Number(totalPrice) * 100),
-          },
-          quantity: participant,
-        },
-      ],
-      metadata: { classBookingId: booking._id.toString() },
-      success_url: `${successUrl}?bookingId=${booking._id}`,
-      cancel_url: cancelUrl,
-    })
-
-    console.log('bookign class', session)
-
-    if (session.id) {
-      booking.stripePaymentIntentId = session.id.toString()
-      await booking.save()
+    const payload = {
+      userId,
+      itemId: booking._id,
+      type: 'course',
+      price: totalPrice,
     }
-    //console.log('booking', booking)
+
+    // save to add to cart
+    const cart = await cartService.createCartItem(payload as ICart)
 
     res.status(200).json({
       success: true,
-      message: 'Checkout session created successfully',
+      message: 'Add to cart created successfully',
       data: {
         bookingId: booking._id,
-        sessionUrl:
-          session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
+        cart,
       },
     })
   } catch (error: any) {
