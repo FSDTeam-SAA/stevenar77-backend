@@ -1,16 +1,12 @@
 import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
-import Stripe from 'stripe'
 import AppError from '../../errors/AppError'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 import Product from '../product/product.model'
 import { User } from '../user/user.model'
 import { IOrder } from './order.interface'
 import order from './order.model'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-08-27.basil',
-})
+import { Cart } from '../cart/cart.model'
 
 const createOrder = async (
   email: string,
@@ -23,17 +19,10 @@ const createOrder = async (
   if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
   const product = await Product.findById(productId)
-  console.log("kjhjkn",product)
   if (!product) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
   if (product.inStock === false)
     throw new AppError('Product is out of stock', StatusCodes.BAD_REQUEST)
-
-  // if (product.quantity < quantity)
-  //   throw new AppError(
-  //     'Product quantity is not enough',
-  //     StatusCodes.BAD_REQUEST
-  //   )
 
   const price = product.price * quantity
 
@@ -57,7 +46,7 @@ const createOrder = async (
     )
   }
 
-  // ✅ Step 1: Create order in DB first
+  // Create order in DB
   const result = await order.create({
     userId: user._id,
     productId,
@@ -70,39 +59,13 @@ const createOrder = async (
     status: 'pending',
   })
 
-  // ✅ Step 2: Create Stripe Checkout session
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
-    customer_email: email,
-    line_items: [
-      {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: product.title,
-            images: images.map((img) => img.url),
-          },
-          unit_amount: product.price * 100,
-        },
-        quantity,
-      },
-    ],
-    success_url: process.env.product_frontend_url_success,
-    cancel_url: process.env.product_frontend_url_cancel,
-    metadata: {
-      orderId: result._id.toString(),
-      productId: productId.toString(),
-      quantity: quantity.toString(),
-    },
+  const cart = await Cart.create({
+    userId: user._id,
+    itemId: result._id,
+    type: 'product',
+    price,
+    status: 'pending',
   })
-
-  //  Save Stripe Payment Intent ID
-  if (session.id) {
-    await order.findByIdAndUpdate(result._id, {
-      stripePaymentIntentId: session.id,
-    })
-  }
 
   //  Update product stock
   const updatedProduct = await Product.findOneAndUpdate(
@@ -115,7 +78,7 @@ const createOrder = async (
     await Product.findByIdAndUpdate(productId, { inStock: false })
   }
 
-  return { order: result, sessionUrl: session.url }
+  return { cart }
 }
 
 const getMyOder = async (

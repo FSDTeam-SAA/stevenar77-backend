@@ -24,8 +24,7 @@ router.delete(
 )
 
 // checkout from add to cart
-router.post("/checkout", cartController.cartItemsPayment)
-
+router.post('/checkout', cartController.cartItemsPayment)
 
 const cartRouter = router
 export default cartRouter

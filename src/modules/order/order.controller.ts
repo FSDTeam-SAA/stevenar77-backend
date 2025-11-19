@@ -12,7 +12,7 @@ const createOrder = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Order created successfully",
+    message: "Add to cart successful!",
     data: result,
   });
 });
