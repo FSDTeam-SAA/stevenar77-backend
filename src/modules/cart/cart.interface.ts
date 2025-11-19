@@ -6,7 +6,7 @@ export interface ICart {
   itemId: Types.ObjectId
   type: 'product' | 'trip' | 'course'
   price: number
-  status: 'pending' | 'complete'
+  status?: 'pending' | 'complete'
 }
 
 export type CartModel = Model<ICart>

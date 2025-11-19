@@ -4,10 +4,8 @@ import Booking from './booking.model'
 import mongoose, { ObjectId } from 'mongoose'
 import { User } from '../../user/user.model'
 import { createNotification } from '../../../socket/notification.service'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil',
-})
+import cartService from '../../cart/cart.service'
+import { ICart } from '../../cart/cart.interface'
 
 export class TripBookingService {
   static async createCheckoutSession(
@@ -28,16 +26,14 @@ export class TripBookingService {
     //  Get user
     const user = await User.findById(userId)
 
-    // 2. Check capacity
+    //  Check capacity
     if (trip.maximumCapacity < participants.length)
       throw new Error('Not enough spots available')
 
-    // 3. Calculate total price
+    // Calculate total price
     const totalPrice = Number(trip.price) * totalParticipants
 
-    // ////console.log('totalPrice', totalPrice)
-
-    // 4. Create booking with 'pending' status
+    // Create booking with 'pending' status
     const booking = await Booking.create({
       trip: trip._id,
       user: userId,
@@ -46,6 +42,17 @@ export class TripBookingService {
       totalParticipants,
       status: 'pending',
     })
+
+    const payload = {
+      userId,
+      itemId: booking._id,
+      type: 'trip',
+      price: totalPrice,
+    }
+    const cart = await cartService.createCartItem({
+      ...payload,
+      userId: new mongoose.Types.ObjectId(payload.userId),
+    } as ICart)
 
     /*************************************
      * 🔔 Notify the admin about booking *
@@ -62,45 +69,9 @@ export class TripBookingService {
       })
     }
 
-    // 5. Use URLs from environment variables
-    const successUrl =
-      process.env.trip_frontend_url_success ||
-      'https://stevenar77-website.vercel.app/booking-success'
-    const cancelUrl =
-      process.env.trip_frontend_url_cancel ||
-      'http://localhost:5000/booking-cancel'
-
-    // 6. Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: trip.title,
-              // description: trip.description,
-            },
-            unit_amount: Math.round((totalPrice / participants.length) * 100), // in cents per participant
-          },
-          quantity: participants.length,
-        },
-      ],
-      metadata: { tripBookingId: (booking._id as ObjectId).toString() },
-      success_url: `${successUrl}?bookingId=${booking._id}`,
-      cancel_url: cancelUrl,
-    })
-
-    if (session.id) {
-      booking.stripePaymentIntentId = session.id
-      await booking.save()
-    }
-
     return {
-      sessionUrl:
-        session.url ?? `https://checkout.stripe.com/pay/${session.id}`,
-      tripBookingId: (booking._id as ObjectId).toString(),
+      tripBookingId: booking._id,
+      cart,
     }
   }
 }
