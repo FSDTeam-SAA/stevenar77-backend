@@ -181,6 +181,7 @@ export const createBooking = async (
       itemId: booking._id,
       type: 'course',
       price: totalPrice,
+      status: 'pending',
     }
 
     // save to add to cart
