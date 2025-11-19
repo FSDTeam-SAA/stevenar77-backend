@@ -18,7 +18,7 @@ export class TripBookingService {
       mobile: number
     }[],
     totalParticipants: number
-  ): Promise<{ sessionUrl: string; tripBookingId: string }> {
+  ): Promise<{ sessionUrl: string; tripBookingId: string; cart: ICart }> {
     // 1. Check if trip exists
     const trip = await Trip.findById(tripId)
     if (!trip) throw new Error('Trip not found')
@@ -70,7 +70,9 @@ export class TripBookingService {
     }
 
     return {
-      tripBookingId: booking._id,
+      tripBookingId: (booking._id as mongoose.Types.ObjectId).toString(),
+
+      sessionUrl: '', // placeholder until you add Stripe session
       cart,
     }
   }
