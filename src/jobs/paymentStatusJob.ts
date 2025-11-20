@@ -1,92 +1,116 @@
 import cron from 'node-cron'
 import Stripe from 'stripe'
-import mongoose from 'mongoose'
-import { BookingClass } from '../modules/bookingClass/bookingClass.model'
-import order from '../modules/order/order.model'
+import { PaymentRecord } from '../modules/cart/paymentRecords.model'
+import { Cart } from '../modules/cart/cart.model'
 import Booking from '../modules/trips/booking/booking.model'
+import Order from '../modules/order/order.model'
 import { sendTemplateEmail } from '../utils/sendTemplateEmail'
+import { BookingClass } from '../modules/bookingClass/bookingClass.model'
+import { User } from '../modules/user/user.model'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
 })
 
-const checkAndUpdateStatus = async (
-  model: mongoose.Model<any>,
-  sessionField: string, // stripePaymentIntentId
-  emailType: 'trips' | 'product' | 'courses'
-) => {
-  const pendingPayments = await model.find({
-    status: 'pending',
-    [sessionField]: { $exists: true },
-  })
+cron.schedule('*/1 * * * *', async () => {
+  console.log('🔁 Checking PaymentRecord pending payments...')
 
-  for (const item of pendingPayments) {
-    try {
-      const session = await stripe.checkout.sessions.retrieve(
-        item[sessionField],
-        {
-          expand: ['payment_intent'],
-        }
-      )
+  try {
+    const pendingPayments = await PaymentRecord.find({
+      paymentStatus: 'pending',
+      paymentIntent: { $exists: true },
+    })
 
-      const paymentIntent = session.payment_intent
+    for (const payment of pendingPayments) {
+      try {
+        // Retrieve Stripe payment intent
+        const pi = await stripe.paymentIntents.retrieve(
+          payment.paymentIntent as string
+        )
 
-      // Type narrowing: only proceed if paymentIntent is an object
-      if (paymentIntent && typeof paymentIntent !== 'string') {
-        if (paymentIntent.status === 'succeeded') {
-          item.status = 'paid'
-          item.stripePaymentIntentId = paymentIntent.id
-          await item.save()
-          console.log(`[${model.modelName}] ✅ Updated ${item._id} to "paid"`)
+        if (pi.status === 'succeeded') {
+          console.log(`💰 Payment success for: ${payment._id}`)
 
-          // Send email only for TripBooking and Order
-          if (
-            model.modelName === 'TripBooking' ||
-            model.modelName === 'Order'
-          ) {
-            let recipientEmail = ''
+          // Update PaymentRecord
+          payment.paymentStatus = 'successful'
+          await payment.save()
 
-            if (model.modelName === 'TripBooking') {
-              const populatedBooking = await item.populate('user', 'email')
-              const recipientEmail = populatedBooking.user?.email || ''
-              
-            } else if (model.modelName === 'Order') {
-              const populatedOrder = await item.populate('userId', 'email')
-              recipientEmail = populatedOrder.userId?.email || ''
+          // Fetch carts from payment.cartsIds
+          const carts = await Cart.find({ _id: { $in: payment.cartsIds } })
+
+          for (const cart of carts) {
+            cart.status = 'complete'
+            await cart.save()
+
+            // Now update the related booking/order/class based on cart.type
+            if (cart.type === 'course') {
+              await BookingClass.findByIdAndUpdate(cart.itemId, {
+                status: 'paid',
+              })
+
+              const user = await payment.populate('userId', 'email')
+              if (user.userId?._id) {
+                const userWithEmail = await User.findById(user.userId._id)
+                if (userWithEmail?.email) {
+                  void sendTemplateEmail(userWithEmail.email, 'courses', {
+                    orderId: String(payment._id),
+                  })
+                }
+              }
             }
 
-            if (recipientEmail) {
-              void sendTemplateEmail(recipientEmail, emailType, {
-                orderId: String(item._id),
-              })
+            if (cart.type === 'product') {
+              await Order.findByIdAndUpdate(cart.itemId, { status: 'paid' })
+
+              const order = await Order.findById(cart.itemId)
+                .populate('userId', 'email')
+                .lean()
+
+              if (order?.userId?._id) {
+                const user = await User.findById(order.userId._id)
+                if (user?.email) {
+                  void sendTemplateEmail(user.email, 'product', {
+                    orderId: String(order._id),
+                  })
+                }
+              }
+            }
+
+            if (cart.type === 'trip') {
+              await Booking.findByIdAndUpdate(cart.itemId, { status: 'paid' })
+
+              const booking = await Booking.findById(cart.itemId).populate(
+                'user',
+                'email'
+              )
+              if (booking?.user?._id) {
+                const user = await User.findById(booking.user._id)
+                if (user?.email) {
+                  void sendTemplateEmail(user.email, 'trips', {
+                    orderId: String(booking._id),
+                  })
+                }
+              }
             }
           }
-        } else if (paymentIntent.status === 'canceled') {
-          item.status = 'cancelled'
-          await item.save()
-          console.log(
-            `[${model.modelName}] ❌ Updated ${item._id} to "cancelled"`
-          )
         }
+
+        if (pi.status === 'canceled') {
+          console.log(`❌ Payment canceled: ${payment._id}`)
+
+          payment.paymentStatus = 'cancelled'
+          await payment.save()
+        }
+      } catch (err: any) {
+        console.error(
+          `⚠️ Error processing PaymentRecord ${payment._id}:`,
+          err.message
+        )
       }
-    } catch (err: any) {
-      console.error(
-        `[${model.modelName}] ⚠️ Error checking ${item._id}:`,
-        err.message
-      )
     }
+
+    console.log('✅ PaymentRecord cron job finished.')
+  } catch (error) {
+    console.error('❗ Cron Job Error:', (error as Error).message)
   }
-}
-
-// 🕑 Run every 1 minute
-cron.schedule('*/1 * * * *', async () => {
-  console.log('🔁 Checking pending Stripe payments...')
-
-  await Promise.all([
-    checkAndUpdateStatus(BookingClass, 'stripePaymentIntentId', 'courses'), // won't send email
-    checkAndUpdateStatus(Booking, 'stripePaymentIntentId', 'trips'),
-    checkAndUpdateStatus(order, 'stripePaymentIntentId', 'product'),
-  ])
-
-  console.log('✅ Stripe payment status check completed.')
 })

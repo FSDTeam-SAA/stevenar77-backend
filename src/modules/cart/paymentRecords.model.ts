@@ -21,6 +21,10 @@ const paymentRecordSchema = new Schema<IPaymentRecord>(
       type: String,
     },
 
+    paymentIntent: {
+      type: String,
+    },
+
     paymentStatus: {
       type: String,
       enum: ['successful', 'cancelled', 'pending'],
