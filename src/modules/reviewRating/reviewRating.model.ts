@@ -9,6 +9,7 @@ const reviewRatingSchema: Schema = new Schema<IReviewRating>(
     productId: { type: Schema.Types.ObjectId, ref: 'Shop' },
     star: { type: Number, required: true, min: 1, max: 5 }, // rating 1–5
     comment: { type: String, default: '' },
+    purchaseDate: { type: Date }
   },
   { timestamps: true }
 )

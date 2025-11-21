@@ -17,7 +17,8 @@ import {
  *****************/
 
 export const createReview = catchAsync(async (req: Request, res: Response) => {
-  const { userId, classId, tripId, productId, star, comment } = req.body
+  const { userId, classId, tripId, productId, star, comment, purchaseDate } =
+    req.body
 
   if (!userId || !star) {
     throw new AppError('userId and star are required', httpStatus.BAD_REQUEST)
@@ -31,6 +32,7 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
     productId,
     star,
     comment,
+    purchaseDate,
   })
 
   // Function to update rating and total reviews

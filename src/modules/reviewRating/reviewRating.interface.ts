@@ -8,6 +8,7 @@ export interface IReviewRating extends Document {
   productId: Types.ObjectId
   star: number // 1–5
   comment?: string
+  purchaseDate: Date
 }
 
 export interface ReviewRatingModel extends Model<IReviewRating> {
