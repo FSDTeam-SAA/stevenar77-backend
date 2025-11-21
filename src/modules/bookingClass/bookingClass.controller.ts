@@ -22,27 +22,27 @@ export const createBooking = async (
   res: Response
 ): Promise<void> => {
   try {
-    const {
-      classId,
-      scheduleId,
-      participant,
-      classDate,
-      price,
-      gender,
-      shoeSize,
-      hight,
-      weight,
-      Username,
-      email,
-      phoneNumber,
-      emergencyName,
-      emergencyPhoneNumber,
-      age,
-    } = req.body
+    // const {
+    //   classId,
+    //   scheduleId,
+    //   participant,
+    //   classDate,
+    //   price,
+    //   gender,
+    //   shoeSize,
+    //   hight,
+    //   weight,
+    //   Username,
+    //   email,
+    //   phoneNumber,
+    //   emergencyName,
+    //   emergencyPhoneNumber,
+    //   age,
+    // } = req.body
     const userId = req.user?.id
 
     // Basic validation
-    if (!classId) {
+    if (!req.body.classId) {
       res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -50,7 +50,7 @@ export const createBooking = async (
       return
     }
 
-    if (!Array.isArray(classDate) || classDate.length === 0) {
+    if (!Array.isArray(req.body.classDate) || req.body.classDate.length === 0) {
       res.status(400).json({
         success: false,
         message: 'classDate must be a non-empty array',
@@ -59,7 +59,7 @@ export const createBooking = async (
     }
 
     // Validate Class exists
-    const classData = await Class.findById(classId)
+    const classData = await Class.findById(req.body.classId)
     if (!classData) {
       throw new AppError('Class not found', httpStatus.NOT_FOUND)
     }
@@ -69,7 +69,7 @@ export const createBooking = async (
     }
 
     // ✅ Validate scheduleId exists
-    if (!scheduleId) {
+    if (!req.body.scheduleId) {
       throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST)
     }
     // ✅ Ensure schedule array exists
@@ -82,7 +82,7 @@ export const createBooking = async (
 
     // ✅ Find the selected schedule safely
     const selectedSchedule = classData.schedule.find(
-      (s: any) => s._id.toString() === scheduleId
+      (s: any) => s._id.toString() === req.body.scheduleId
     )
 
     if (!selectedSchedule) {
@@ -94,7 +94,7 @@ export const createBooking = async (
 
     // ✅ Check available seats (guard against undefined participents)
     const availableSeats = Number(selectedSchedule.participents ?? 0)
-    const requestedSeats = Number(participant ?? 1)
+    const requestedSeats = Number(req.body.participant ?? 1)
 
     if (availableSeats < requestedSeats) {
       throw new AppError(
@@ -119,34 +119,40 @@ export const createBooking = async (
 
     // Upload medical document if provided
 
-    const totalPrice = price
+    const totalPrice = req.body.price
 
     //  Create booking
-    const booking = await BookingClass.create({
-      classId: new mongoose.Types.ObjectId(classId),
-      userId: new mongoose.Types.ObjectId(userId),
-      participant,
-      scheduleId,
-      classDate,
-      medicalDocuments,
-      totalPrice,
-      status: 'pending',
-      gender,
-      shoeSize: Number(shoeSize),
-      hight,
-      weight: Number(weight),
-      Username,
-      email,
-      phoneNumber,
-      emergencyName,
-      emergencyPhoneNumber,
-      age,
-    })
+    const booking = await BookingClass.create(
+      //   {
+      //   classId: new mongoose.Types.ObjectId(classId),
+      //   userId: new mongoose.Types.ObjectId(userId),
+      //   participant,
+      //   scheduleId,
+      //   classDate,
+      //   medicalDocuments,
+      //   totalPrice,
+      //   status: 'pending',
+      //   gender,
+      //   shoeSize: Number(shoeSize),
+      //   hight,
+      //   weight: Number(weight),
+      //   Username,
+      //   email,
+      //   phoneNumber,
+      //   emergencyName,
+      //   emergencyPhoneNumber,
+      //   age,
+      // }
+      req.body
+    )
 
-    const bookingCount = participant && participant > 0 ? participant : 1
+    const bookingCount =
+      req.body.participant && req.body.participant > 0
+        ? req.body.participant
+        : 1
 
     await Class.updateOne(
-      { _id: classId, 'schedule._id': scheduleId },
+      { _id: req.body.classId, 'schedule._id': req.body.scheduleId },
       {
         $inc: {
           'schedule.$.participents': -requestedSeats, // decrease available seats
@@ -156,7 +162,7 @@ export const createBooking = async (
     )
 
     await Class.findByIdAndUpdate(
-      classId,
+      req.body.classId,
       { $inc: { totalBookings: bookingCount } },
       { new: true }
     )
