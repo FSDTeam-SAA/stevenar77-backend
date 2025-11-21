@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose'
-import { BookingClassModel, IBookingClass } from './bookingClass.interface'
+import { IBookingClass } from './bookingClass.interface'
 
 const bookingClassSchema = new Schema<IBookingClass>(
   {
@@ -42,11 +42,27 @@ const bookingClassSchema = new Schema<IBookingClass>(
     emergencyPhoneNumber: { type: String },
     scheduleId: { type: Schema.Types.ObjectId, required: true },
     age: { type: Number },
+
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    postalCode: { type: Number, required: true },
+    heightInches: { type: Number, required: true },
+    courseTitle: { type: String, required: true },
+    coursePrice: { type: Number, required: true },
+    addOns: [
+      {
+        id: { type: Number, required: true },
+        title: { type: String, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    addOnTotal: { type: Number, required: true },
   },
   { timestamps: true }
 )
 
-export const BookingClass = mongoose.model<IBookingClass, BookingClassModel>(
+export const BookingClass = mongoose.model<IBookingClass>(
   'BookingClass',
   bookingClassSchema
 )
