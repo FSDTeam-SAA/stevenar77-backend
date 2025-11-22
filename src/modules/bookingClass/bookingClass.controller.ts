@@ -58,6 +58,14 @@ export const createBooking = async (
       return
     }
 
+    if (typeof req.body.classDate === 'string') {
+      try {
+        req.body.classDate = JSON.parse(req.body.classDate)
+      } catch {
+        req.body.classDate = [req.body.classDate]
+      }
+    }
+
     // Validate Class exists
     const classData = await Class.findById(req.body.classId)
     if (!classData) {
