@@ -17,206 +17,289 @@ import { sendTemplateEmail } from '../../utils/sendTemplateEmail'
 import cartService from '../cart/cart.service'
 import { ICart } from '../cart/cart.interface'
 
+// export const createBooking = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     // const {
+//     //   classId,
+//     //   scheduleId,
+//     //   participant,
+//     //   classDate,
+//     //   price,
+//     //   gender,
+//     //   shoeSize,
+//     //   hight,
+//     //   weight,
+//     //   Username,
+//     //   email,
+//     //   phoneNumber,
+//     //   emergencyName,
+//     //   emergencyPhoneNumber,
+//     //   age,
+//     // } = req.body
+//     const userId = req.user?.id
+
+//     // Basic validation
+//     if (!req.body.classId) {
+//       res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields',
+//       })
+//       return
+//     }
+
+//     if (!Array.isArray(req.body.classDate) || req.body.classDate.length === 0) {
+//       res.status(400).json({
+//         success: false,
+//         message: 'classDate must be a non-empty array',
+//       })
+//       return
+//     }
+
+//     if (typeof req.body.classDate === 'string') {
+//       try {
+//         req.body.classDate = JSON.parse(req.body.classDate)
+//       } catch {
+//         req.body.classDate = [req.body.classDate]
+//       }
+//     }
+
+//     // Validate Class exists
+//     const classData = await Class.findById(req.body.classId)
+//     if (!classData) {
+//       throw new AppError('Class not found', httpStatus.NOT_FOUND)
+//     }
+
+//     if (!classData.isActive) {
+//       throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
+//     }
+
+//     // ✅ Validate scheduleId exists
+//     if (!req.body.scheduleId) {
+//       throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST)
+//     }
+//     // ✅ Ensure schedule array exists
+//     if (!classData.schedule || classData.schedule.length === 0) {
+//       throw new AppError(
+//         'No schedules found for this class',
+//         httpStatus.NOT_FOUND
+//       )
+//     }
+
+//     // ✅ Find the selected schedule safely
+//     const selectedSchedule = classData.schedule.find(
+//       (s: any) => s._id.toString() === req.body.scheduleId
+//     )
+
+//     if (!selectedSchedule) {
+//       throw new AppError(
+//         'Schedule not found for this class',
+//         httpStatus.NOT_FOUND
+//       )
+//     }
+
+//     // ✅ Check available seats (guard against undefined participents)
+//     const availableSeats = Number(selectedSchedule.participents ?? 0)
+//     const requestedSeats = Number(req.body.participant ?? 1)
+
+//     if (availableSeats < requestedSeats) {
+//       throw new AppError(
+//         `Only ${availableSeats} seats available in this schedule`,
+//         httpStatus.BAD_REQUEST
+//       )
+//     }
+
+//     let medicalDocuments: { public_id: string; url: string }[] = []
+
+//     const files = req.files as Express.Multer.File[] // multer.array() gives array of files
+//     if (files && files.length > 0) {
+//       const uploadResults = await Promise.all(
+//         files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+//       )
+
+//       medicalDocuments = uploadResults.map((uploaded) => ({
+//         public_id: uploaded.public_id,
+//         url: uploaded.secure_url,
+//       }))
+//     }
+
+//     // Upload medical document if provided
+
+//     const totalPrice = req.body.price
+
+//     //  Create booking
+//     const booking = await BookingClass.create(
+//       //   {
+//       //   classId: new mongoose.Types.ObjectId(classId),
+//       //   userId: new mongoose.Types.ObjectId(userId),
+//       //   participant,
+//       //   scheduleId,
+//       //   classDate,
+//       //   medicalDocuments,
+//       //   totalPrice,
+//       //   status: 'pending',
+//       //   gender,
+//       //   shoeSize: Number(shoeSize),
+//       //   hight,
+//       //   weight: Number(weight),
+//       //   Username,
+//       //   email,
+//       //   phoneNumber,
+//       //   emergencyName,
+//       //   emergencyPhoneNumber,
+//       //   age,
+//       // }
+//       req.body
+//     )
+
+//     const bookingCount =
+//       req.body.participant && req.body.participant > 0
+//         ? req.body.participant
+//         : 1
+
+//     await Class.updateOne(
+//       { _id: req.body.classId, 'schedule._id': req.body.scheduleId },
+//       {
+//         $inc: {
+//           'schedule.$.participents': -requestedSeats, // decrease available seats
+//           'schedule.$.totalParticipents': requestedSeats, // increase total booked
+//         },
+//       }
+//     )
+
+//     await Class.findByIdAndUpdate(
+//       req.body.classId,
+//       { $inc: { totalBookings: bookingCount } },
+//       { new: true }
+//     )
+
+//     /***********************
+//      * 🔔 Notify the admin *
+//      ***********************/
+//     // Find an admin (if multiple admins, you can broadcast to all)
+//     const admin = await User.findOne({ role: 'admin' }).select('_id')
+//     if (admin) {
+//       await createNotification({
+//         to: new mongoose.Types.ObjectId(admin._id),
+//         message: `New booking created for class "${classData.title}" by user ${
+//           req.user?.firstName || userId
+//         }, ${req.user?.email}.`,
+//         type: 'booking',
+//         id: booking._id,
+//       })
+//     }
+//     const payload = {
+//       userId,
+//       itemId: booking._id,
+//       type: 'course',
+//       price: totalPrice,
+//       status: 'pending',
+//     }
+
+//     // save to add to cart
+//     const cart = await cartService.createCartItem(payload as ICart)
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Add to cart created successfully',
+//       data: {
+//         bookingId: booking._id,
+//         cart,
+//       },
+//     })
+//   } catch (error: any) {
+//     console.error('Error creating booking:', error)
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'Failed to create booking',
+//     })
+//   }
+// }
+
 export const createBooking = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    // const {
-    //   classId,
-    //   scheduleId,
-    //   participant,
-    //   classDate,
-    //   price,
-    //   gender,
-    //   shoeSize,
-    //   hight,
-    //   weight,
-    //   Username,
-    //   email,
-    //   phoneNumber,
-    //   emergencyName,
-    //   emergencyPhoneNumber,
-    //   age,
-    // } = req.body
-    const userId = req.user?.id
+    console.log('REQ BODY RAW:', req.body)
 
-    // Basic validation
-    if (!req.body.classId) {
-      res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-      })
-      return
-    }
-
-    if (!Array.isArray(req.body.classDate) || req.body.classDate.length === 0) {
-      res.status(400).json({
-        success: false,
-        message: 'classDate must be a non-empty array',
-      })
-      return
-    }
-
-    if (typeof req.body.classDate === 'string') {
+    // Helper to safely parse JSON-strings
+    const fixJSON = (value: any) => {
       try {
-        req.body.classDate = JSON.parse(req.body.classDate)
+        if (
+          typeof value === 'string' &&
+          (value.startsWith('[') || value.startsWith('{'))
+        ) {
+          return JSON.parse(value)
+        }
+        return value
       } catch {
-        req.body.classDate = [req.body.classDate]
+        return value
       }
     }
 
-    // Validate Class exists
-    const classData = await Class.findById(req.body.classId)
-    if (!classData) {
-      throw new AppError('Class not found', httpStatus.NOT_FOUND)
-    }
+    // Fix fields
+    req.body.classDate = fixJSON(req.body.classDate)
+    req.body.addOns = fixJSON(req.body.addOns)
+    req.body.medicalDocuments = fixJSON(req.body.medicalDocuments)
+    req.body.form = fixJSON(req.body.form)
 
-    if (!classData.isActive) {
-      throw new AppError('Class is not available', httpStatus.BAD_REQUEST)
-    }
+    // Convert numeric strings → number
+    const numericFields = [
+      'coursePrice',
+      'addOnTotal',
+      'totalPrice',
+      'age',
+      'height',
+      'heightInches',
+      'weight',
+      'shoeSize',
+    ]
 
-    // ✅ Validate scheduleId exists
-    if (!req.body.scheduleId) {
-      throw new AppError('Schedule ID is required', httpStatus.BAD_REQUEST)
-    }
-    // ✅ Ensure schedule array exists
-    if (!classData.schedule || classData.schedule.length === 0) {
-      throw new AppError(
-        'No schedules found for this class',
-        httpStatus.NOT_FOUND
-      )
-    }
-
-    // ✅ Find the selected schedule safely
-    const selectedSchedule = classData.schedule.find(
-      (s: any) => s._id.toString() === req.body.scheduleId
-    )
-
-    if (!selectedSchedule) {
-      throw new AppError(
-        'Schedule not found for this class',
-        httpStatus.NOT_FOUND
-      )
-    }
-
-    // ✅ Check available seats (guard against undefined participents)
-    const availableSeats = Number(selectedSchedule.participents ?? 0)
-    const requestedSeats = Number(req.body.participant ?? 1)
-
-    if (availableSeats < requestedSeats) {
-      throw new AppError(
-        `Only ${availableSeats} seats available in this schedule`,
-        httpStatus.BAD_REQUEST
-      )
-    }
-
-    let medicalDocuments: { public_id: string; url: string }[] = []
-
-    const files = req.files as Express.Multer.File[] // multer.array() gives array of files
-    if (files && files.length > 0) {
-      const uploadResults = await Promise.all(
-        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
-      )
-
-      medicalDocuments = uploadResults.map((uploaded) => ({
-        public_id: uploaded.public_id,
-        url: uploaded.secure_url,
-      }))
-    }
-
-    // Upload medical document if provided
-
-    const totalPrice = req.body.price
-
-    //  Create booking
-    const booking = await BookingClass.create(
-      //   {
-      //   classId: new mongoose.Types.ObjectId(classId),
-      //   userId: new mongoose.Types.ObjectId(userId),
-      //   participant,
-      //   scheduleId,
-      //   classDate,
-      //   medicalDocuments,
-      //   totalPrice,
-      //   status: 'pending',
-      //   gender,
-      //   shoeSize: Number(shoeSize),
-      //   hight,
-      //   weight: Number(weight),
-      //   Username,
-      //   email,
-      //   phoneNumber,
-      //   emergencyName,
-      //   emergencyPhoneNumber,
-      //   age,
-      // }
-      req.body
-    )
-
-    const bookingCount =
-      req.body.participant && req.body.participant > 0
-        ? req.body.participant
-        : 1
-
-    await Class.updateOne(
-      { _id: req.body.classId, 'schedule._id': req.body.scheduleId },
-      {
-        $inc: {
-          'schedule.$.participents': -requestedSeats, // decrease available seats
-          'schedule.$.totalParticipents': requestedSeats, // increase total booked
-        },
+    numericFields.forEach((field) => {
+      if (req.body[field] && typeof req.body[field] === 'string') {
+        const cleaned = req.body[field].replace(/[[\]]/g, '')
+        req.body[field] = Number(cleaned)
       }
-    )
+    })
 
-    await Class.findByIdAndUpdate(
-      req.body.classId,
-      { $inc: { totalBookings: bookingCount } },
-      { new: true }
-    )
-
-    /***********************
-     * 🔔 Notify the admin *
-     ***********************/
-    // Find an admin (if multiple admins, you can broadcast to all)
-    const admin = await User.findOne({ role: 'admin' }).select('_id')
-    if (admin) {
-      await createNotification({
-        to: new mongoose.Types.ObjectId(admin._id),
-        message: `New booking created for class "${classData.title}" by user ${
-          req.user?.firstName || userId
-        }, ${req.user?.email}.`,
-        type: 'booking',
-        id: booking._id,
-      })
-    }
-    const payload = {
-      userId,
-      itemId: booking._id,
-      type: 'course',
-      price: totalPrice,
-      status: 'pending',
+    // Auto-fix schema mismatch
+    if (req.body.height && !req.body.hight) {
+      req.body.hight = req.body.height
     }
 
-    // save to add to cart
-    const cart = await cartService.createCartItem(payload as ICart)
+    // gender → lowercase
+    if (req.body.gender) {
+      req.body.gender = req.body.gender.toLowerCase()
+    }
 
-    res.status(200).json({
+    // participant → number
+    if (req.body.participant && typeof req.body.participant === 'string') {
+      req.body.participant = Number(req.body.participant)
+    }
+
+    // Create booking
+    const booking = await BookingClass.create(req.body)
+
+    res.status(201).json({
       success: true,
-      message: 'Add to cart created successfully',
-      data: {
-        bookingId: booking._id,
-        cart,
-      },
+      message: 'Booking created successfully!',
+      data: booking,
     })
   } catch (error: any) {
-    console.error('Error creating booking:', error)
-    res.status(500).json({
+    console.error('❌ Error creating booking:', error)
+
+    res.status(400).json({
       success: false,
-      message: error.message || 'Failed to create booking',
+      message: 'Error creating booking',
+      error: error.message,
+      validation: error?.errors || null,
     })
   }
 }
+
 
 export const updateBooking = async (
   req: Request,
