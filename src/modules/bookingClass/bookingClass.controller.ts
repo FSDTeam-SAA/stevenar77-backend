@@ -283,6 +283,15 @@ export const createBooking = async (
     // Create booking
     const booking = await BookingClass.create(req.body)
 
+    const payload = {
+      userId: booking.userId,
+      itemId: booking._id,
+      type: 'course',
+      price: booking.totalPrice,
+      status: 'pending',
+    }
+
+
     res.status(201).json({
       success: true,
       message: 'Booking created successfully!',
