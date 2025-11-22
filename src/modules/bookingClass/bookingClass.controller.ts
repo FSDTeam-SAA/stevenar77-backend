@@ -291,11 +291,13 @@ export const createBooking = async (
       status: 'pending',
     }
 
+ // save to add to cart
+    const cart = await cartService.createCartItem(payload as ICart)
 
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully!',
-      data: booking,
+      message: 'Add to cart class successfull!',
+      data: { booking, cart },
     })
   } catch (error: any) {
     console.error('❌ Error creating booking:', error)
@@ -308,7 +310,6 @@ export const createBooking = async (
     })
   }
 }
-
 
 export const updateBooking = async (
   req: Request,
