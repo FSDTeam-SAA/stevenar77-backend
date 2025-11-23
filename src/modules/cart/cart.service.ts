@@ -12,47 +12,7 @@ const createCartItem = async (payload: ICart) => {
   return result
 }
 
-// const getPendingByUser = async (userId: string) => {
-//   // Get all pending cart items
-//   const cartItems = await Cart.find({ userId, status: 'pending' }).sort({
-//     createdAt: -1,
-//   })
 
-//   const results = await Promise.all(
-//     cartItems.map(async (item) => {
-//       let details = null
-//      const itemObjId = new Types.ObjectId(item.itemId)
-//       if (item.type === 'product') {
-//         details = await Order.findOne({
-//           userId,
-//           productId: itemObjId,
-//         }).populate('productId')
-//       }
-
-//       if (item.type === 'trip') {
-//         details = await Booking.findOne({
-//           user: userId,
-//           trip: itemObjId,
-//         }).populate('trip')
-//       }
-
-//       if (item.type === 'course') {
-//         details = await BookingClass.findOne({
-          
-//           userId,
-//           _id: itemObjId,
-//         }).populate('classId')
-//       }
-
-//       return {
-//         ...item.toObject(),
-//         details,
-//       }
-//     })
-//   )
-
-//   return results
-// }
 const getPendingByUser = async (userId: string) => {
   const cartItems = await Cart.find({ userId, status: 'pending' }).sort({
     createdAt: -1,
