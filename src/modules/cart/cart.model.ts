@@ -1,5 +1,15 @@
 import { model, ObjectId, Schema } from 'mongoose'
-import { ICart, CartModel } from './cart.interface'
+import { ICart, CartModel, IParticipant } from './cart.interface'
+
+const participantSchema = new Schema<IParticipant>(
+  {
+    firstName: { type: String, required: false },
+    lastName: { type: String, required: false },
+    email: { type: String, required: false},
+    mobile: { type: Number, required: false },
+  },
+  { _id: false } // Optional: avoids creating separate _id for each participant
+)
 
 const cartSchema = new Schema<ICart>(
   {
@@ -16,7 +26,12 @@ const cartSchema = new Schema<ICart>(
       enum: ['pending', 'complete'],
     //   default: 'pandaing',
     },
+     participants: {
+      type: [participantSchema], // Embed participants array
+      default: [], // Default empty array
+    },
   },
+  
   { timestamps: true, versionKey: false }
 )
 
