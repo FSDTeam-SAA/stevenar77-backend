@@ -13,6 +13,7 @@ const participantSchema = new Schema<IParticipant>(
 
 const cartSchema = new Schema<ICart>(
   {
+    
     userId: { type: Schema.Types.ObjectId },
     itemId: { type: Schema.Types.ObjectId, required: true },
     type: {
