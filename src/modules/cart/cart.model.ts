@@ -24,7 +24,7 @@ const cartSchema = new Schema<ICart>(
     status: {
       type: String,
       enum: ['pending', 'complete'],
-    //   default: 'pandaing',
+      default: 'pending',
     },
      participants: {
       type: [participantSchema], // Embed participants array
