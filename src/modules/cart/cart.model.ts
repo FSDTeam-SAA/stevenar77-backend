@@ -27,8 +27,8 @@ const cartSchema = new Schema<ICart>(
       default: 'pending',
     },
      participants: {
-      type: [participantSchema], // Embed participants array
-      default: [], // Default empty array
+      type: [participantSchema], 
+      default: [],
     },
   },
   
