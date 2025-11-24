@@ -285,7 +285,7 @@ export const createBooking = async (
 
     const payload = {
       userId: booking.userId,
-      itemId: booking._id,
+      itemId: booking.classId,
       type: 'course',
       price: booking.totalPrice,
       status: 'pending',
