@@ -7,7 +7,7 @@ const router = Router()
 
 router.post(
   '/create',
-  upload.any(), // accept any number of files with any field names
+  upload.any(), 
   productController.addProduct
 )
 router.get('/', productController.getAllProducts)
