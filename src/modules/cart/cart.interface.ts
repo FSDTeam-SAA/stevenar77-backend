@@ -16,6 +16,10 @@ export interface ICart {
   price: number
   status?: 'pending' | 'complete'
    participants?: IParticipant[]
+     color?: string
+  images?: { public_id: string; url: string }[]
+  quantity: number
+
 }
 
 export type CartModel = Model<ICart>

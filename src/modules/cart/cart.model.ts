@@ -31,6 +31,17 @@ const cartSchema = new Schema<ICart>(
       type: [participantSchema], 
       default: [],
     },
+     color: { type: String },
+    images: [
+      {
+        public_id: { type: String },
+        url: { type: String },
+        _id: false,
+      },
+    ],
+    quantity: { type: Number},
+
+    
   },
   
   { timestamps: true, versionKey: false }
