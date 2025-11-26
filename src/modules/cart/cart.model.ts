@@ -16,6 +16,7 @@ const cartSchema = new Schema<ICart>(
     
     userId: { type: Schema.Types.ObjectId },
     itemId: { type: Schema.Types.ObjectId, required: true },
+    bookingId:{type:Schema.Types.ObjectId},
     type: {
       type: String,
       enum: ['product', 'trip', 'course'],

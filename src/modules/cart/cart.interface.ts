@@ -10,8 +10,10 @@ export interface IParticipant {
 
 export interface ICart {
   _id?: string
+  
   userId: Types.ObjectId
   itemId: Types.ObjectId
+  bookingId:Types.ObjectId
   type: 'product' | 'trip' | 'course'
   price: number
   status?: 'pending' | 'complete'

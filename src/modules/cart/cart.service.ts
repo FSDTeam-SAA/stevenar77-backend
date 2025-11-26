@@ -52,13 +52,14 @@ const getPendingByUser = async (userId: string) => {
         }
 
       } else if (item.type === 'course') {
-        const course = await Class.findById(itemObjId).select('title image price')
+        const course = await Class.findById(itemObjId).select('title image price formTitle')
         if (course) {
           details = {
             _id: course._id,
             title: course.title,
             images: course.image,
             price: course.price,
+            formTitle:course.formTitle
           }
         }
       }
