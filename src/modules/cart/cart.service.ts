@@ -52,21 +52,39 @@ const getPendingByUser = async (userId: string) => {
         }
 
       } else if (item.type === 'course') {
-        const course = await Class.findById(itemObjId).select('title image price formTitle')
+        const course = await Class.findById(itemObjId)
+          .select('title image price formTitle');
         if (course) {
           details = {
             _id: course._id,
             title: course.title,
             images: course.image,
             price: course.price,
-            formTitle:course.formTitle
-          }
+            formTitle: course.formTitle,
+          };
+
+          // Populate booking for this course using bookingId
+           if (item.bookingId) {
+            const booking = await BookingClass.findById(item.bookingId).select(
+              'Username email'
+            );
+          if (booking) {
+  details = {
+    ...details,           
+    Username: booking.Username,
+    email: booking.email, 
+  };
+}
+
+        
+      }
         }
       }
-
       return {
         ...item.toObject(),
         details,
+    
+            
       }
     })
   )
