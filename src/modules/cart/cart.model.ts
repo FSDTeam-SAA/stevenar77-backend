@@ -1,11 +1,11 @@
-import { model, ObjectId, Schema } from 'mongoose'
+import { model, Schema } from 'mongoose'
 import { ICart, CartModel, IParticipant } from './cart.interface'
 
 const participantSchema = new Schema<IParticipant>(
   {
     firstName: { type: String, required: false },
     lastName: { type: String, required: false },
-    email: { type: String, required: false},
+    email: { type: String, required: false },
     mobile: { type: Number, required: false },
   },
   { _id: false } // Optional: avoids creating separate _id for each participant
@@ -13,10 +13,9 @@ const participantSchema = new Schema<IParticipant>(
 
 const cartSchema = new Schema<ICart>(
   {
-    
     userId: { type: Schema.Types.ObjectId },
     itemId: { type: Schema.Types.ObjectId, required: true },
-    bookingId:{type:Schema.Types.ObjectId},
+    bookingId: { type: Schema.Types.ObjectId },
     type: {
       type: String,
       enum: ['product', 'trip', 'course'],
@@ -28,18 +27,16 @@ const cartSchema = new Schema<ICart>(
       enum: ['pending', 'complete'],
       default: 'pending',
     },
-     participants: {
-      type: [participantSchema], 
+    participants: {
+      type: [participantSchema],
       default: [],
     },
-     color: { type: String },
+    color: { type: String },
     images: [{ type: String }],
 
-    quantity: { type: Number},
-
-    
+    quantity: { type: Number },
   },
-  
+
   { timestamps: true, versionKey: false }
 )
 

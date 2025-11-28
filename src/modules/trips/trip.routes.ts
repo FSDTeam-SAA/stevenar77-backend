@@ -1,41 +1,42 @@
-import express from "express";
-import TripController from "./trip.controller";
-import { upload } from "../../middleware/multer.middleware";
-import auth from "../../middleware/auth";
-import { TripBookingController } from "./booking/booking.controller";
-import { USER_ROLE } from "../user/user.constant";
- // ✅ assuming you use Multer for file upload
+import express from 'express'
+import TripController from './trip.controller'
+import { upload } from '../../middleware/multer.middleware'
+import auth from '../../middleware/auth'
+import { TripBookingController } from './booking/booking.controller'
+import { USER_ROLE } from '../user/user.constant'
+// ✅ assuming you use Multer for file upload
 
-const router = express.Router();
+const router = express.Router()
 
 // Create Trip (with image upload)
-router.post("/create", upload.array("images"), TripController.createTrip);
+router.post('/create', upload.array('images'), TripController.createTrip)
 
 // Get all Trips
-router.get("/all", TripController.getAllTrips);
+router.get('/all', TripController.getAllTrips)
 
 // Get single Trip
-router.get("/:tripId", TripController.getSingleTrip);
+router.get('/:tripId', TripController.getSingleTrip)
 
 // Update Trip (with image upload)
-router.put("/:tripId", upload.array("images"), TripController.updateTrip);
+router.put('/:tripId', upload.array('images'), TripController.updateTrip)
 
 // Delete Trip
-router.delete("/:tripId", TripController.deleteTrip);
+router.delete('/:tripId', TripController.deleteTrip)
 
 router.post(
   '/:tripId/checkout',
-    auth(USER_ROLE.ADMIN, USER_ROLE.USER),
+  auth(USER_ROLE.ADMIN, USER_ROLE.USER),
   TripBookingController.createCheckoutSession
-);
+)
 
 router.get(
   '/my/paid-bookings/:userId',
-  // auth(USER_ROLE.USER), 
+  // auth(USER_ROLE.USER),
   TripBookingController.getMyPaidBookings
 )
 
- const TripRoutes = router;
+router.get('/all/trips/booking', TripController.allTripBooking)
 
- export default TripRoutes
+const TripRoutes = router
 
+export default TripRoutes
