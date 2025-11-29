@@ -30,15 +30,12 @@ export const sendTemplateEmail = async (
 
     // 2️⃣ If no specific template found by title, fall back to generic template by type only
     if (!template) {
-      template = await MessageTemplate.findOne({
-        type,
-        status: 'active',
-      })
-
-      if (!template) {
-        console.warn(`No active template found for type: ${type}`)
-        return
-      }
+      // template = await MessageTemplate.findOne({
+      //   type,
+      //   status: 'active',
+      // })
+      console.warn(`No active template found for type: ${type}`)
+      return
     }
 
     console.log(
