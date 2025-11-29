@@ -7,6 +7,8 @@ import Order from '../modules/order/order.model'
 import { sendTemplateEmail } from '../utils/sendTemplateEmail'
 import { BookingClass } from '../modules/bookingClass/bookingClass.model'
 import { User } from '../modules/user/user.model'
+import { Class } from '../modules/class/class.model'
+import Product from '../modules/product/product.model'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
@@ -52,9 +54,20 @@ cron.schedule('*/1 * * * *', async () => {
               if (user.userId?._id) {
                 const userWithEmail = await User.findById(user.userId._id)
                 if (userWithEmail?.email) {
-                  void sendTemplateEmail(userWithEmail.email, 'courses', {
-                    orderId: String(payment._id),
-                  })
+                  // Get class details to get title
+                  const classBooking = await BookingClass.findById(
+                    cart.itemId
+                  ).populate('classId')
+
+                  const classData = await Class.findById(classBooking?.classId)
+                  const classTitle = classData?.title || 'Class'
+
+                  void sendTemplateEmail(
+                    userWithEmail.email,
+                    'courses',
+                    classTitle, // Pass class title for template matching
+                    { orderId: String(payment._id) }
+                  )
                 }
               }
             }
@@ -64,14 +77,22 @@ cron.schedule('*/1 * * * *', async () => {
 
               const order = await Order.findById(cart.itemId)
                 .populate('userId', 'email')
+                .populate('productId')
                 .lean()
 
               if (order?.userId?._id) {
                 const user = await User.findById(order.userId._id)
                 if (user?.email) {
-                  void sendTemplateEmail(user.email, 'product', {
-                    orderId: String(order._id),
-                  })
+                  // Get product details to get title
+                  const product = await Product.findById(order.productId)
+                  const productTitle = product?.title || 'Product'
+
+                  void sendTemplateEmail(
+                    user.email,
+                    'product',
+                    productTitle, // Pass product title for template matching
+                    { orderId: String(order._id) }
+                  )
                 }
               }
             }
@@ -79,16 +100,22 @@ cron.schedule('*/1 * * * *', async () => {
             if (cart.type === 'trip') {
               await Booking.findByIdAndUpdate(cart.itemId, { status: 'paid' })
 
-              const booking = await Booking.findById(cart.itemId).populate(
-                'user',
-                'email'
-              )
+              const booking = await Booking.findById(cart.itemId)
+                .populate('user', 'email')
+                .populate('trip')
+
               if (booking?.user?._id) {
                 const user = await User.findById(booking.user._id)
                 if (user?.email) {
-                  void sendTemplateEmail(user.email, 'trips', {
-                    orderId: String(booking._id),
-                  })
+                  // Get trip details to get title
+                  const tripTitle = (booking.trip as any)?.title || 'Trip'
+
+                  void sendTemplateEmail(
+                    user.email,
+                    'trips',
+                    tripTitle, // Pass trip title for template matching
+                    { orderId: String(booking._id) }
+                  )
                 }
               }
             }
