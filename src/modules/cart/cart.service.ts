@@ -12,6 +12,23 @@ import { Class } from '../class/class.model'
 import order from '../order/order.model'
 
 const createCartItem = async (payload: ICart) => {
+  // If it's a trip and no bookingId is provided, create a Booking first
+  if (payload.type === 'trip' && !payload.bookingId) {
+    const participants = payload.participants || []
+    const totalParticipants = participants.length
+
+    const booking = await Booking.create({
+      trip: payload.itemId,
+      user: payload.userId,
+      participants,
+      totalPrice: payload.price,
+      totalParticipants,
+      status: 'pending',
+    })
+
+    payload.bookingId = booking._id as Types.ObjectId
+  }
+
   const result = await Cart.create(payload)
   return result
 }
@@ -64,27 +81,27 @@ const getPendingByUser = async (userId: string) => {
           };
 
           // Populate booking for this course using bookingId
-           if (item.bookingId) {
+          if (item.bookingId) {
             const booking = await BookingClass.findById(item.bookingId).select(
               'Username email'
             );
-          if (booking) {
-  details = {
-    ...details,           
-    Username: booking.Username,
-    email: booking.email, 
-  };
-}
+            if (booking) {
+              details = {
+                ...details,
+                Username: booking.Username,
+                email: booking.email,
+              };
+            }
 
-        
-      }
+
+          }
         }
       }
       return {
         ...item.toObject(),
         details,
-    
-            
+
+
       }
     })
   )
