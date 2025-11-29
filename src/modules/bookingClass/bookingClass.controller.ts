@@ -83,7 +83,7 @@ export const createBooking = async (
 
     const payload = {
       userId: booking.userId,
-      itemId: booking.classId, 
+      itemId: booking.classId,
       bookingId: booking._id,
       type: 'course',
       price: booking.totalPrice,
@@ -116,7 +116,6 @@ export const updateBooking = async (
 ): Promise<void> => {
   try {
     const { id } = req.params // Booking ID from URL params
-    // //console.log('Update req.body', req.body)
 
     const {
       participant,
