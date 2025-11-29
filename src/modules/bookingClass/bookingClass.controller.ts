@@ -3,7 +3,6 @@ import httpStatus from 'http-status'
 import { StatusCodes } from 'http-status-codes'
 import mongoose from 'mongoose'
 import AppError from '../../errors/AppError'
-import { createNotification } from '../../socket/notification.service'
 import catchAsync from '../../utils/catchAsync'
 import { uploadToCloudinary } from '../../utils/cloudinary'
 import sendEmail from '../../utils/sendEmail'
@@ -16,7 +15,6 @@ import { BookingClass } from './bookingClass.model'
 import { sendTemplateEmail } from '../../utils/sendTemplateEmail'
 import cartService from '../cart/cart.service'
 import { ICart } from '../cart/cart.interface'
-
 
 export const createBooking = async (
   req: Request,
@@ -85,14 +83,14 @@ export const createBooking = async (
 
     const payload = {
       userId: booking.userId,
-      itemId: booking.classId,
-      bookingId:booking._id,
+      itemId: booking.classId, 
+      bookingId: booking._id,
       type: 'course',
       price: booking.totalPrice,
       status: 'pending',
     }
 
- // save to add to cart
+    // save to add to cart
     const cart = await cartService.createCartItem(payload as ICart)
 
     res.status(201).json({

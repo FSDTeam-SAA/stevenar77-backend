@@ -19,37 +19,6 @@ export const initSocket = (io: Server) => {
       //console.log(`Joined conversation ${conversationId}`)
     })
 
-    // Handle sending messages
-    // socket.on(
-    //   'sendMessage',
-    //   async (data: {
-    //     conversationId: string
-    //     sender: string
-    //     text: string
-    //   }) => {
-    //     const { conversationId, sender, text } = data
-
-    //     const msg = await Message.create({ conversationId, sender, text })
-    //     await Conversation.findByIdAndUpdate(conversationId, {
-    //       lastMessage: text,
-    //       updatedAt: new Date(),
-    //     })
-
-    //     // Real-time message to users in that conversation
-    //     io.to(conversationId).emit('receiveMessage', msg)
-
-    //     // Update conversation preview to all participants (personal rooms)
-    //     const conversation = await Conversation.findById(conversationId)
-    //     conversation?.participants.forEach((uid) => {
-    //       io.to(uid.toString()).emit('conversationUpdated', {
-    //         conversationId,
-    //         lastMessage: text,
-    //         updatedAt: msg.createdAt,
-    //       })
-    //     })
-    //   }
-    // )
-
     socket.on('sendMessage', async (data) => {
       try {
         const { conversationId, sender, text } = data

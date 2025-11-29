@@ -1,7 +1,6 @@
-import Stripe from 'stripe'
 import Trip from '../trip.model'
 import Booking from './booking.model'
-import mongoose, { ObjectId } from 'mongoose'
+import mongoose from 'mongoose'
 import { User } from '../../user/user.model'
 import { createNotification } from '../../../socket/notification.service'
 import cartService from '../../cart/cart.service'
@@ -45,7 +44,8 @@ export class TripBookingService {
 
     const payload = {
       userId,
-      itemId: booking._id,
+      itemId: booking.trip, // booking id
+      bookingId: booking._id,
       type: 'trip',
       price: totalPrice,
     }

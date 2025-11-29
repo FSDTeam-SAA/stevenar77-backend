@@ -61,7 +61,8 @@ const createOrder = async (
 
   const cart = await Cart.create({
     userId: user._id,
-    itemId: result._id,
+    itemId: result.productId, // order booking Id
+    bookingId: result._id,
     type: 'product',
     price,
     status: 'pending',
