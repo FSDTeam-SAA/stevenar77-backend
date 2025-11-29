@@ -34,28 +34,10 @@ const deleteTemplate = async (id: string) => {
   return template
 }
 
-// const updateStatus = async (id: string, status: 'active' | 'deactivate') => {
-//   const template = await MessageTemplate.findByIdAndUpdate(
-//     id,
-//     { status },
-//     { new: true }
-//   )
-//   if (!template) throw new AppError('Template not found', StatusCodes.NOT_FOUND)
-//   return template
-// }
-
 const updateStatus = async (id: string, status: 'active' | 'deactivate') => {
   // Find the template to update
   const template = await MessageTemplate.findById(id)
   if (!template) throw new AppError('Template not found', StatusCodes.NOT_FOUND)
-
-  // If new status is "active", deactivate other templates of the same type
-  if (status === 'active') {
-    await MessageTemplate.updateMany(
-      { type: template.type, status: 'active', _id: { $ne: id } },
-      { status: 'deactivate' }
-    )
-  }
 
   // Update current template's status
   template.status = status
