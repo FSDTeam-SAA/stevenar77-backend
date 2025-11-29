@@ -29,6 +29,8 @@ const sendEmail = async ({
       tls: {
         rejectUnauthorized: false,
       },
+        logger: true,  // <-- enable logging
+  debug: true,   // <-- verbose debug
     })
 
     const mailOptions = {
@@ -40,7 +42,7 @@ const sendEmail = async ({
 
     await transporter.sendMail(mailOptions)
 
-    // //console.log("Email sent successfully", mailOptions.from, mailOptions.to);
+    console.log("Email sent successfully", mailOptions.from, mailOptions.to);
 
     return { success: true }
   } catch (error: any) {

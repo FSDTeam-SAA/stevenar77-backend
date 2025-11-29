@@ -14,21 +14,34 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
 })
 
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('* * * * *', async () => {
   console.log('🔁 Checking PaymentRecord pending payments...')
 
   try {
+
     const pendingPayments = await PaymentRecord.find({
-      paymentStatus: 'pending',
-      paymentIntent: { $exists: true },
-    })
+  paymentStatus: 'pending',
+  paymentSeasonId: { $exists: true },
+})
+
 
     for (const payment of pendingPayments) {
       try {
-        // Retrieve Stripe payment intent
-        const pi = await stripe.paymentIntents.retrieve(
-          payment.paymentIntent as string
-        )
+      // Retrieve Stripe Checkout Session first
+const session = await stripe.checkout.sessions.retrieve(
+  payment.paymentSeasonId as string
+)
+
+// Extract payment intent ID
+const paymentIntentId = session.payment_intent as string
+
+if (!paymentIntentId) {
+  console.log(`⚠️ No payment_intent found for PaymentRecord ${payment._id}`)
+  continue
+}
+
+// Now retrieve PaymentIntent
+const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
 
         if (pi.status === 'succeeded') {
           console.log(`💰 Payment success for: ${payment._id}`)
@@ -44,13 +57,19 @@ cron.schedule('*/1 * * * *', async () => {
             cart.status = 'complete'
             await cart.save()
 
+            console.log("cart data form the message____",cart)
+
             // Now update the related booking/order/class based on cart.type
             if (cart.type === 'course') {
               await BookingClass.findByIdAndUpdate(cart.itemId, {
                 status: 'paid',
               })
 
+             
+
               const user = await payment.populate('userId', 'email')
+
+
               if (user.userId?._id) {
                 const userWithEmail = await User.findById(user.userId._id)
                 if (userWithEmail?.email) {
@@ -59,8 +78,12 @@ cron.schedule('*/1 * * * *', async () => {
                     cart.itemId
                   ).populate('classId')
 
+                  console.log("classbooking form payment staus job___",classBooking)
+
                   const classData = await Class.findById(classBooking?.classId)
-                  const classTitle = classData?.title || 'Class'
+                  const classTitle = classData?.title
+
+                  console.log('class title from the paymetn staus job', classTitle)
 
                   void sendTemplateEmail(
                     userWithEmail.email,
@@ -87,6 +110,8 @@ cron.schedule('*/1 * * * *', async () => {
                   const product = await Product.findById(order.productId)
                   const productTitle = product?.title || 'Product'
 
+                  console.log("productTitle from cron", productTitle)
+
                   void sendTemplateEmail(
                     user.email,
                     'product',
@@ -109,6 +134,8 @@ cron.schedule('*/1 * * * *', async () => {
                 if (user?.email) {
                   // Get trip details to get title
                   const tripTitle = (booking.trip as any)?.title || 'Trip'
+
+                  console.log("tripTitle form cron", tripTitle)
 
                   void sendTemplateEmail(
                     user.email,

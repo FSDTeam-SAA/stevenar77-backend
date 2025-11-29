@@ -17,23 +17,42 @@ export const sendTemplateEmail = async (
 ): Promise<void> => {
   try {
     console.log('Email send to ', to)
+    console.log('title 1', title)
 
     // 1️⃣ First try to find template by type AND tempName matching the title
     let template = null
-    if (title) {
-      template = await MessageTemplate.findOne({
-        type,
-        tempName: title, // Match tempName with item title
-        status: 'active',
-      })
-    }
+    // if (title) {
+    //   template = await MessageTemplate.findOne({
+    //     type,
+    //     tempName: title, // Match tempName with item title
+    //     status: 'active',
+    //   })
+    // }
+
+//    if (title) {
+//   template = await MessageTemplate.findOne({
+//     type,
+//     tempName: { $regex: new RegExp(`^${title.trim()}$`, 'i') }, // case-insensitive & trim
+//     status: 'active',
+//   })
+// }
+
+
+if (title) {
+  template = await MessageTemplate.findOne({
+    type,
+    tempName: { $regex: new RegExp(`^${title.trim()}$`, 'i') }, // case-insensitive & trim
+    status: 'active',
+  })
+}
+
+
+console.log('Found template from send templete email:___', template)
+
+
 
     // 2️⃣ If no specific template found by title, fall back to generic template by type only
     if (!template) {
-      // template = await MessageTemplate.findOne({
-      //   type,
-      //   status: 'active',
-      // })
       console.warn(`No active template found for type: ${type}`)
       return
     }
