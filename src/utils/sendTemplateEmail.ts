@@ -2,27 +2,50 @@ import sendEmail from './sendEmail'
 import { MessageTemplate } from '../modules/messageTemplate/messageTemplate.model'
 
 /**
- * Sends an email using an active message template for a given type.
+ * Sends an email using an active message template for a given type and title.
  *
  * @param to - Recipient email address
  * @param type - Template type ('trips' | 'product' | 'courses')
+ * @param title - Item title to match with tempName
  * @param placeholders - Optional object to replace placeholders in the messageBody or subject
  */
 export const sendTemplateEmail = async (
   to: string,
   type: 'trips' | 'product' | 'courses',
+  title?: string,
   placeholders: Record<string, string> = {}
 ): Promise<void> => {
   try {
     console.log('Email send to ', to)
-    // 1️⃣ Find the active message template for the given type
-    const template = await MessageTemplate.findOne({ type, status: 'active' })
-    if (!template) {
-      console.warn(`No active template found for type: ${type}`)
-      return
+
+    // 1️⃣ First try to find template by type AND tempName matching the title
+    let template = null
+    if (title) {
+      template = await MessageTemplate.findOne({
+        type,
+        tempName: title, // Match tempName with item title
+        status: 'active',
+      })
     }
 
-    // 2️⃣ Replace placeholders in subject and message body (optional)
+    // 2️⃣ If no specific template found by title, fall back to generic template by type only
+    if (!template) {
+      template = await MessageTemplate.findOne({
+        type,
+        status: 'active',
+      })
+
+      if (!template) {
+        console.warn(`No active template found for type: ${type}`)
+        return
+      }
+    }
+
+    console.log(
+      `Using template: ${template.tempName} for item: ${title || 'generic'}`
+    )
+
+    // 3️⃣ Replace placeholders in subject and message body
     let subject = template.emailSubject
     let html = template.messageBody
 
@@ -32,7 +55,7 @@ export const sendTemplateEmail = async (
       html = html.replace(regex, value)
     }
 
-    // 3️⃣ Send the email (don’t await here if you want to run it in background)
+    // 4️⃣ Send the email
     void sendEmail({
       to,
       subject,
