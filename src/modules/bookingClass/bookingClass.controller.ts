@@ -158,17 +158,19 @@ export const updateBooking = async (
     let medicalDocuments = existingBooking.medicalDocuments
     const files = req.files as Express.Multer.File[]
 
-    if (files && files.length > 0) {
-      const uploadResults = await Promise.all(
-        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
-      )
+const fileNames = (req.body.medicalDocuments || []).map((doc: any) => doc.name);
 
-      medicalDocuments = uploadResults.map((uploaded) => ({
-        public_id: uploaded.public_id,
-        url: uploaded.secure_url,
-      }))
-    }
+if (files && files.length > 0) {
+  const uploadResults = await Promise.all(
+    files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+  );
 
+  medicalDocuments = uploadResults.map((uploaded, idx) => ({
+    name: fileNames[idx] || 'Unknown',  // <-- attach the name
+    public_id: uploaded.public_id,
+    url: uploaded.secure_url,
+  }));
+}
     // Prepare update data
     const updateData: any = {
       ...(participant !== undefined && { participant }),
