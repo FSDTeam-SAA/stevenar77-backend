@@ -101,9 +101,6 @@ const verifyEmail = async (email: string, payload: string) => {
   if (!existingUser.otp || !existingUser.otpExpires) {
     throw new AppError("OTP not requested or expired", StatusCodes.BAD_REQUEST);
   }
-  // if (!existingUser.otp || !existingUser.otpExpires) {
-  //   throw new AppError("OTP somoy sasee, abar denn", StatusCodes.BAD_REQUEST);
-  // }
 
   if (existingUser.otpExpires < new Date()) {
     throw new AppError("OTP has expired", StatusCodes.BAD_REQUEST);
@@ -165,7 +162,7 @@ const getAllUsers = async (page: number, limit: number) => {
     .select("username firstName lastName email role")
     .skip(skip)
     .limit(limit)
-    .sort({ createdAt: -1 }); 
+    .sort({ createdAt: -1 });
 
   const meta = {
     limit,
@@ -176,7 +173,6 @@ const getAllUsers = async (page: number, limit: number) => {
 
   return { users, meta };
 };
-
 
 const getAdminId = async () => {
   const admin = await User.findOne({ role: "admin" }).select("_id");
@@ -215,7 +211,9 @@ const updateUserProfile = async (payload: any, email: string, file: any) => {
 
   const result = await User.findOneAndUpdate({ email }, updateData, {
     new: true,
-  });
+  }).select(
+    "-password -otp -otpExpires -resetPasswordOtp -resetPasswordOtpExpires"
+  );
 
   if (file && oldImagePublicId) {
     await deleteFromCloudinary(oldImagePublicId);
