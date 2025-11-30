@@ -155,22 +155,34 @@ export const updateBooking = async (
     }
 
     // Handle medical document uploads if files are provided
-    let medicalDocuments = existingBooking.medicalDocuments
-    const files = req.files as Express.Multer.File[]
+ // Handle medical document uploads or URLs
+let medicalDocuments = existingBooking.medicalDocuments;
+const files = req.files as Express.Multer.File[];
 
+// Get names from frontend
 const fileNames = (req.body.medicalDocuments || []).map((doc: any) => doc.name);
 
+// Case 1: Files uploaded via Multer
 if (files && files.length > 0) {
   const uploadResults = await Promise.all(
     files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
   );
 
   medicalDocuments = uploadResults.map((uploaded, idx) => ({
-    name: fileNames[idx] || 'Unknown',  // <-- attach the name
+    name: fileNames[idx] || 'Unknown',
     public_id: uploaded.public_id,
     url: uploaded.secure_url,
   }));
 }
+// Case 2: Frontend sends URLs (no files)
+else if (req.body.medicalDocuments && req.body.medicalDocuments.length > 0) {
+  medicalDocuments = (req.body.medicalDocuments || []).map((doc: any) => ({
+    name: doc.name || 'Unknown',
+    url: doc.file || '',        // 'file' field contains URL
+    public_id: doc.public_id || null, // optional if frontend sends
+  }));
+}
+
     // Prepare update data
     const updateData: any = {
       ...(participant !== undefined && { participant }),
