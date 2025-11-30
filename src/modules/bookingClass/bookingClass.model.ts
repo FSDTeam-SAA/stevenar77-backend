@@ -10,7 +10,7 @@ const bookingClassSchema = new Schema<IBookingClass>(
 
     medicalDocuments: [
       {
-         name: String,
+   name:String,
         public_id: String,
         url: String,
       },
