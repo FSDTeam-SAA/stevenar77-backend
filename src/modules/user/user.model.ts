@@ -1,7 +1,7 @@
-import { model, Schema } from "mongoose";
-import { IUser, userModel } from "./user.interface";
-import config from "../../config";
 import bcrypt from "bcrypt";
+import { model, Schema } from "mongoose";
+import config from "../../config";
+import { IUser, userModel } from "./user.interface";
 
 const userSchema = new Schema<IUser>(
   {
@@ -20,6 +20,7 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
+      default: "Not Provided",
     },
     password: {
       type: String,
@@ -27,12 +28,15 @@ const userSchema = new Schema<IUser>(
     },
     street: {
       type: String,
+      default: "Not Provided",
     },
     location: {
       type: String,
+      default: "Not Provided",
     },
     postalCode: {
       type: String,
+      default: "Not Provided",
     },
     dateOfBirth: {
       type: Date,
@@ -50,7 +54,19 @@ const userSchema = new Schema<IUser>(
         type: String,
       },
     },
-    
+    age: {
+      type: Number,
+    },
+    hight: {
+      type: Number,
+    },
+    weight: {
+      type: Number,
+    },
+    shoeSize: {
+      type: Number,
+    },
+
     isVerified: {
       type: Boolean,
       default: false,

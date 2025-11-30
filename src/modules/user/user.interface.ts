@@ -12,8 +12,11 @@ export interface IUser {
   location: string;
   postalCode: string;
   dateOfBirth: Date;
+  age: number;
+  hight: number;
+  weight: number;
+  shoeSize: number;
   role: string;
-  
   image: {
     public_id: string;
     url: string;
