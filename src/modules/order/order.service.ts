@@ -119,7 +119,6 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
   };
 };
 
-
 const getAllOrder = async (page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit;
 
@@ -153,7 +152,6 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
     payments,
   };
 };
-
 
 const orderCancelByUser = async (email: string, orderId: string) => {
   const user = await User.isUserExistByEmail(email);
