@@ -11,12 +11,11 @@ export interface IOrder {
   orderTime: Date;
   createdAt: Date;
   updatedAt: Date;
-  color:string,
-  stripePaymentIntentId?: string
-   images: { public_id: string; url: string }[];
-     variants?: {
-    title: string;      
-    quantity: number;  
-       
-}
+  color: string;
+  stripePaymentIntentId?: string;
+  images: { public_id: string; url: string }[];
+  variants?: {
+    title: string;
+    quantity: number;
+  };
 }
