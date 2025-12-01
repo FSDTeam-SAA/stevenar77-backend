@@ -89,24 +89,24 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
 
   const skip = (page - 1) * limit;
 
-  const payments = await PaymentRecord.find({ userId: user._id })
+  // Count total payments for this user
+  const totalItems = await PaymentRecord.countDocuments({ userId: user._id });
+
+  // Fetch paginated payments
+  const paginated = await PaymentRecord.find({ userId: user._id })
     .populate("userId", "firstName lastName email image")
     .populate({
       path: "cartsIds",
-      select: "title images quantity productId",
+      select: "quantity images itemId type",
       populate: {
-        path: "_id",
+        path: "itemId",
         select: "title images",
-        // model: "Product",
       },
-      model: "Cart",
     })
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .lean();
-
-  // Pagination
-  const totalItems = payments.length;
-  const paginated = payments.slice(skip, skip + limit);
 
   return {
     data: paginated,
@@ -118,6 +118,7 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
     },
   };
 };
+
 
 const getAllOrder = async (page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit;
