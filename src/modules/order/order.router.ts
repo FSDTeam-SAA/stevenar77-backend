@@ -8,7 +8,7 @@ const router = Router();
 
 router.post(
   "/create",
-  auth(USER_ROLE.USER),
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   upload.array("image", 5),
   orderController.createOrder
 );

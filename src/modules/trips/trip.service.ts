@@ -1,9 +1,10 @@
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
-} from '../../utils/cloudinary'
-import Trip from './trip.model'
-import { ITrip } from './trips.interface'
+} from "../../utils/cloudinary";
+import Booking from "./booking/booking.model";
+import Trip from "./trip.model";
+import { ITrip } from "./trips.interface";
 
 const createTrip = async (payload: ITrip, files: any[]) => {
   let images: { public_id: string; url: string }[] = [];
@@ -54,7 +55,7 @@ const createTrip = async (payload: ITrip, files: any[]) => {
   } else {
     // Append at the end if no index passed
     const maxIndexTrip = await Trip.findOne().sort({ index: -1 });
-    insertIndex = maxIndexTrip ? ((maxIndexTrip.index ?? 0) + 1) : 1;
+    insertIndex = maxIndexTrip ? (maxIndexTrip.index ?? 0) + 1 : 1;
   }
 
   // ----- Create trip -----
@@ -67,15 +68,14 @@ const createTrip = async (payload: ITrip, files: any[]) => {
   return trip;
 };
 
-
 const getAllTrips = async (page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
 
   // Fetch paginated & sorted trips
   const trips = await Trip.find()
-    .sort({ index: 1 })     // ascending order by index field
-    .skip(skip)            
-    .limit(limit);          
+    .sort({ index: 1 }) // ascending order by index field
+    .skip(skip)
+    .limit(limit);
 
   // Optionally get total count for pagination metadata
   const total = await Trip.countDocuments();
@@ -90,8 +90,8 @@ const getAllTrips = async (page = 1, limit = 10) => {
 };
 
 const getSingleTrip = async (tripId: string) => {
-  return await Trip.findById(tripId)
-}
+  return await Trip.findById(tripId);
+};
 
 const updateTrip = async (
   tripId: string,
@@ -103,7 +103,7 @@ const updateTrip = async (
   // ----- Handle new image uploads -----
   if (files && files.length > 0) {
     const uploadResults = await Promise.all(
-      files.map((file) => uploadToCloudinary(file.path, 'Trips'))
+      files.map((file) => uploadToCloudinary(file.path, "Trips"))
     );
 
     images = uploadResults.map((uploaded) => ({
@@ -153,21 +153,30 @@ const updateTrip = async (
   return updatedTrip;
 };
 
-
 const deleteTrip = async (tripId: string) => {
   // ✅ use lowercase variable name
-  const trip = await Trip.findById(tripId)
-  if (!trip) throw new Error('Trip not found')
+  const trip = await Trip.findById(tripId);
+  if (!trip) throw new Error("Trip not found");
 
   if (trip.images && trip.images.length > 0) {
     await Promise.all(
-      trip.images.map((img) => deleteFromCloudinary(img.public_id ?? ''))
-    )
+      trip.images.map((img) => deleteFromCloudinary(img.public_id ?? ""))
+    );
   }
 
-  await Trip.findByIdAndDelete(tripId)
-  return { message: 'Trip deleted successfully' }
-}
+  await Trip.findByIdAndDelete(tripId);
+  return { message: "Trip deleted successfully" };
+};
+
+const allTripBooking = async () => {
+  const result = await Booking.find({ status: "paid" }).populate({
+    path: "trip",
+    populate: {
+      path: "title",
+    },
+  });
+  return result;
+};
 
 const TripService = {
   createTrip,
@@ -175,6 +184,7 @@ const TripService = {
   getSingleTrip,
   updateTrip,
   deleteTrip,
-}
+  allTripBooking,
+};
 
-export default TripService
+export default TripService;
