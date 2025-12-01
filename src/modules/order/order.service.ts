@@ -1,10 +1,13 @@
+/* eslint-disable prefer-const */
 import { StatusCodes } from "http-status-codes";
 import mongoose from "mongoose";
 import AppError from "../../errors/AppError";
 import { uploadToCloudinary } from "../../utils/cloudinary";
 import { Cart } from "../cart/cart.model";
 import { PaymentRecord } from "../cart/paymentRecords.model";
+import { Class } from "../class/class.model";
 import Product from "../product/product.model";
+import Trip from "../trips/trip.model";
 import { User } from "../user/user.model";
 import { IOrder } from "./order.interface";
 import order from "./order.model";
@@ -89,27 +92,69 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
 
   const skip = (page - 1) * limit;
 
-  // Count total payments for this user
   const totalItems = await PaymentRecord.countDocuments({ userId: user._id });
 
-  // Fetch paginated payments
-  const paginated = await PaymentRecord.find({ userId: user._id })
+  const payments = await PaymentRecord.find({ userId: user._id })
     .populate("userId", "firstName lastName email image")
     .populate({
       path: "cartsIds",
-      select: "quantity images itemId type",
-      populate: {
-        path: "itemId",
-        select: "title images",
-      },
+      select: "quantity itemId type",
     })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
 
+  for (const payment of payments) {
+    const carts = payment.cartsIds as any[];
+
+    for (const cart of carts) {
+      const id = cart.itemId?.toString();
+      if (!id) continue;
+
+      let item =
+        (await Class.findById(id).select("title price image")) ||
+        (await Trip.findById(id).select("title price images")) ||
+        (await Product.findById(id).select("title price images"));
+
+      if (!item) {
+        cart.item = null;
+        continue;
+      }
+
+      let finalImage: string | null = null;
+
+      // ⭐ Class: image = { public_id, url }
+      if ("image" in item && item.image) {
+        if (typeof item.image === "string") {
+          finalImage = item.image;
+        } else if (item.image.url) {
+          finalImage = item.image.url;
+        }
+      }
+
+      // ⭐ Trip/Product: images = [{ public_id, url }]
+      if ("images" in item && Array.isArray(item.images)) {
+        if (item.images.length > 0) {
+          const firstImg = item.images[0];
+          if (typeof firstImg === "string") {
+            finalImage = firstImg;
+          } else if (firstImg.url) {
+            finalImage = firstImg.url;
+          }
+        }
+      }
+
+      cart.item = {
+        title: item.title,
+        price: item.price,
+        image: finalImage,
+      };
+    }
+  }
+
   return {
-    data: paginated,
+    data: payments,
     meta: {
       limit,
       page,
@@ -119,29 +164,76 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
   };
 };
 
+
 const getAllOrder = async (page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit;
 
-  // Fetch PaymentRecords with pagination
-  const payments = await PaymentRecord.find()
+  // 1. Count total PaymentRecords
+  const totalPayments = await PaymentRecord.countDocuments();
+
+  // 2. Load payments + cartsIds (populated)
+  const payments = await PaymentRecord.find({ paymentStatus: "successful" })
     .populate("userId", "firstName lastName email image")
     .populate({
       path: "cartsIds",
       select: "quantity images itemId type",
-      populate: {
-        path: "itemId",
-        select: "title images",
-        // model: null, // dynamic populate using refPath
-      },
     })
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 })
     .lean();
 
-  // Count total PaymentRecords
-  const totalPayments = await PaymentRecord.countDocuments();
+  // 3. Attach item (title + price + image)
+  for (const payment of payments) {
+    const carts = payment.cartsIds as any[];
 
+    for (const cart of carts) {
+      const id = cart.itemId?.toString();
+      if (!id) continue;
+
+      let item =
+        (await Class.findById(id).select("title price image")) ||
+        (await Trip.findById(id).select("title price images")) ||
+        (await Product.findById(id).select("title price images"));
+
+      if (!item) {
+        cart.item = null;
+        continue;
+      }
+
+      let finalImage: string | null = null;
+
+      // ⭐ Class: image = { public_id, url }
+      if ("image" in item && item.image) {
+        if (typeof item.image === "string") {
+          finalImage = item.image;
+        } else if (item.image.url) {
+          finalImage = item.image.url;
+        }
+      }
+
+      // ⭐ Trip/Product: images = [{ public_id, url }]
+      if ("images" in item && Array.isArray(item.images)) {
+        if (item.images.length > 0) {
+          const firstImg = item.images[0];
+          if (typeof firstImg === "string") {
+            finalImage = firstImg;
+          } else if (firstImg.url) {
+            finalImage = firstImg.url;
+          }
+        }
+      }
+
+      // Attach final item info
+      cart.item = {
+        title: item.title,
+        price: item.price,
+        image: finalImage,
+      };
+    }
+  }
+
+  // 4. Return response
   return {
     meta: {
       total: totalPayments,
@@ -149,9 +241,10 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
       limit,
       totalPage: Math.ceil(totalPayments / limit),
     },
-    payments,
+    data: payments,
   };
 };
+
 
 const orderCancelByUser = async (email: string, orderId: string) => {
   const user = await User.isUserExistByEmail(email);
