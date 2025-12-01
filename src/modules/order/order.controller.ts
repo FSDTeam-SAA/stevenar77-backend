@@ -45,7 +45,7 @@ const getAllOrder = catchAsync(async (req, res) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Orders fetched successfully",
-    data: result.payments,
+    data: result.data,
     meta: result.meta,
   });
 });
