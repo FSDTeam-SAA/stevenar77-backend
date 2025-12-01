@@ -73,7 +73,9 @@ const deleteTrip = catchAsync(async (req, res) => {
 })
 
 const allTripBooking = catchAsync(async (req: Request, res: Response) => {
-  const allTripBooking = await Booking.find({ status: 'paid' })
+  // const allTripBooking = await Booking.find({ status: 'paid' })
+  const allTripBooking = await TripService.allTripBooking()
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
