@@ -18,7 +18,7 @@ const cartSchema = new Schema<ICart>(
     bookingId: { type: Schema.Types.ObjectId },
     type: {
       type: String,
-      enum: ["product", "trip", "class"],
+      enum: ["product", "trip", "course"],
       required: true,
     },
     price: { type: Number, required: true },
