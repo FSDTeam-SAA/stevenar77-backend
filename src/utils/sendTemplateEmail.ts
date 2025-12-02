@@ -21,22 +21,6 @@ export const sendTemplateEmail = async (
 
     // 1️⃣ First try to find template by type AND tempName matching the title
     let template = null
-    // if (title) {
-    //   template = await MessageTemplate.findOne({
-    //     type,
-    //     tempName: title, // Match tempName with item title
-    //     status: 'active',
-    //   })
-    // }
-
-//    if (title) {
-//   template = await MessageTemplate.findOne({
-//     type,
-//     tempName: { $regex: new RegExp(`^${title.trim()}$`, 'i') }, // case-insensitive & trim
-//     status: 'active',
-//   })
-// }
-
 
 if (title) {
   template = await MessageTemplate.findOne({
