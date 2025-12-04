@@ -130,17 +130,17 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
 
       let finalImage: string | null = null
 
-      // ⭐ Class: image = { public_id, url }
-      if ('image' in item && item.image) {
-        if (typeof item.image === 'string') {
-          finalImage = item.image
+      // Class: image = { public_id, url }
+      if ("image" in item && item.image) {
+        if (typeof item.image === "string") {
+          finalImage = item.image;
         } else if (item.image.url) {
           finalImage = item.image.url
         }
       }
 
-      // ⭐ Trip/Product: images = [{ public_id, url }]
-      if ('images' in item && Array.isArray(item.images)) {
+      //  Trip/Product: images = [{ public_id, url }]
+      if ("images" in item && Array.isArray(item.images)) {
         if (item.images.length > 0) {
           const firstImg = item.images[0]
           if (typeof firstImg === 'string') {
@@ -167,8 +167,8 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
       total: totalItems,
       totalPage: Math.ceil(totalItems / limit),
     },
-  }
-}
+  };
+};
 
 const getAllOrder = async (page: number = 1, limit: number = 10) => {
   const skip = (page - 1) * limit
@@ -247,8 +247,8 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
       totalPage: Math.ceil(totalPayments / limit),
     },
     data: payments,
-  }
-}
+  };
+};
 
 const orderCancelByUser = async (email: string, orderId: string) => {
   const user = await User.isUserExistByEmail(email)
