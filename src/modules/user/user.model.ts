@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: "Not Provided",
     },
-    states: {
+    state: {
       type: String,
       default: "Not Provided",
     },
