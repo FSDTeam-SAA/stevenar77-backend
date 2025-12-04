@@ -1,53 +1,53 @@
 /* eslint-disable prefer-const */
-import { StatusCodes } from "http-status-codes";
-import mongoose from "mongoose";
-import AppError from "../../errors/AppError";
-import { uploadToCloudinary } from "../../utils/cloudinary";
-import { Cart } from "../cart/cart.model";
-import { PaymentRecord } from "../cart/paymentRecords.model";
-import { Class } from "../class/class.model";
-import Product from "../product/product.model";
-import Trip from "../trips/trip.model";
-import { User } from "../user/user.model";
-import { IOrder } from "./order.interface";
-import order from "./order.model";
+import { StatusCodes } from 'http-status-codes'
+import mongoose from 'mongoose'
+import AppError from '../../errors/AppError'
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import { Cart } from '../cart/cart.model'
+import { PaymentRecord } from '../cart/paymentRecords.model'
+import { Class } from '../class/class.model'
+import Product from '../product/product.model'
+import Trip from '../trips/trip.model'
+import { User } from '../user/user.model'
+import { IOrder } from './order.interface'
+import order from './order.model'
 
 const createOrder = async (
   email: string,
   payload: IOrder,
   files?: Express.Multer.File[]
 ) => {
-  const { productId, quantity, color } = payload;
+  const { productId, quantity, color } = payload
 
-  const user = await User.isUserExistByEmail(email);
-  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  const user = await User.isUserExistByEmail(email)
+  if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
-  const product = await Product.findById(productId);
-  if (!product) throw new AppError("Product not found", StatusCodes.NOT_FOUND);
+  const product = await Product.findById(productId)
+  if (!product) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
   if (product.inStock === false)
-    throw new AppError("Product is out of stock", StatusCodes.BAD_REQUEST);
+    throw new AppError('Product is out of stock', StatusCodes.BAD_REQUEST)
 
-  const price = product.price * quantity;
+  const price = product.price * quantity
 
   // **Handle images**
-  const images: { public_id: string; url: string }[] = [];
+  const images: { public_id: string; url: string }[] = []
 
   if (files && files.length > 0) {
     for (const file of files) {
-      const uploadResult = await uploadToCloudinary(file.path, "orders");
+      const uploadResult = await uploadToCloudinary(file.path, 'orders')
       if (uploadResult) {
         images.push({
           public_id: uploadResult.public_id,
           url: uploadResult.secure_url,
-        });
+        })
       }
     }
   } else {
     throw new AppError(
-      "At least one image is required",
+      'At least one image is required',
       StatusCodes.BAD_REQUEST
-    );
+    )
   }
 
   // Create order in DB
@@ -60,87 +60,93 @@ const createOrder = async (
     color,
     orderData: new Date(),
     orderTime: new Date(),
-    status: "pending",
-  });
+    status: 'pending',
+  })
 
   const cart = await Cart.create({
     userId: user._id,
     itemId: result.productId, // order booking Id
     bookingId: result._id,
-    type: "product",
+    type: 'product',
     price,
-    status: "pending",
-  });
+    status: 'pending',
+  })
 
-  //  Update product stock
+  // Update product variant stock
   const updatedProduct = await Product.findOneAndUpdate(
-    { _id: productId },
-    { $inc: { quantity: -quantity } },
+    { _id: productId, 'variants.title': color },
+    { $inc: { 'variants.$.quantity': -quantity } },
     { new: true }
-  );
+  )
 
-  if (updatedProduct && updatedProduct.quantity <= 0) {
-    await Product.findByIdAndUpdate(productId, { inStock: false });
+  // Check if all variants are out of stock
+  if (updatedProduct && updatedProduct.variants) {
+    const allVariantsOutOfStock = updatedProduct.variants.every(
+      (variant: any) => variant.quantity <= 0
+    )
+    if (allVariantsOutOfStock) {
+      await Product.findByIdAndUpdate(productId, { inStock: false })
+    }
   }
 
-  return { cart };
-};
+  return { cart }
+}
 
 const getMyOrder = async (email: string, page = 1, limit = 10) => {
-  const user = await User.isUserExistByEmail(email);
-  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  const user = await User.isUserExistByEmail(email)
+  if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
-  const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit
 
-  const totalItems = await PaymentRecord.countDocuments({ userId: user._id });
+  const totalItems = await PaymentRecord.countDocuments({ userId: user._id })
 
   const payments = await PaymentRecord.find({ userId: user._id })
-    .populate("userId", "firstName lastName email image")
+    .populate('userId', 'firstName lastName email image')
     .populate({
-      path: "cartsIds",
-      select: "quantity itemId type",
+      path: 'cartsIds',
+      select: 'quantity itemId type',
     })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .lean();
+    .lean()
 
   for (const payment of payments) {
-    const carts = payment.cartsIds as any[];
+    const carts = payment.cartsIds as any[]
 
     for (const cart of carts) {
-      const id = cart.itemId?.toString();
-      if (!id) continue;
+      const id = cart.itemId?.toString()
+      if (!id) continue
 
       let item =
-        (await Class.findById(id).select("title price image")) ||
-        (await Trip.findById(id).select("title price images")) ||
-        (await Product.findById(id).select("title price images"));
+        (await Class.findById(id).select('title price image')) ||
+        (await Trip.findById(id).select('title price images')) ||
+        (await Product.findById(id).select('title price images'))
 
       if (!item) {
-        cart.item = null;
-        continue;
+        cart.item = null
+        continue
       }
 
-      let finalImage: string | null = null;
+      let finalImage: string | null = null
 
       // Class: image = { public_id, url }
       if ("image" in item && item.image) {
         if (typeof item.image === "string") {
           finalImage = item.image;
         } else if (item.image.url) {
-          finalImage = item.image.url;
+          finalImage = item.image.url
         }
       }
 
       //  Trip/Product: images = [{ public_id, url }]
       if ("images" in item && Array.isArray(item.images)) {
         if (item.images.length > 0) {
-          const firstImg = item.images[0];
-          if (typeof firstImg === "string") {
-            finalImage = firstImg;
+          const firstImg = item.images[0]
+          if (typeof firstImg === 'string') {
+            finalImage = firstImg
           } else if (firstImg.url) {
-            finalImage = firstImg.url;
+            finalImage = firstImg.url
           }
         }
       }
@@ -149,7 +155,7 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
         title: item.title,
         price: item.price,
         image: finalImage,
-      };
+      }
     }
   }
 
@@ -165,60 +171,60 @@ const getMyOrder = async (email: string, page = 1, limit = 10) => {
 };
 
 const getAllOrder = async (page: number = 1, limit: number = 10) => {
-  const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit
 
   // 1. Count total PaymentRecords
-  const totalPayments = await PaymentRecord.countDocuments();
+  const totalPayments = await PaymentRecord.countDocuments()
 
   // 2. Load payments + cartsIds (populated)
-  const payments = await PaymentRecord.find({ paymentStatus: "successful" })
-    .populate("userId", "firstName lastName email image")
+  const payments = await PaymentRecord.find({ paymentStatus: 'successful' })
+    .populate('userId', 'firstName lastName email image')
     .populate({
-      path: "cartsIds",
-      select: "quantity images itemId type",
+      path: 'cartsIds',
+      select: 'quantity images itemId type',
     })
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 })
-    .lean();
+    .lean()
 
   // 3. Attach item (title + price + image)
   for (const payment of payments) {
-    const carts = payment.cartsIds as any[];
+    const carts = payment.cartsIds as any[]
 
     for (const cart of carts) {
-      const id = cart.itemId?.toString();
-      if (!id) continue;
+      const id = cart.itemId?.toString()
+      if (!id) continue
 
       let item =
-        (await Class.findById(id).select("title price image")) ||
-        (await Trip.findById(id).select("title price images")) ||
-        (await Product.findById(id).select("title price images"));
+        (await Class.findById(id).select('title price image')) ||
+        (await Trip.findById(id).select('title price images')) ||
+        (await Product.findById(id).select('title price images'))
 
       if (!item) {
-        cart.item = null;
-        continue;
+        cart.item = null
+        continue
       }
 
-      let finalImage: string | null = null;
+      let finalImage: string | null = null
 
       // ⭐ Class: image = { public_id, url }
-      if ("image" in item && item.image) {
-        if (typeof item.image === "string") {
-          finalImage = item.image;
+      if ('image' in item && item.image) {
+        if (typeof item.image === 'string') {
+          finalImage = item.image
         } else if (item.image.url) {
-          finalImage = item.image.url;
+          finalImage = item.image.url
         }
       }
 
       // ⭐ Trip/Product: images = [{ public_id, url }]
-      if ("images" in item && Array.isArray(item.images)) {
+      if ('images' in item && Array.isArray(item.images)) {
         if (item.images.length > 0) {
-          const firstImg = item.images[0];
-          if (typeof firstImg === "string") {
-            finalImage = firstImg;
+          const firstImg = item.images[0]
+          if (typeof firstImg === 'string') {
+            finalImage = firstImg
           } else if (firstImg.url) {
-            finalImage = firstImg.url;
+            finalImage = firstImg.url
           }
         }
       }
@@ -228,7 +234,7 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
         title: item.title,
         price: item.price,
         image: finalImage,
-      };
+      }
     }
   }
 
@@ -245,48 +251,56 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
 };
 
 const orderCancelByUser = async (email: string, orderId: string) => {
-  const user = await User.isUserExistByEmail(email);
-  if (!user) throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  const user = await User.isUserExistByEmail(email)
+  if (!user) throw new AppError('User not found', StatusCodes.NOT_FOUND)
 
-  const orderProduct = await order.findById(orderId);
+  const orderProduct = await order.findById(orderId)
   if (!orderProduct)
-    throw new AppError("Order not found", StatusCodes.NOT_FOUND);
+    throw new AppError('Order not found', StatusCodes.NOT_FOUND)
 
   const result = await order.findOneAndUpdate(
     { _id: orderId },
-    { status: "cancelled" },
+    { status: 'cancelled' },
     { new: true }
-  );
+  )
 
+  // Restore product variant stock
   const updatedProduct = await Product.findOneAndUpdate(
-    { _id: orderProduct.productId },
-    { $inc: { quantity: orderProduct.quantity } },
+    { _id: orderProduct.productId, 'variants.title': orderProduct.color },
+    { $inc: { 'variants.$.quantity': orderProduct.quantity } },
     { new: true }
-  );
+  )
 
-  if (updatedProduct && updatedProduct.quantity > 0) {
-    await Product.findByIdAndUpdate(orderProduct.productId, { inStock: true });
+  if (updatedProduct && updatedProduct.variants) {
+    const anyVariantInStock = updatedProduct.variants.some(
+      (variant: any) => variant.quantity > 0
+    )
+    if (anyVariantInStock) {
+      await Product.findByIdAndUpdate(orderProduct.productId, {
+        inStock: true,
+      })
+    }
   }
 
-  return result;
-};
+  return result
+}
 
 const updateOrderStatus = async (orderId: string, status: string) => {
-  if (status !== "pending" && status !== "completed" && status !== "canceled") {
-    throw new AppError("Invalid status value", StatusCodes.BAD_REQUEST);
+  if (status !== 'pending' && status !== 'completed' && status !== 'canceled') {
+    throw new AppError('Invalid status value', StatusCodes.BAD_REQUEST)
   }
 
-  const orderProduct = await order.findById(orderId);
+  const orderProduct = await order.findById(orderId)
   if (!orderProduct) {
-    throw new AppError("Order not found", StatusCodes.NOT_FOUND);
+    throw new AppError('Order not found', StatusCodes.NOT_FOUND)
   }
 
-  if (orderProduct.status === "canceled") {
-    throw new AppError("Order already canceled", StatusCodes.BAD_REQUEST);
+  if (orderProduct.status === 'canceled') {
+    throw new AppError('Order already canceled', StatusCodes.BAD_REQUEST)
   }
 
-  if (orderProduct.status === "completed") {
-    throw new AppError("Order already completed", StatusCodes.BAD_REQUEST);
+  if (orderProduct.status === 'completed') {
+    throw new AppError('Order already completed', StatusCodes.BAD_REQUEST)
   }
 
   // Update order status
@@ -294,63 +308,65 @@ const updateOrderStatus = async (orderId: string, status: string) => {
     { _id: orderId },
     { status },
     { new: true }
-  );
+  )
 
-  // If status is "canceled", restore product quantity
-  if (status === "canceled") {
+  // If status is "canceled", restore product variant quantity
+  if (status === 'canceled') {
     const updatedProduct = await Product.findOneAndUpdate(
-      { _id: orderProduct.productId },
-      { $inc: { quantity: orderProduct.quantity } },
+      { _id: orderProduct.productId, 'variants.title': orderProduct.color },
+      { $inc: { 'variants.$.quantity': orderProduct.quantity } },
       { new: true }
-    );
+    )
 
-    // If product stock was 0, set inStock = true again
-    if (updatedProduct && updatedProduct.quantity > 0) {
-      await Product.findByIdAndUpdate(orderProduct.productId, {
-        inStock: true,
-      });
+    // If any variant has stock > 0, set inStock = true again
+    if (updatedProduct && updatedProduct.variants) {
+      const anyVariantInStock = updatedProduct.variants.some(
+        (variant: any) => variant.quantity > 0
+      )
+      if (anyVariantInStock) {
+        await Product.findByIdAndUpdate(orderProduct.productId, {
+          inStock: true,
+        })
+      }
     }
   }
 
-  return result;
-};
+  return result
+}
 
 const getAllPaid = async () => {
-  const paidOrders = await order.find({ status: "paid" });
+  const paidOrders = await order.find({ status: 'paid' })
   // //console.log("asa",paidOrders);
   if (!paidOrders || paidOrders.length === 0) {
-    throw new AppError("No paid orders found", StatusCodes.NOT_FOUND);
+    throw new AppError('No paid orders found', StatusCodes.NOT_FOUND)
   }
-  const totalPrice = paidOrders.reduce((sum, ord) => sum + ord.totalPrice, 0);
+  const totalPrice = paidOrders.reduce((sum, ord) => sum + ord.totalPrice, 0)
   return {
     orders: paidOrders,
     totalPrice,
-  };
-};
+  }
+}
 
 const deleteAllOrderClass = async (orderIds: string) => {
-  let deletedOrder;
-  let session;
+  let deletedOrder
+  let session
 
   try {
-    session = await mongoose.startSession();
-    session.startTransaction();
+    session = await mongoose.startSession()
+    session.startTransaction()
 
     if (orderIds) {
       const idsArray = Array.isArray(orderIds)
         ? orderIds
-        : (orderIds as string).split(",");
+        : (orderIds as string).split(',')
 
       // Validate and convert to ObjectId
-      const validObjectIds = [];
+      const validObjectIds = []
       for (const id of idsArray) {
         if (mongoose.Types.ObjectId.isValid(id as string)) {
-          validObjectIds.push(new mongoose.Types.ObjectId(id as string));
+          validObjectIds.push(new mongoose.Types.ObjectId(id as string))
         } else {
-          throw new AppError(
-            `Invalid order ID: ${id}`,
-            StatusCodes.BAD_REQUEST
-          );
+          throw new AppError(`Invalid order ID: ${id}`, StatusCodes.BAD_REQUEST)
         }
       }
 
@@ -358,27 +374,27 @@ const deleteAllOrderClass = async (orderIds: string) => {
         .find({
           _id: { $in: validObjectIds },
         })
-        .session(session);
+        .session(session)
 
       for (const id of validObjectIds) {
-        const singleBooking = await order.findById(id).session(session);
+        const singleBooking = await order.findById(id).session(session)
 
         if (!singleBooking) {
-          throw new AppError(`Order not found`, StatusCodes.NOT_FOUND);
+          throw new AppError(`Order not found`, StatusCodes.NOT_FOUND)
         }
       }
 
       if (existingOrders.length === 0) {
-        await order.find({}).select("_id").limit(10);
-        throw new AppError(`No order found`, StatusCodes.NOT_FOUND);
+        await order.find({}).select('_id').limit(10)
+        throw new AppError(`No order found`, StatusCodes.NOT_FOUND)
       }
 
       for (const singleOrder of existingOrders) {
-        if (singleOrder.status === "pending") {
+        if (singleOrder.status === 'pending') {
           throw new AppError(
             `You can't delete a pending Order.`,
             StatusCodes.FORBIDDEN
-          );
+          )
         }
       }
 
@@ -387,25 +403,25 @@ const deleteAllOrderClass = async (orderIds: string) => {
         .deleteMany({
           _id: { $in: validObjectIds },
         })
-        .session(session);
+        .session(session)
     } else {
-      throw new AppError("Please check and try again", StatusCodes.BAD_REQUEST);
+      throw new AppError('Please check and try again', StatusCodes.BAD_REQUEST)
     }
 
-    await session.commitTransaction();
+    await session.commitTransaction()
 
-    return deletedOrder;
+    return deletedOrder
   } catch (error) {
     if (session) {
-      await session.abortTransaction();
+      await session.abortTransaction()
     }
-    throw error;
+    throw error
   } finally {
     if (session) {
-      session.endSession();
+      session.endSession()
     }
   }
-};
+}
 
 const orderService = {
   createOrder,
@@ -415,6 +431,6 @@ const orderService = {
   updateOrderStatus,
   getAllPaid,
   deleteAllOrderClass,
-};
+}
 
-export default orderService;
+export default orderService
