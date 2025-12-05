@@ -72,7 +72,6 @@ const getPendingByUser = async (userId: string) => {
         const course = await Class.findById(itemObjId).select(
           'title image price formTitle schedule'
         )
-        console.log("dfdfdas__",course)
         if (course) {
           details = {
             _id: course._id,
