@@ -20,7 +20,7 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      default: "Not Provided",
+      // default: "Not Provided",
     },
     password: {
       type: String,
@@ -28,19 +28,19 @@ const userSchema = new Schema<IUser>(
     },
     street: {
       type: String,
-      default: "Not Provided",
+      // default: "Not Provided",
     },
     state: {
       type: String,
-      default: "Not Provided",
+      // default: "Not Provided",
     },
     location: {
       type: String,
-      default: "Not Provided",
+      // default: "Not Provided",
     },
     postalCode: {
       type: String,
-      default: "Not Provided",
+      // default: "Not Provided",
     },
     dateOfBirth: {
       type: Date,
