@@ -45,8 +45,9 @@ const getPendingByUser = async (userId: string) => {
 
       if (item.type === "product") {
         const product = await Product.findById(itemObjId).select(
-          "title images price"
-        );
+          'title images price'
+        )
+        console.log("product:__",product)
         if (product) {
           details = {
             _id: product._id,
@@ -69,8 +70,9 @@ const getPendingByUser = async (userId: string) => {
         }
       } else if (item.type === "course") {
         const course = await Class.findById(itemObjId).select(
-          "title image price formTitle"
-        );
+          'title image price formTitle schedule'
+        )
+        console.log("dfdfdas__",course)
         if (course) {
           details = {
             _id: course._id,
@@ -78,6 +80,7 @@ const getPendingByUser = async (userId: string) => {
             images: course.image,
             price: course.price,
             formTitle: course.formTitle,
+            schedule: course.schedule,
           };
 
           // Populate booking for this course using bookingId
