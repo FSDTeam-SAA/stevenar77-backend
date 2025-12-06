@@ -80,6 +80,7 @@ const getPendingByUser = async (userId: string) => {
             price: course.price,
             formTitle: course.formTitle,
             schedule: course.schedule,
+            
           };
 
           // Populate booking for this course using bookingId
@@ -92,6 +93,7 @@ const getPendingByUser = async (userId: string) => {
                 ...details,
                 Username: booking.Username,
                 email: booking.email,
+                classDates:booking.classDate
               };
             }
           }
