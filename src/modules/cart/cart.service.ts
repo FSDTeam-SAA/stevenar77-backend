@@ -86,14 +86,14 @@ const getPendingByUser = async (userId: string) => {
           // Populate booking for this course using bookingId
           if (item.bookingId) {
             const booking = await BookingClass.findById(item.bookingId).select(
-              "Username email"
+              "Username email classDate "
             );
             if (booking) {
               details = {
                 ...details,
                 Username: booking.Username,
                 email: booking.email,
-                classDates:booking.classDate
+                classDate:booking.classDate
               };
             }
           }
