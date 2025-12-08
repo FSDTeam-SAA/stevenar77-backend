@@ -14,7 +14,7 @@ const messageSchema = new Schema<IMessage>(
       ref: "Conversation",
       required: true,
     },
-    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: false },
     text: { type: String, required: true },
   },
   { timestamps: true }

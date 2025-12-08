@@ -1,6 +1,7 @@
-import { Server, Socket } from 'socket.io'
-import { Message } from '../modules/message/message.model'
-import { Conversation } from '../modules/conversation/conversation.model'
+import { Server, Socket } from "socket.io";
+import { Conversation } from "../modules/conversation/conversation.model";
+import { Message } from "../modules/message/message.model";
+import { User } from "../modules/user/user.model";
 
 // export const initSocket = (io: Server) => {
 //   io.on('connection', (socket: Socket) => {
@@ -76,13 +77,17 @@ export const initSocket = (io: Server) => {
           lastMessage: text,
           updatedAt: new Date(),
         });
-
         io.to(conversationId).emit("receiveMessage", msg);
 
         const conversation: any = await Conversation.findById(conversationId)
-          .populate("participants", "role")
+          .populate("participants", "_id role")
           .exec();
-        if (!conversation) return;
+        if (
+          !conversation ||
+          !conversation.participants ||
+          conversation.participants.length === 0
+        )
+          return;
 
         const senderUser = conversation.participants.find(
           (u: any) => u._id.toString() === sender.toString()
@@ -107,11 +112,11 @@ export const initSocket = (io: Server) => {
           let updateFields: any = {};
           if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
             autoReplyText =
-              "If you don't get a response in the next 2 minutes that means we are currently diving. Please leave your cell phone and email so we can get back to you when we surface.";
+              "If you don't get a response in the next 2 minutes, please leave your cell phone and email.";
             updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
           } else if (conversation.autoReplyCount === 1) {
             autoReplyText =
-              "Thank you for your message, as long as you sent us your cell phone and email we will be able to get back to you when we surface.";
+              "Thank you for your message! We will contact you when possible.";
             updateFields = { autoReplyCount: 2, lastAutoReplySentAt: now };
           }
 
@@ -120,9 +125,10 @@ export const initSocket = (io: Server) => {
               { _id: conversationId },
               { $set: updateFields }
             );
+            const systemUser = await User.findOne({ role: "system" });
             const autoMsg = await Message.create({
               conversationId,
-              sender: "system",
+              sender: systemUser!._id,
               receiver: sender,
               text: autoReplyText,
             });
@@ -130,6 +136,7 @@ export const initSocket = (io: Server) => {
           }
         }
 
+        // Notify all participants
         conversation.participants.forEach((uid: any) => {
           io.to(uid.toString()).emit("conversationUpdated", {
             conversationId,
