@@ -14,8 +14,50 @@ export const getUserConversations = async (req: Request, res: Response) => {
 /**
  * Create a new conversation
  */
+// export const createConversation = async (req: Request, res: Response) => {
+//   const { participants } = req.body
+
+//   if (
+//     !participants ||
+//     !Array.isArray(participants) ||
+//     participants.length < 1
+//   ) {
+//     res.status(400).json({
+//       success: false,
+//       message: 'participants array with at least 1 user IDs is required',
+//     })
+//     return
+//   }
+
+//   // Ensure IDs are valid
+//   const validIds = participants.every((id) =>
+//     mongoose.Types.ObjectId.isValid(id)
+//   )
+//   if (!validIds) {
+//     res.status(400).json({ success: false, message: 'Invalid user IDs' })
+//     return
+//   }
+
+//   // Optional: check if a conversation with the same set already exists
+//   const existing = await Conversation.findOne({
+//     participants: { $all: participants, $size: participants.length },
+//   })
+//   if (existing) {
+//     res.status(200).json({
+//       success: true,
+//       message: 'Conversation already exists',
+//       conversation: existing,
+//     })
+//     return
+//   }
+
+//   const conversation = await Conversation.create({ participants })
+//   res.status(201).json({ success: true, conversation })
+//   return
+// }
+
 export const createConversation = async (req: Request, res: Response) => {
-  const { participants } = req.body
+  const { participants } = req.body;
 
   if (
     !participants ||
@@ -24,37 +66,38 @@ export const createConversation = async (req: Request, res: Response) => {
   ) {
     res.status(400).json({
       success: false,
-      message: 'participants array with at least 1 user IDs is required',
-    })
-    return
+      message: "participants array with at least 1 user IDs is required",
+    });
+    return;
   }
 
   // Ensure IDs are valid
   const validIds = participants.every((id) =>
     mongoose.Types.ObjectId.isValid(id)
-  )
+  );
   if (!validIds) {
-    res.status(400).json({ success: false, message: 'Invalid user IDs' })
-    return
+    res.status(400).json({ success: false, message: "Invalid user IDs" });
+    return;
   }
 
   // Optional: check if a conversation with the same set already exists
   const existing = await Conversation.findOne({
     participants: { $all: participants, $size: participants.length },
-  })
+  });
   if (existing) {
     res.status(200).json({
       success: true,
-      message: 'Conversation already exists',
+      message: "Conversation already exists",
       conversation: existing,
-    })
-    return
+    });
+    return;
   }
 
-  const conversation = await Conversation.create({ participants })
-  res.status(201).json({ success: true, conversation })
-  return
-}
+  const conversation = await Conversation.create({ participants });
+  res.status(201).json({ success: true, conversation });
+  return;
+};
+
 
 /**
  * Delete a conversation by ID
