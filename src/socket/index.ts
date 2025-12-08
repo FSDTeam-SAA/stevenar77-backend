@@ -72,13 +72,17 @@ export const initSocket = (io: Server) => {
       try {
         const { conversationId, sender, text } = data;
 
+        // 1) Save message
         const msg = await Message.create({ conversationId, sender, text });
         await Conversation.findByIdAndUpdate(conversationId, {
           lastMessage: text,
           updatedAt: new Date(),
         });
+
+        // 2) Emit to conversation room
         io.to(conversationId).emit("receiveMessage", msg);
 
+        // 3) Load conversation & participants
         const conversation: any = await Conversation.findById(conversationId)
           .populate("participants", "_id role")
           .exec();
@@ -96,6 +100,7 @@ export const initSocket = (io: Server) => {
           (u: any) => u._id.toString() !== sender.toString()
         );
 
+        // 4) Auto-reply logic only for user -> admin conversation
         if (
           opponent &&
           opponent.role === "admin" &&
@@ -103,6 +108,7 @@ export const initSocket = (io: Server) => {
         ) {
           const now = new Date();
           let autoReplyText: string | null = null;
+
           const is24HoursPassed =
             conversation.lastAutoReplySentAt &&
             now.getTime() -
@@ -110,9 +116,10 @@ export const initSocket = (io: Server) => {
               24 * 60 * 60 * 1000;
 
           let updateFields: any = {};
+
           if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
             autoReplyText =
-              "If you don't get a response in the next 2 minutes, please leave your cell phone and email.";
+              "If you don't get a response in the next 2 minutes, please leave your contact info.";
             updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
           } else if (conversation.autoReplyCount === 1) {
             autoReplyText =
@@ -125,20 +132,22 @@ export const initSocket = (io: Server) => {
               { _id: conversationId },
               { $set: updateFields }
             );
-            const systemUser = await User.findOne({ role: "system" });
+
+            // Auto-reply sender is admin
             const autoMsg = await Message.create({
               conversationId,
-              sender: systemUser!._id,
-              receiver: sender,
+              sender: opponent._id, // admin
+              receiver: senderUser._id, // user
               text: autoReplyText,
             });
-            io.to(sender.toString()).emit("receiveMessage", autoMsg);
+
+            io.to(senderUser._id.toString()).emit("receiveMessage", autoMsg);
           }
         }
 
-        // Notify all participants
+        // 5) Notify all participants
         conversation.participants.forEach((uid: any) => {
-          io.to(uid.toString()).emit("conversationUpdated", {
+          io.to(uid._id.toString()).emit("conversationUpdated", {
             conversationId,
             lastMessage: text,
             updatedAt: msg.createdAt,

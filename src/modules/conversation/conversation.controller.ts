@@ -127,6 +127,11 @@ export const createConversation = catchAsync(async (req, res) => {
         text: autoReplyText,
       });
 
+      await Conversation.findByIdAndUpdate(conversation._id, {
+        autoReplyCount: 1,
+        lastAutoReplySentAt: new Date(),
+      });
+
       return sendResponse(res, {
         statusCode: StatusCodes.CREATED,
         success: true,
