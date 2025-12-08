@@ -5,8 +5,10 @@ import { createMessage, getMessages } from "./message.controller";
 
 const router = Router();
 
-router.post("/", auth(USER_ROLE.USER, USER_ROLE.ADMIN), createMessage);
+router.post("/",  createMessage);
 router.get("/:conversationId", getMessages);
+
+// auth(USER_ROLE.USER, USER_ROLE.ADMIN),
 
 const messageRoutes = router;
 export default messageRoutes;

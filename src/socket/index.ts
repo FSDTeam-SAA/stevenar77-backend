@@ -1,7 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { Conversation } from "../modules/conversation/conversation.model";
 import { Message } from "../modules/message/message.model";
-import { User } from "../modules/user/user.model";
 
 // export const initSocket = (io: Server) => {
 //   io.on('connection', (socket: Socket) => {
@@ -86,12 +85,14 @@ export const initSocket = (io: Server) => {
         const conversation: any = await Conversation.findById(conversationId)
           .populate("participants", "_id role")
           .exec();
+
         if (
           !conversation ||
           !conversation.participants ||
           conversation.participants.length === 0
-        )
+        ) {
           return;
+        }
 
         const senderUser = conversation.participants.find(
           (u: any) => u._id.toString() === sender.toString()
@@ -108,30 +109,56 @@ export const initSocket = (io: Server) => {
         ) {
           const now = new Date();
           let autoReplyText: string | null = null;
-
-          const is24HoursPassed =
-            conversation.lastAutoReplySentAt &&
-            now.getTime() -
-              new Date(conversation.lastAutoReplySentAt).getTime() >
-              24 * 60 * 60 * 1000;
-
           let updateFields: any = {};
 
-          if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
-            autoReplyText =
-              "If you don't get a response in the next 2 minutes, please leave your contact info.";
-            updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
-          } else if (conversation.autoReplyCount === 1) {
-            autoReplyText =
-              "Thank you for your message! We will contact you when possible.";
-            updateFields = { autoReplyCount: 2, lastAutoReplySentAt: now };
+          // Check if 24 hours have passed since last auto-reply
+          const is24HoursPassed = conversation.lastAutoReplySentAt
+            ? now.getTime() -
+                new Date(conversation.lastAutoReplySentAt).getTime() >
+              24 * 60 * 60 * 1000
+            : false;
+
+          // If 24 hours passed, reset auto-reply count
+          if (is24HoursPassed) {
+            // Reset and start from first auto-reply again
+            autoReplyText = "Hello! How are you?";
+            updateFields = {
+              autoReplyCount: 1,
+              lastAutoReplySentAt: now,
+              lastMessage: autoReplyText,
+            };
+          } else {
+            // Check current auto-reply count
+            const currentAutoReplyCount = conversation.autoReplyCount || 0;
+
+            if (currentAutoReplyCount === 0) {
+              // First auto-reply (when user sends first message after conversation creation)
+              autoReplyText = "Hello! How are you?";
+              updateFields = {
+                autoReplyCount: 1,
+                lastAutoReplySentAt: now,
+                lastMessage: autoReplyText,
+              };
+            } else if (currentAutoReplyCount === 1) {
+              // Second auto-reply (when user sends second message)
+              autoReplyText = "I'm fine, thank you!";
+              updateFields = {
+                autoReplyCount: 2,
+                lastAutoReplySentAt: now,
+                lastMessage: autoReplyText,
+              };
+            } else if (currentAutoReplyCount === 2) {
+              // After second auto-reply, stop sending auto-replies until 24 hours pass
+              // No more auto-replies until reset
+            }
           }
 
+          // Send auto-reply if we have a message
           if (autoReplyText) {
-            await Conversation.updateOne(
-              { _id: conversationId },
-              { $set: updateFields }
-            );
+            // Update conversation with auto-reply tracking
+            await Conversation.findByIdAndUpdate(conversationId, {
+              $set: updateFields,
+            });
 
             // Auto-reply sender is admin
             const autoMsg = await Message.create({
@@ -141,11 +168,24 @@ export const initSocket = (io: Server) => {
               text: autoReplyText,
             });
 
+            // Emit auto-reply message
             io.to(senderUser._id.toString()).emit("receiveMessage", autoMsg);
+            io.to(conversationId).emit("receiveMessage", autoMsg);
           }
+
+          // Notify all participants about the original message
+          conversation.participants.forEach((uid: any) => {
+            io.to(uid._id.toString()).emit("conversationUpdated", {
+              conversationId,
+              lastMessage: text,
+              updatedAt: msg.createdAt,
+            });
+          });
+
+          return;
         }
 
-        // 5) Notify all participants
+        // 5) Notify all participants (for non-user-admin conversations)
         conversation.participants.forEach((uid: any) => {
           io.to(uid._id.toString()).emit("conversationUpdated", {
             conversationId,

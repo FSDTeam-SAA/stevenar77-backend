@@ -115,9 +115,8 @@ export const createConversation = catchAsync(async (req, res) => {
     );
 
     if (userParticipant && adminParticipant) {
-      // Auto-reply text
-      const autoReplyText =
-        "Hello! If you don't get a response in 2 minutes, please leave your contact info so we can reach you.";
+      // Auto-reply for new conversation - First auto-reply
+      const autoReplyText = "Hello! How are you?";
 
       // Create auto-reply message from admin to user
       const autoMsg = await Message.create({
@@ -127,9 +126,11 @@ export const createConversation = catchAsync(async (req, res) => {
         text: autoReplyText,
       });
 
+      // Update conversation with auto-reply tracking
       await Conversation.findByIdAndUpdate(conversation._id, {
-        autoReplyCount: 1,
         lastAutoReplySentAt: new Date(),
+        autoReplyCount: 1, // Set to 1 as we've sent the first auto-reply
+        lastMessage: autoReplyText,
       });
 
       return sendResponse(res, {
