@@ -16,16 +16,16 @@ export const getMessages = async (req: Request, res: Response) => {
 };
 
 // Not used by Socket directly, but you can expose a REST POST if needed
-// export const createMessage = async (req: Request, res: Response) => {
-//   const { conversationId, text } = req.body
-//   const sender = req.user._id
-//   const msg = await Message.create({ conversationId, sender, text })
-//   await Conversation.findByIdAndUpdate(conversationId, {
-//     lastMessage: text,
-//     updatedAt: new Date(),
-//   })
-//   res.json(msg)
-// }
+export const createMessage = async (req: Request, res: Response) => {
+  const { conversationId, text } = req.body
+  const sender = req.user._id
+  const msg = await Message.create({ conversationId, sender, text })
+  await Conversation.findByIdAndUpdate(conversationId, {
+    lastMessage: text,
+    updatedAt: new Date(),
+  })
+  res.json(msg)
+}
 
 // export const createMessage = async (req: Request, res: Response) => {
 //   const { conversationId, text } = req.body;
@@ -93,110 +93,110 @@ export const getMessages = async (req: Request, res: Response) => {
 //   return res.json({ message: msg, autoReply: autoReplyText });
 // };
 
-export const createMessage = catchAsync(async (req, res) => {
-  const { conversationId, text } = req.body;
-  const { id: senderId } = req.user;
+// export const createMessage = catchAsync(async (req, res) => {
+//   const { conversationId, text } = req.body;
+//   const { id: senderId } = req.user;
 
-  // 1) Save user's message
-  const msg = await Message.create({ conversationId, sender: senderId, text });
+//   // 1) Save user's message
+//   const msg = await Message.create({ conversationId, sender: senderId, text });
 
-  // 2) Update conversation's last message
-  await Conversation.findByIdAndUpdate(conversationId, {
-    lastMessage: text,
-    updatedAt: new Date(),
-  });
+//   // 2) Update conversation's last message
+//   await Conversation.findByIdAndUpdate(conversationId, {
+//     lastMessage: text,
+//     updatedAt: new Date(),
+//   });
 
-  // 3) Load conversation with participants
-  const conversation: any = await Conversation.findById(conversationId)
-    .populate("participants", "_id role")
-    .exec();
+//   // 3) Load conversation with participants
+//   const conversation: any = await Conversation.findById(conversationId)
+//     .populate("participants", "_id role")
+//     .exec();
 
-  if (
-    !conversation ||
-    !conversation.participants ||
-    conversation.participants.length === 0
-  ) {
-    throw new AppError(
-      "Conversation participants not found",
-      StatusCodes.NOT_FOUND
-    );
-  }
+//   if (
+//     !conversation ||
+//     !conversation.participants ||
+//     conversation.participants.length === 0
+//   ) {
+//     throw new AppError(
+//       "Conversation participants not found",
+//       StatusCodes.NOT_FOUND
+//     );
+//   }
 
-  // 4) Find sender & opponent
-  const sender = conversation.participants.find(
-    (u: any) => u._id.toString() === senderId.toString()
-  );
-  const opponent = conversation.participants.find(
-    (u: any) => u._id.toString() !== senderId.toString()
-  );
+//   // 4) Find sender & opponent
+//   const sender = conversation.participants.find(
+//     (u: any) => u._id.toString() === senderId.toString()
+//   );
+//   const opponent = conversation.participants.find(
+//     (u: any) => u._id.toString() !== senderId.toString()
+//   );
 
-  if (!sender)
-    throw new AppError(
-      "Sender not found in conversation",
-      StatusCodes.NOT_FOUND
-    );
+//   if (!sender)
+//     throw new AppError(
+//       "Sender not found in conversation",
+//       StatusCodes.NOT_FOUND
+//     );
 
-  // 5) No auto-reply if opponent not admin or sender is admin
-  if (!opponent || opponent.role !== "admin" || sender.role === "admin") {
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: "Message created successfully",
-      data: { message: msg },
-    });
-  }
+//   // 5) No auto-reply if opponent not admin or sender is admin
+//   if (!opponent || opponent.role !== "admin" || sender.role === "admin") {
+//     return sendResponse(res, {
+//       statusCode: StatusCodes.OK,
+//       success: true,
+//       message: "Message created successfully",
+//       data: { message: msg },
+//     });
+//   }
 
-  // 6) Auto-reply logic
-  const now = new Date();
-  let autoReplyText: string | null = null;
-  const is24HoursPassed =
-    conversation.lastAutoReplySentAt &&
-    now.getTime() - new Date(conversation.lastAutoReplySentAt).getTime() >
-      24 * 60 * 60 * 1000;
+//   // 6) Auto-reply logic
+//   const now = new Date();
+//   let autoReplyText: string | null = null;
+//   const is24HoursPassed =
+//     conversation.lastAutoReplySentAt &&
+//     now.getTime() - new Date(conversation.lastAutoReplySentAt).getTime() >
+//       24 * 60 * 60 * 1000;
 
-  let updateFields: any = {};
+//   let updateFields: any = {};
 
-  if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
-    autoReplyText =
-      "If you don't get a response in the next 2 minutes, please leave your cell phone and email so we can get back to you.";
-    updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
-  } else if (conversation.autoReplyCount === 1) {
-    autoReplyText =
-      "Thank you for your message! We will contact you when possible.";
-    updateFields = { autoReplyCount: 2, lastAutoReplySentAt: now };
-  }
+//   if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
+//     autoReplyText =
+//       "If you don't get a response in the next 2 minutes, please leave your cell phone and email so we can get back to you.";
+//     updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
+//   } else if (conversation.autoReplyCount === 1) {
+//     autoReplyText =
+//       "Thank you for your message! We will contact you when possible.";
+//     updateFields = { autoReplyCount: 2, lastAutoReplySentAt: now };
+//   }
 
-  let autoMsg = null;
-  if (autoReplyText) {
-    // Update conversation
-    await Conversation.updateOne(
-      { _id: conversationId },
-      { $set: updateFields }
-    );
+//   let autoMsg = null;
+//   if (autoReplyText) {
+//     // Update conversation
+//     await Conversation.updateOne(
+//       { _id: conversationId },
+//       { $set: updateFields }
+//     );
 
-    // Find system user
-    const systemUser = await User.findOne({ role: "user" });
-    if (!systemUser) {
-      throw new AppError(
-        "User not found for auto-reply",
-        StatusCodes.NOT_FOUND
-      );
-    }
+//     // Find system user
+//     const systemUser = await User.findOne({ role: "user" });
+//     if (!systemUser) {
+//       throw new AppError(
+//         "User not found for auto-reply",
+//         StatusCodes.NOT_FOUND
+//       );
+//     }
 
-    // Create auto-reply message
-    autoMsg = await Message.create({
-      conversationId,
-      sender: systemUser._id,
-      receiver: senderId,
-      text: autoReplyText,
-    });
-  }
+//     // Create auto-reply message
+//     autoMsg = await Message.create({
+//       conversationId,
+//       sender: systemUser._id,
+//       receiver: senderId,
+//       text: autoReplyText,
+//     });
+//   }
 
-  // 7) Send final response
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Message created successfully",
-    data: { message: msg, autoReply: autoMsg },
-  });
-});
+//   // 7) Send final response
+//   sendResponse(res, {
+//     statusCode: StatusCodes.OK,
+//     success: true,
+//     message: "Message created successfully",
+//     data: { message: msg, autoReply: autoMsg },
+//   });
+// });
