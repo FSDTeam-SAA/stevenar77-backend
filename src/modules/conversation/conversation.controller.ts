@@ -116,7 +116,8 @@ export const createConversation = catchAsync(async (req, res) => {
 
     if (userParticipant && adminParticipant) {
       // Auto-reply for new conversation - First auto-reply
-      const autoReplyText = "Hello! How are you?";
+      const autoReplyText =
+        "If you don't get a response in the next 2 minutes that means we are currently diving. Please leave your cell phone and email so we can get back to you when we surface.";
 
       // Create auto-reply message from admin to user
       const autoMsg = await Message.create({

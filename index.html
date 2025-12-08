@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Auto-Reply Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #status { padding: 5px 10px; margin-bottom: 10px; border-radius: 5px; }
+    #status.connected { background: #d4edda; color: #155724; }
+    #status.disconnected { background: #f8d7da; color: #721c24; }
+    #participantsList div { margin-bottom: 5px; }
+    #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+    .user { background: #e3f2fd; padding: 5px; border-radius: 5px; margin-bottom: 5px; }
+    .admin { background: #f8f9fa; padding: 5px; border-radius: 5px; margin-bottom: 5px; }
+    .auto { background: #fff3cd; padding: 5px; border-left: 4px solid #ffc107; margin-bottom: 5px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<h2>Chat Auto-Reply Test</h2>
+
+<div>
+  Socket URL: <input type="text" id="socketUrl" value="http://localhost:5001">
+  Your User ID: <input type="text" id="userId" value="6937260a05d8443e6882e101">
+  Role:
+  <select id="userRole">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button id="connectBtn">Connect</button>
+  <button id="disconnectBtn" disabled>Disconnect</button>
+  <div id="status" class="disconnected">Disconnected</div>
+</div>
+
+<hr>
+
+<div>
+  <h3>Create Conversation</h3>
+  Participants (comma separated): <input type="text" id="participantsInput" value="68c32b8af9f3ac4bad00ed93,6937260a05d8443e6882e101" style="width: 300px;">
+  <button id="createConvBtn">Create Conversation</button>
+</div>
+
+<hr>
+
+<div id="chatPanel" style="display:none;">
+  <h3>Chat</h3>
+  Conversation ID: <span id="convId"></span><br><br>
+  <div id="messages"><p>No messages yet</p></div>
+  <input type="text" id="messageInput" placeholder="Type a message..." style="width:70%;">
+  <button id="sendBtn" disabled>Send</button>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+  let socket = null;
+  let currentUserId = '';
+  let currentUserRole = 'user';
+  let currentConversationId = null;
+
+  const statusEl = document.getElementById('status');
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const createConvBtn = document.getElementById('createConvBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const messageInput = document.getElementById('messageInput');
+  const messagesDiv = document.getElementById('messages');
+  const convIdSpan = document.getElementById('convId');
+
+  function updateStatus(type, text){
+    statusEl.textContent = text;
+    statusEl.className = type;
+  }
+
+  connectBtn.onclick = () => {
+    const url = document.getElementById('socketUrl').value.trim();
+    currentUserId = document.getElementById('userId').value.trim();
+    currentUserRole = document.getElementById('userRole').value;
+
+    if(!currentUserId){ alert('Enter User ID'); return; }
+
+    socket = io(url);
+
+    socket.on('connect', () => {
+      updateStatus('connected', 'Connected');
+      socket.emit('register', currentUserId);
+      connectBtn.disabled = true;
+      disconnectBtn.disabled = false;
+      console.log('Connected as', currentUserId);
+    });
+
+    socket.on('disconnect', () => {
+      updateStatus('disconnected', 'Disconnected');
+      connectBtn.disabled = false;
+      disconnectBtn.disabled = true;
+      console.log('Disconnected');
+    });
+
+    socket.on('receiveMessage', (msg) => {
+      addMessage(msg);
+    });
+
+    socket.on('conversationUpdated', (data) => {
+      console.log('Conversation updated:', data);
+    });
+  }
+
+  disconnectBtn.onclick = () => {
+    if(socket) socket.disconnect();
+    updateStatus('disconnected', 'Disconnected');
+    connectBtn.disabled = false;
+    disconnectBtn.disabled = true;
+  }
+
+  createConvBtn.onclick = async () => {
+    const input = document.getElementById('participantsInput').value.trim();
+    if(!input){ alert('Enter participant IDs'); return; }
+
+    const participants = input.split(',').map(p => p.trim());
+    if(!participants.includes(currentUserId)) participants.push(currentUserId);
+
+    try{
+      const res = await fetch('http://localhost:5001/api/v1/conversation', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({participants})
+      });
+
+      const data = await res.json();
+      if(!res.ok) { alert(data.message || 'Error'); return; }
+
+      currentConversationId = data.data._id || data.data?.conversation?._id || data.data;
+      convIdSpan.textContent = currentConversationId;
+      document.getElementById('chatPanel').style.display = 'block';
+      sendBtn.disabled = false;
+
+      socket.emit('joinRoom', currentConversationId);
+
+      messagesDiv.innerHTML = '';
+      if(data.data?.autoReply) addMessage(data.data.autoReply);
+
+      addMessage({_id:'sys','sender':'system','text':'Conversation started','createdAt':new Date()});
+
+    } catch(err){
+      alert('Error creating conversation. Check server.');
+      console.error(err);
+    }
+  }
+
+  sendBtn.onclick = () => {
+    const text = messageInput.value.trim();
+    if(!text || !currentConversationId) return;
+    const msg = { conversationId: currentConversationId, sender: currentUserId, text };
+    addMessage(msg);
+    socket.emit('sendMessage', msg);
+    messageInput.value = '';
+  }
+
+  function addMessage(msg){
+    const div = document.createElement('div');
+    let cls = 'user';
+    let sender = msg.sender;
+
+    if(msg.sender===currentUserId) cls='user';
+    else if(msg.sender==='system') cls='admin';
+    else cls='auto';
+
+    if(msg.sender===currentUserId) sender='You';
+    else if(msg.sender==='system') sender='System';
+    else sender='Admin (Auto)';
+
+    const time = msg.createdAt? new Date(msg.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString();
+    div.className = cls;
+    div.innerHTML = `<strong>${sender}</strong> [${time}]: ${msg.text}`;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const noMsg = messagesDiv.querySelector('p');
+    if(noMsg) noMsg.remove();
+  }
+</script>
+
+</body>
+</html>

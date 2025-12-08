@@ -121,7 +121,8 @@ export const initSocket = (io: Server) => {
           // If 24 hours passed, reset auto-reply count
           if (is24HoursPassed) {
             // Reset and start from first auto-reply again
-            autoReplyText = "Hello! How are you?";
+            autoReplyText =
+              "If you don't get a response in the next 2 minutes that means we are currently diving. Please leave your cell phone and email so we can get back to you when we surface.";
             updateFields = {
               autoReplyCount: 1,
               lastAutoReplySentAt: now,
@@ -133,7 +134,8 @@ export const initSocket = (io: Server) => {
 
             if (currentAutoReplyCount === 0) {
               // First auto-reply (when user sends first message after conversation creation)
-              autoReplyText = "Hello! How are you?";
+              autoReplyText =
+                "If you don't get a response in the next 2 minutes that means we are currently diving. Please leave your cell phone and email so we can get back to you when we surface.";
               updateFields = {
                 autoReplyCount: 1,
                 lastAutoReplySentAt: now,
@@ -141,7 +143,8 @@ export const initSocket = (io: Server) => {
               };
             } else if (currentAutoReplyCount === 1) {
               // Second auto-reply (when user sends second message)
-              autoReplyText = "I'm fine, thank you!";
+              autoReplyText =
+                "Thank you for your message, as long as you sent us your cell phone and email we will be able to get back to you when we surface.";
               updateFields = {
                 autoReplyCount: 2,
                 lastAutoReplySentAt: now,
