@@ -4,6 +4,7 @@ import AppError from "../../errors/AppError";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { Conversation } from "../conversation/conversation.model";
+import { User } from "../user/user.model";
 import { Message } from "./message.model";
 
 export const getMessages = async (req: Request, res: Response) => {
@@ -25,7 +26,6 @@ export const getMessages = async (req: Request, res: Response) => {
 //   })
 //   res.json(msg)
 // }
-
 
 // export const createMessage = async (req: Request, res: Response) => {
 //   const { conversationId, text } = req.body;
@@ -95,24 +95,34 @@ export const getMessages = async (req: Request, res: Response) => {
 
 export const createMessage = catchAsync(async (req, res) => {
   const { conversationId, text } = req.body;
-  const senderId = req.user._id;
+  const { id: senderId } = req.user;
 
   // 1) Save user's message
   const msg = await Message.create({ conversationId, sender: senderId, text });
+
+  // 2) Update conversation's last message
   await Conversation.findByIdAndUpdate(conversationId, {
     lastMessage: text,
     updatedAt: new Date(),
   });
 
-  // 2) Load conversation
+  // 3) Load conversation with participants
   const conversation: any = await Conversation.findById(conversationId)
-    .populate("participants", "role")
+    .populate("participants", "_id role")
     .exec();
-  if (!conversation) {
-    throw new AppError("Conversation not found", StatusCodes.NOT_FOUND);
-  }
-  // return res.status(404).json({ message: "Conversation not found" });
 
+  if (
+    !conversation ||
+    !conversation.participants ||
+    conversation.participants.length === 0
+  ) {
+    throw new AppError(
+      "Conversation participants not found",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // 4) Find sender & opponent
   const sender = conversation.participants.find(
     (u: any) => u._id.toString() === senderId.toString()
   );
@@ -120,19 +130,23 @@ export const createMessage = catchAsync(async (req, res) => {
     (u: any) => u._id.toString() !== senderId.toString()
   );
 
-  // 3) No auto-reply if opponent not admin or sender is admin
+  if (!sender)
+    throw new AppError(
+      "Sender not found in conversation",
+      StatusCodes.NOT_FOUND
+    );
+
+  // 5) No auto-reply if opponent not admin or sender is admin
   if (!opponent || opponent.role !== "admin" || sender.role === "admin") {
-    // return res.json({ message: msg });
-    sendResponse(res, {
+    return sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
       message: "Message created successfully",
       data: { message: msg },
     });
-    return;
   }
 
-  // 4) Auto-reply logic
+  // 6) Auto-reply logic
   const now = new Date();
   let autoReplyText: string | null = null;
   const is24HoursPassed =
@@ -144,31 +158,45 @@ export const createMessage = catchAsync(async (req, res) => {
 
   if (!conversation.lastAutoReplySentAt || is24HoursPassed) {
     autoReplyText =
-      "If you don't get a response in the next 2 minutes that means we are currently diving. Please leave your cell phone and email so we can get back to you when we surface.";
+      "If you don't get a response in the next 2 minutes, please leave your cell phone and email so we can get back to you.";
     updateFields = { autoReplyCount: 1, lastAutoReplySentAt: now };
   } else if (conversation.autoReplyCount === 1) {
     autoReplyText =
-      "Thank you for your message, as long as you sent us your cell phone and email we will be able to get back to you when we surface.";
+      "Thank you for your message! We will contact you when possible.";
     updateFields = { autoReplyCount: 2, lastAutoReplySentAt: now };
   }
 
+  let autoMsg = null;
   if (autoReplyText) {
+    // Update conversation
     await Conversation.updateOne(
       { _id: conversationId },
       { $set: updateFields }
     );
-    await Message.create({
+
+    // Find system user
+    const systemUser = await User.findOne({ role: "user" });
+    if (!systemUser) {
+      throw new AppError(
+        "User not found for auto-reply",
+        StatusCodes.NOT_FOUND
+      );
+    }
+
+    // Create auto-reply message
+    autoMsg = await Message.create({
       conversationId,
-      sender: "system",
+      sender: systemUser._id,
       receiver: senderId,
       text: autoReplyText,
     });
   }
 
+  // 7) Send final response
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Message created successfully",
-    data: { message: msg, autoReply: autoReplyText },
+    data: { message: msg, autoReply: autoMsg },
   });
 });
