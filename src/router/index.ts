@@ -6,7 +6,7 @@ import classRouter from '../modules/class/class.router'
 import contactRouter from '../modules/contact/contact.router'
 import conversationRoutes from '../modules/conversation/conversation.routes'
 import dashboardRouter from '../modules/dashboard/dashboard.router'
-import messageRoutes from '../modules/message/message.routes'
+// import messageRoutes from '../modules/message/message.routes'
 import notificationRouter from '../modules/notification/notification.route'
 import orderRouter from '../modules/order/order.router'
 import shopRouter from '../modules/product/product.router'
@@ -17,6 +17,7 @@ import TripRoutes from '../modules/trips/trip.routes'
 import userRouter from '../modules/user/user.router'
 import { messageTemplateRouter } from '../modules/messageTemplate/messageTemplate.route'
 import cartRouter from '../modules/cart/cart.route'
+import messageRoutes from '../modules/message/message.routes'
 const router = Router()
 
 const moduleRoutes = [
