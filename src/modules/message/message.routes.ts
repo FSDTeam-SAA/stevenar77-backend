@@ -1,7 +1,11 @@
-import { Router } from 'express'
-import { getMessages, createMessage } from './message.controller'
 
-const router = Router()
+import { Router } from 'express';
+import { createMessage, getMessages } from './message.controller'
+
+const router = Router();
+
+router.post("/", createMessage);
 router.get('/:conversationId', getMessages)
-router.post('/', createMessage)
-export default router
+
+const messageRoutes = router;
+export default messageRoutes;
