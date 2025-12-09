@@ -61,6 +61,8 @@ export const getUserConversations = async (req: Request, res: Response) => {
 //   return
 // }
 
+//!------------------------------------------------------------------
+
 export const createConversation = catchAsync(async (req, res) => {
   const { participants } = req.body;
 
@@ -97,7 +99,9 @@ export const createConversation = catchAsync(async (req, res) => {
   }
 
   // 3) Create new conversation
-  const conversation = await Conversation.create({ participants });
+  const conversation = await Conversation.create({
+    participants,
+  });
 
   // 4) Auto-reply logic (only if user + admin conversation)
   const populatedConversation: any = await Conversation.findById(
