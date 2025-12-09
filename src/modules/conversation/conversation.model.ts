@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IConversation extends Document {
   participants: mongoose.Types.ObjectId[];
@@ -21,6 +21,6 @@ const conversationSchema = new Schema<IConversation>(
 );
 
 export const Conversation = mongoose.model<IConversation>(
-  'Conversation',
+  "Conversation",
   conversationSchema
-)
+);
