@@ -153,11 +153,14 @@ export const updateBooking = async (
       })
       return
     }
+    console.log(1)
 
 // Handle medical document uploads if files are provided
 let medicalDocuments = existingBooking.medicalDocuments || [];
 const files = req.files as Express.Multer.File[];
 let names: string[] = [];
+
+console.log(2)
 
 // Parse names array sent from frontend as JSON
 if (req.body.medicalDocumentsNames) {
@@ -214,6 +217,8 @@ if (files && files.length > 0) {
       .populate('classId')
       .populate('userId')
 
+      console.log(3)
+
     // Handle participant count changes for class statistics
     if (
       participant !== undefined &&
@@ -238,6 +243,7 @@ if (files && files.length > 0) {
       //   await Class.findByIdAndUpdate(classId, { isActive: false })
       // }
     }
+    console.log(2)
 
     res.status(200).json({
       success: true,

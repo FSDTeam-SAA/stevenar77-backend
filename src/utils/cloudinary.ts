@@ -9,26 +9,32 @@ cloudinary.config({
   api_secret: config.cloudinary.api_secret,
 })
 
+console.log('config.cloudinary.cloud_name', config.cloudinary.cloud_name)
+
 // upload file
+
 export const uploadToCloudinary = async (filePath: string, folder: string) => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
+
       resource_type: 'auto',
+
+      chunk_size: 50000000, // 20MB
     })
 
     // delete local file after upload
+
     fs.unlinkSync(filePath)
 
     return {
       public_id: result.public_id,
+
       secure_url: result.secure_url,
     }
-  } catch (error) {
-    //console.log("error", error);
-    throw new Error('Failed to upload file to Cloudinary')
-  }
-}
+          } catch (error) {
+            throw new Error('Failed to upload file to Cloudinary')
+          }}
 
 // delete file
 export const deleteFromCloudinary = async (publicId: string) => {
