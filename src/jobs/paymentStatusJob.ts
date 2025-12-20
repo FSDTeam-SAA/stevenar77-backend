@@ -88,12 +88,12 @@ cron.schedule('* * * * *', async () => {
                     classTitle
                   )
 
-                  void sendTemplateEmail(
-                    userWithEmail.email,
-                    'courses',
-                    classTitle, // Pass class title for template matching
-                    { orderId: String(payment._id) }
-                  )
+                  // void sendTemplateEmail(
+                  //   userWithEmail.email,
+                  //   'courses',
+                  //   classTitle, // Pass class title for template matching
+                  //   { orderId: String(payment._id) }
+                  // )
                 }
               }
             }
