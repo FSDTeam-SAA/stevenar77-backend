@@ -141,9 +141,14 @@ export const updateBooking = async (
       })
       return
     }
-    // console.log("existing booking",existingBooking)
+    // console.log('existing booking', existingBooking)
+
+    const classData = await Class.findById(existingBooking.classId)
+    console.log("class data",classData)
 
     const user = await User.findById(existingBooking.userId)
+
+    console.log("user id",user)
 
     // Validate classDate if provided
     if (classDate && (!Array.isArray(classDate) || classDate.length === 0)) {
@@ -153,36 +158,33 @@ export const updateBooking = async (
       })
       return
     }
-    console.log(1)
 
-// Handle medical document uploads if files are provided
-let medicalDocuments = existingBooking.medicalDocuments || [];
-const files = req.files as Express.Multer.File[];
-let names: string[] = [];
+    // Handle medical document uploads if files are provided
+    let medicalDocuments = existingBooking.medicalDocuments || []
+    const files = req.files as Express.Multer.File[]
+    let names: string[] = []
 
-console.log(2)
+    // Parse names array sent from frontend as JSON
+    if (req.body.medicalDocumentsNames) {
+      try {
+        names = JSON.parse(req.body.medicalDocumentsNames)
+      } catch (err) {
+        console.error('Invalid JSON for medicalDocumentsNames', err)
+      }
+    }
 
-// Parse names array sent from frontend as JSON
-if (req.body.medicalDocumentsNames) {
-  try {
-    names = JSON.parse(req.body.medicalDocumentsNames);
-  } catch (err) {
-    console.error("Invalid JSON for medicalDocumentsNames", err);
-  }
-}
+    // If files exist, upload to Cloudinary and attach names
+    if (files && files.length > 0) {
+      const uploadResults = await Promise.all(
+        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+      )
 
-// If files exist, upload to Cloudinary and attach names
-if (files && files.length > 0) {
-  const uploadResults = await Promise.all(
-    files.map((file) => uploadToCloudinary(file.path, "medical_documents"))
-  );
-
-  medicalDocuments = uploadResults.map((uploaded, idx) => ({
-    name: names[idx] || "Unknown",
-    public_id: uploaded.public_id,
-    url: uploaded.secure_url,
-  }));
-}
+      medicalDocuments = uploadResults.map((uploaded, idx) => ({
+        name: names[idx] || 'Unknown',
+        public_id: uploaded.public_id,
+        url: uploaded.secure_url,
+      }))
+    }
 
     // Prepare update data
     const updateData: any = {
@@ -217,8 +219,6 @@ if (files && files.length > 0) {
       .populate('classId')
       .populate('userId')
 
-      console.log(3)
-
     // Handle participant count changes for class statistics
     if (
       participant !== undefined &&
@@ -232,18 +232,7 @@ if (files && files.length > 0) {
         { $inc: { totalBookings: participantDiff } },
         { new: true }
       )
-
-      // Check if class needs to be deactivated due to being full
-      // if (
-      //   updatedClass &&
-      //   (updatedClass.totalParticipates ?? 0) > 0 &&
-      //   (updatedClass.participates ?? 0) >=
-      //     (updatedClass.totalParticipates ?? 0)
-      // ) {
-      //   await Class.findByIdAndUpdate(classId, { isActive: false })
-      // }
     }
-    console.log(2)
 
     res.status(200).json({
       success: true,
@@ -251,7 +240,7 @@ if (files && files.length > 0) {
       data: updatedBooking,
     })
 
-    sendTemplateEmail(user?.email ?? '', 'courses')
+    sendTemplateEmail(user?.email ?? '', 'courses', classData?.title)
   } catch (error: any) {
     console.error('Error updating booking:', error)
 
