@@ -8,33 +8,7 @@ import Booking from '../trips/booking/booking.model'
 import Trip from '../trips/trip.model'
 import { ICart } from './cart.interface'
 import { Cart } from './cart.model'
-import order from '../order/order.model';
-
-// const createCartItem = async (payload: ICart) => {
-//   // If it's a trip and no bookingId is provided, create a Booking first
-//   if (payload.type === "trip" && !payload.bookingId) {
-//     const participants = payload.participants || [];
-//     const totalParticipants = participants.length;
-
-//     const booking = await Booking.create({
-//       trip: payload.itemId,
-//       user: payload.userId,
-//       participants,
-//       totalPrice: payload.price,
-//       totalParticipants,
-//       status: "pending",
-//     });
-
-//     payload.bookingId = booking._id as Types.ObjectId;
-//   }
-
-//   if ( payload.type === "product" ) {
-
-//   }
-
-//   const result = await Cart.create(payload);
-//   return result;
-// };
+import order from '../order/order.model'
 
 const createCartItem = async (payload: ICart) => {
   /**

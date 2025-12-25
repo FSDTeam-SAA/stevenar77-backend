@@ -1,6 +1,5 @@
 import { model, Schema } from "mongoose";
 import { IOrder } from "./order.interface";
-import { string } from "zod";
 
 const orderSchema = new Schema<IOrder>(
   {

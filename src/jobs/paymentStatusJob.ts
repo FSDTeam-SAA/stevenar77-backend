@@ -108,7 +108,6 @@ cron.schedule('* * * * *', async () => {
                 .lean()
               console.log('from payment status job order__', order)
 
-
               if (order?.userId?._id) {
                 const user = await User.findById(order.userId._id)
                 if (user?.email) {
@@ -122,15 +121,18 @@ cron.schedule('* * * * *', async () => {
                   if (order.color && product) {
                     const updatedProduct = await Product.findOneAndUpdate(
                       { _id: order.productId, 'variants.title': order.color },
-                      { $inc: { 'variants.$.quantity': -(order.quantity || 1) } },
+                      {
+                        $inc: { 'variants.$.quantity': -(order.quantity || 1) },
+                      },
                       { new: true }
                     )
 
                     // Check if all variants are out of stock
                     if (updatedProduct && updatedProduct.variants) {
-                      const allVariantsOutOfStock = updatedProduct.variants.every(
-                        (variant: any) => variant.quantity <= 0
-                      )
+                      const allVariantsOutOfStock =
+                        updatedProduct.variants.every(
+                          (variant: any) => variant.quantity <= 0
+                        )
                       if (allVariantsOutOfStock) {
                         await Product.findByIdAndUpdate(order.productId, {
                           inStock: false,
