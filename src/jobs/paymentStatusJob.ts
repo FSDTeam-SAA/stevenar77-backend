@@ -99,12 +99,15 @@ cron.schedule('* * * * *', async () => {
             }
 
             if (cart.type === 'product') {
+              console.log('from payment status job product')
               await Order.findByIdAndUpdate(cart.itemId, { status: 'paid' })
 
               const order = await Order.findById(cart.itemId)
                 .populate('userId', 'email')
                 .populate('productId')
                 .lean()
+              console.log('from payment status job order__', order)
+
 
               if (order?.userId?._id) {
                 const user = await User.findById(order.userId._id)
