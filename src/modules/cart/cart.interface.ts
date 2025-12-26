@@ -1,26 +1,27 @@
-import { Model, Types } from "mongoose";
+import { Model, Types } from 'mongoose'
 
 export interface IParticipant {
-  firstName: string;
-  lastName: string;
-  email: string;
-  mobile: number;
+  firstName: string
+  lastName: string
+  email: string
+  mobile: number
 }
 
 export interface ICart {
-  orderId: any;
-  _id?: string;
+  orderId: any
+  _id?: string
 
-  userId: Types.ObjectId;
-  itemId: Types.ObjectId;
-  bookingId: Types.ObjectId;
-  type: "product" | "trip" | "course";
-  price: number;
-  status?: "pending" | "complete";
-  participants?: IParticipant[];
-  color?: string;
-  images?: string[];
-  quantity: number;
+  userId: Types.ObjectId
+  itemId: Types.ObjectId
+  bookingId: Types.ObjectId
+  type: 'product' | 'trip' | 'course'
+  price: number
+  status?: 'pending' | 'complete'
+  participants?: IParticipant[]
+  color?: string
+  images?: string[]
+  quantity: number
+  productId?: Types.ObjectId
 }
 
-export type CartModel = Model<ICart>;
+export type CartModel = Model<ICart>
