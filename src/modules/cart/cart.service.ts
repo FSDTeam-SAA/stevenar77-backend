@@ -51,10 +51,11 @@ const createCartItem = async (payload: ICart) => {
         url,
       })),
     })
-    // console.log('created order ', OrderCreated)
+    console.log('created order ', OrderCreated)
 
     // attach order reference to cart
     payload.itemId = OrderCreated._id as unknown as Types.ObjectId
+    payload.productId = OrderCreated.productId as unknown as Types.ObjectId
   }
 
   /**
@@ -79,7 +80,7 @@ const getPendingByUser = async (userId: string) => {
       const itemObjId = new Types.ObjectId(item.itemId)
 
       if (item.type === 'product') {
-        const product = await Product.findById(itemObjId).select(
+        const product = await Product.findById(item.productId).select(
           'title images price'
         )
         if (product) {
