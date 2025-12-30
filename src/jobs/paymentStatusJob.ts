@@ -117,31 +117,59 @@ cron.schedule('* * * * *', async () => {
 
                   console.log('productTitle from cron', productTitle)
 
-                  // Reduce variant quantity
-                  if (order.color && product) {
-                    const updatedProduct = await Product.findOneAndUpdate(
-                      { _id: order.productId, 'variants.title': order.color },
+                  // Reduce quantity based on product type
+                  if (product?.isVariant) {
+                    // Reduce variant quantity
+                    if (order.color && product) {
+                      const updatedProduct = await Product.findOneAndUpdate(
+                        { _id: order.productId, 'variants.title': order.color },
+                        {
+                          $inc: {
+                            'variants.$.quantity': -(order.quantity || 1),
+                          },
+                        },
+                        { new: true }
+                      )
+
+                      // Check if all variants are out of stock
+                      if (updatedProduct && updatedProduct.variants) {
+                        const allVariantsOutOfStock =
+                          updatedProduct.variants.every(
+                            (variant: any) => variant.quantity <= 0
+                          )
+                        if (allVariantsOutOfStock) {
+                          await Product.findByIdAndUpdate(order.productId, {
+                            inStock: false,
+                          })
+                        }
+                      }
+
+                      console.log(
+                        `✅ Reduced variant quantity for product ${order.productId}`
+                      )
+                    }
+                  } else {
+                    // Reduce productQuantity for non-variant products
+                    const updatedProduct = await Product.findByIdAndUpdate(
+                      order.productId,
                       {
-                        $inc: { 'variants.$.quantity': -(order.quantity || 1) },
+                        $inc: { productQuantity: -(order.quantity || 1) },
                       },
                       { new: true }
                     )
 
-                    // Check if all variants are out of stock
-                    if (updatedProduct && updatedProduct.variants) {
-                      const allVariantsOutOfStock =
-                        updatedProduct.variants.every(
-                          (variant: any) => variant.quantity <= 0
-                        )
-                      if (allVariantsOutOfStock) {
-                        await Product.findByIdAndUpdate(order.productId, {
-                          inStock: false,
-                        })
-                      }
+                    // Check if product is out of stock
+                    if (
+                      updatedProduct &&
+                      (updatedProduct.productQuantity || 0) <= 0
+                    ) {
+                      await Product.findByIdAndUpdate(order.productId, {
+                        inStock: false,
+                      })
                     }
 
                     console.log(
-                      `✅ Reduced variant quantity for product ${order.productId}`
+                      `✅ Reduced productQuantity for product ${order.productId}`
                     )
                   }
 

@@ -17,5 +17,7 @@ export interface IProduct {
   totalReviews: number
   averageRating: number
   quantity: number
+  productQuantity?: number
+  isVariant: boolean
   variants?: IVariant[]
 }

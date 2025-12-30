@@ -19,6 +19,8 @@ const productSchema = new Schema<IProduct>(
     featured: { type: [String], default: [] },
     totalReviews: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
+    productQuantity: { type: Number },
+    isVariant: { type: Boolean, default: false },
     variants: [
       {
         title: { type: String, required: true },

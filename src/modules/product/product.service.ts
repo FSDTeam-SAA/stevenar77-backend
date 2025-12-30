@@ -53,6 +53,10 @@ export const addProduct = async (
     ...payload,
     price: Number(payload.price),
     quantity: Number(payload.quantity),
+    productQuantity: payload.productQuantity
+      ? Number(payload.productQuantity)
+      : undefined,
+    isVariant: variants.length > 0,
     images: productImages,
     variants,
   }
@@ -209,6 +213,10 @@ export const updateProduct = async (
     ...payload,
     price: payload.price ? Number(payload.price) : existing.price,
     quantity: payload.quantity ? Number(payload.quantity) : existing.quantity,
+    productQuantity: payload.productQuantity
+      ? Number(payload.productQuantity)
+      : existing.productQuantity,
+    isVariant: updatedVariants.length > 0,
     images: finalImages,
     variants: updatedVariants,
   }

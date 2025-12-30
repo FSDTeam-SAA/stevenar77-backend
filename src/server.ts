@@ -31,7 +31,7 @@ async function main() {
 
     //  Initialize socket event handlers
     initSocket(io)
-    initNotificationSocket(io)
+    initNotificationSocket(io) 
 
     // Start the combined server
     httpServer.listen(config.port, () => {
