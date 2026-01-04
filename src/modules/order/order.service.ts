@@ -191,8 +191,11 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
   // 3. Attach item (title + price + image)
   for (const payment of payments) {
     const carts = payment.cartsIds as any[]
-
+    let paymentTotal = 0;
+   
     for (const cart of carts) {
+      
+
       const id = cart.itemId?.toString()
       if (!id) continue
 
@@ -235,7 +238,12 @@ const getAllOrder = async (page: number = 1, limit: number = 10) => {
         price: item.price,
         image: finalImage,
       }
+    
+       const itemPrice = Array.isArray(item.price) ? item.price[0] || 0 : item.price || 0;
+    paymentTotal += itemPrice;
     }
+    payment.totalPrice = paymentTotal;
+     
   }
 
   // 4. Return response
