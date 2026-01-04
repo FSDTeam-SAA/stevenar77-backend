@@ -370,14 +370,14 @@ const deleteAllOrderClass = async (orderIds: string) => {
         }
       }
 
-      const existingOrders = await order
+      const existingOrders = await PaymentRecord
         .find({
           _id: { $in: validObjectIds },
         })
         .session(session)
 
       for (const id of validObjectIds) {
-        const singleBooking = await order.findById(id).session(session)
+        const singleBooking = await PaymentRecord.findById(id).session(session)
 
         if (!singleBooking) {
           throw new AppError(`Order not found`, StatusCodes.NOT_FOUND)
@@ -385,21 +385,21 @@ const deleteAllOrderClass = async (orderIds: string) => {
       }
 
       if (existingOrders.length === 0) {
-        await order.find({}).select('_id').limit(10)
+        await PaymentRecord.find({}).select('_id').limit(10)
         throw new AppError(`No order found`, StatusCodes.NOT_FOUND)
       }
 
-      for (const singleOrder of existingOrders) {
-        if (singleOrder.status === 'pending') {
-          throw new AppError(
-            `You can't delete a pending Order.`,
-            StatusCodes.FORBIDDEN
-          )
-        }
-      }
+      // for (const singleOrder of existingOrders) {
+      //   if (singleOrder.status === 'pending') {
+      //     throw new AppError(
+      //       `You can't delete a pending Order.`,
+      //       StatusCodes.FORBIDDEN
+      //     )
+      //   }
+      // }
 
       // Delete the found bookings
-      deletedOrder = await order
+      deletedOrder = await PaymentRecord
         .deleteMany({
           _id: { $in: validObjectIds },
         })
