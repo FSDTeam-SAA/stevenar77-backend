@@ -197,12 +197,13 @@ const getSingleProduct = async (productId: string) => {
 //   // 3️⃣ Merge data
 //   let finalImages = existing.images
 
-//   if (Array.isArray(payload.images)) {
-//     if (payload.images.length === 0) {
-//       finalImages = []
-//     } else {
-//       finalImages = payload.images
-//     }
+//   // if (Array.isArray(payload.images)) {
+//   //   if (payload.images.length === 0) {
+//   //     finalImages = []
+//   //   } 
+//     // else {
+//     //   finalImages = payload.images
+//     // }
 //   }
 
 //   if (productImages.length > 0 && !Array.isArray(payload.images)) {
@@ -234,6 +235,7 @@ const getSingleProduct = async (productId: string) => {
 //   return updatedProduct
 // }
 
+
 export const updateProduct = async (
   payload: Partial<IProduct>,
   productId: string,
@@ -242,11 +244,11 @@ export const updateProduct = async (
   const existing = await Product.findById(productId)
   if (!existing) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
-  // ⛔ DO NOT prefill with existing images (replace logic)
+  // 🔑 DO NOT preload existing images
   const productImages: { public_id: string; url: string }[] = []
   const variantImages: Record<string, { public_id: string; url: string }> = {}
 
-  const hasMainImages = files.some((file) => file.fieldname === 'image')
+  const hasProductImages = files.some((file) => file.fieldname === 'image')
 
   // 1️⃣ Upload all files
   for (const file of files) {
@@ -294,8 +296,10 @@ export const updateProduct = async (
     })
   }
 
-  // 3️⃣ Final images logic (REPLACE ONLY)
-  const finalImages = hasMainImages ? productImages : existing.images
+  // 3️⃣ Final image decision (REPLACE ONLY)
+  const finalImages = hasProductImages
+    ? productImages // ✅ only new images
+    : existing.images // ✅ keep old if none uploaded
 
   const updateData: Partial<IProduct> = {
     ...payload,
@@ -321,6 +325,7 @@ export const updateProduct = async (
 
   return updatedProduct
 }
+
 
 const deleteProduct = async (productId: string) => {
   const product = await Product.findById(productId)
