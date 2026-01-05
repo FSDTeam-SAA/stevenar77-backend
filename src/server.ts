@@ -19,8 +19,11 @@ async function main() {
     // Attach Socket.IO to that HTTP server
     const io = new Server(httpServer, {
       cors: {
-        origin: '*', // or your frontend URL
-        methods: ['GET', 'POST'],
+        origin: [
+      'https://scuba-life.net',
+      'https://www.scuba-life.net',
+    ], // or your frontend URL
+        methods: ['GET', 'POST','PUT','PATCH'],
       },
     })
 
