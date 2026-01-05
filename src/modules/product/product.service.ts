@@ -135,6 +135,105 @@ const getSingleProduct = async (productId: string) => {
   return result
 }
 
+// export const updateProduct = async (
+//   payload: Partial<IProduct>,
+//   productId: string,
+//   files: Express.Multer.File[]
+// ) => {
+//   const existing = await Product.findById(productId)
+//   if (!existing) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
+
+//   const productImages: { public_id: string; url: string }[] = [
+//     ...(existing.images || []),
+//   ]
+//   const variantImages: Record<string, { public_id: string; url: string }> = {}
+
+//   // 1️⃣ Upload all files
+//   for (const file of files) {
+//     if (file.fieldname.startsWith('variant_')) {
+//       const index = file.fieldname.split('_')[1]
+//       const uploadResult = await uploadToCloudinary(
+//         file.path,
+//         'products/variants'
+//       )
+//       if (uploadResult) {
+//         variantImages[index] = {
+//           public_id: uploadResult.public_id,
+//           url: uploadResult.secure_url,
+//         }
+//       }
+//     } else {
+//       const uploadResult = await uploadToCloudinary(file.path, 'products')
+//       if (uploadResult) {
+//         productImages.push({
+//           public_id: uploadResult.public_id,
+//           url: uploadResult.secure_url,
+//         })
+//       }
+//     }
+//   }
+
+//   // 2️⃣ Handle variants
+//   let updatedVariants: IVariant[] = existing.variants || []
+
+//   if (Array.isArray(payload.variants)) {
+//     updatedVariants = payload.variants.map((v, i): IVariant => {
+//       const existingVariant = existing.variants?.[i]
+//       const uploadedImage = variantImages[i]
+
+//       return {
+//         title: v.title ?? existingVariant?.title ?? '',
+//         quantity: Number(v.quantity ?? existingVariant?.quantity ?? 0),
+//         image:
+//           uploadedImage !== undefined
+//             ? uploadedImage
+//             : v.image === null
+//             ? null
+//             : existingVariant?.image || null,
+//       }
+//     })
+//   }
+
+//   // 3️⃣ Merge data
+//   let finalImages = existing.images
+
+//   if (Array.isArray(payload.images)) {
+//     if (payload.images.length === 0) {
+//       finalImages = []
+//     } else {
+//       finalImages = payload.images
+//     }
+//   }
+
+//   if (productImages.length > 0 && !Array.isArray(payload.images)) {
+//     finalImages = productImages
+//   }
+
+//   const updateData: Partial<IProduct> = {
+//     ...payload,
+//     price: payload.price ? Number(payload.price) : existing.price,
+//     quantity: payload.quantity ? Number(payload.quantity) : existing.quantity,
+//     productQuantity: payload.productQuantity
+//       ? Number(payload.productQuantity)
+//       : existing.productQuantity,
+//     isVariant: updatedVariants.length > 0,
+//     images: finalImages,
+//     variants: updatedVariants,
+//   }
+
+//   // 4️⃣ Update DB
+//   const updatedProduct = await Product.findByIdAndUpdate(
+//     productId,
+//     updateData,
+//     {
+//       new: true,
+//       runValidators: true,
+//     }
+//   )
+
+//   return updatedProduct
+// }
+
 export const updateProduct = async (
   payload: Partial<IProduct>,
   productId: string,
@@ -143,10 +242,11 @@ export const updateProduct = async (
   const existing = await Product.findById(productId)
   if (!existing) throw new AppError('Product not found', StatusCodes.NOT_FOUND)
 
-  const productImages: { public_id: string; url: string }[] = [
-    ...(existing.images || []),
-  ]
+  // ⛔ DO NOT prefill with existing images (replace logic)
+  const productImages: { public_id: string; url: string }[] = []
   const variantImages: Record<string, { public_id: string; url: string }> = {}
+
+  const hasMainImages = files.some((file) => file.fieldname === 'image')
 
   // 1️⃣ Upload all files
   for (const file of files) {
@@ -162,7 +262,7 @@ export const updateProduct = async (
           url: uploadResult.secure_url,
         }
       }
-    } else {
+    } else if (file.fieldname === 'image') {
       const uploadResult = await uploadToCloudinary(file.path, 'products')
       if (uploadResult) {
         productImages.push({
@@ -194,20 +294,8 @@ export const updateProduct = async (
     })
   }
 
-  // 3️⃣ Merge data
-  let finalImages = existing.images
-
-  if (Array.isArray(payload.images)) {
-    if (payload.images.length === 0) {
-      finalImages = []
-    } else {
-      finalImages = payload.images
-    }
-  }
-
-  if (productImages.length > 0 && !Array.isArray(payload.images)) {
-    finalImages = productImages
-  }
+  // 3️⃣ Final images logic (REPLACE ONLY)
+  const finalImages = hasMainImages ? productImages : existing.images
 
   const updateData: Partial<IProduct> = {
     ...payload,

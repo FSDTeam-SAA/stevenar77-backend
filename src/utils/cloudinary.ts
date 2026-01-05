@@ -9,7 +9,7 @@ cloudinary.config({
   api_secret: config.cloudinary.api_secret,
 })
 
-console.log('config.cloudinary.cloud_name', config.cloudinary.cloud_name)
+// console.log('config.cloudinary.cloud_name', config.cloudinary.cloud_name)
 
 // upload file
 
