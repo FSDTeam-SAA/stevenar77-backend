@@ -36,6 +36,7 @@ router.get(
 )
 
 router.get('/all/trips/booking', TripController.allTripBooking)
+router.delete('/delete/tripBookings',TripBookingController.deleteOrders)
 
 const TripRoutes = router
 

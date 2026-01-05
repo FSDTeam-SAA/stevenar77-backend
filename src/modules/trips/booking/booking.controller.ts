@@ -1,11 +1,13 @@
-import { Request, Response } from 'express'
+import { NextFunction, Request, Response } from 'express'
 import { TripBookingService } from './booking.service'
 import Booking from './booking.model'
 import mongoose from 'mongoose'
 import Trip from '../trip.model'
 import { createNotification } from '../../../socket/notification.service'
 import { User } from '../../user/user.model'
-
+import AppError from '../../../errors/AppError'
+import { StatusCodes } from 'http-status-codes'
+import TripBooking from '../booking/booking.model'
 export class TripBookingController {
   /**
    * Create a Stripe Checkout session for a trip booking
@@ -105,4 +107,35 @@ export class TripBookingController {
       })
     }
   }
+
+   static async deleteOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderIds } = req.body
+
+      if (!orderIds) {
+        throw new AppError('Order IDs are required', StatusCodes.BAD_REQUEST)
+      }
+
+      const idsArray = Array.isArray(orderIds)
+        ? orderIds
+        : orderIds.split(',')
+
+      const objectIds = idsArray.map(
+        (id: string) => new mongoose.Types.ObjectId(id)
+      )
+
+      const result = await TripBooking.deleteMany({
+        _id: { $in: objectIds },
+      })
+
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Orders deleted successfully',
+        data: result,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
+

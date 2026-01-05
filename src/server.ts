@@ -23,7 +23,7 @@ async function main() {
       'https://scuba-life.net',
       'https://www.scuba-life.net',
     ], // or your frontend URL
-        methods: ['GET', 'POST','PUT','PATCH'],
+        methods: ['GET', 'POST','PUT','PATCH','DELETE'],
       },
     })
 
