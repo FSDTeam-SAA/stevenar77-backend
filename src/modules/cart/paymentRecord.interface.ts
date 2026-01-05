@@ -6,6 +6,7 @@ export interface IPaymentRecord {
   cartsIds: Types.ObjectId[]
   paymentSeasonId?: string
   paymentIntent?: string
+  totalPrice?:number
   paymentStatus: 'successful' | 'cancelled' | 'pending'
   createdAt?: Date
   updatedAt?: Date

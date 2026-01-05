@@ -8,6 +8,7 @@ const paymentRecordSchema = new Schema<IPaymentRecord>(
       ref: "User",
       required: true,
     },
+    totalPrice:{type:String},
     cartsIds: [
       {
         type: Schema.Types.ObjectId,
@@ -19,7 +20,7 @@ const paymentRecordSchema = new Schema<IPaymentRecord>(
       type: String,
     },
     paymentIntent: {
-      type: String,
+      type: Number,
     },
     paymentStatus: {
       type: String,
