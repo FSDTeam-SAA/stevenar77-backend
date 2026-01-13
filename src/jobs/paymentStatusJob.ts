@@ -53,6 +53,10 @@ cron.schedule('* * * * *', async () => {
           // Fetch carts from payment.cartsIds
           const carts = await Cart.find({ _id: { $in: payment.cartsIds } })
 
+          // Track product orders to send single email after processing all carts
+          let productUserEmail: string | null = null
+          const processedProductOrderIds: string[] = []
+
           for (const cart of carts) {
             cart.status = 'complete'
             await cart.save()
@@ -111,11 +115,19 @@ cron.schedule('* * * * *', async () => {
               if (order?.userId?._id) {
                 const user = await User.findById(order.userId._id)
                 if (user?.email) {
+                  // Store user email for sending consolidated email later
+                  if (!productUserEmail) {
+                    productUserEmail = user.email
+                  }
+
                   // Get product details to get title
                   const product = await Product.findById(order.productId)
                   const productTitle = product?.title || 'Product'
 
                   console.log('productTitle from cron', productTitle)
+
+                  // Add order ID to the list for consolidated email
+                  processedProductOrderIds.push(String(order._id))
 
                   // Reduce quantity based on product type
                   if (product?.isVariant) {
@@ -173,12 +185,7 @@ cron.schedule('* * * * *', async () => {
                     )
                   }
 
-                  void sendTemplateEmail(
-                    user.email,
-                    'product',
-                    productTitle, // Pass product title for template matching
-                    { orderId: String(order._id) }
-                  )
+                  // DO NOT send email here - we'll send it after all carts are processed
                 }
               }
             }
@@ -209,6 +216,19 @@ cron.schedule('* * * * *', async () => {
                 }
               }
             }
+          }
+
+          // After processing all carts, send ONE consolidated email for all products
+          if (productUserEmail && processedProductOrderIds.length > 0) {
+            console.log(
+              `📧 Sending consolidated product email to ${productUserEmail} for ${processedProductOrderIds.length} product order(s)`
+            )
+            void sendTemplateEmail(
+              productUserEmail,
+              'product',
+              'Product', // Generic product title for consolidated email
+              { orderId: processedProductOrderIds.join(', ') }
+            )
           }
         }
 
