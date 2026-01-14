@@ -199,12 +199,13 @@ cron.schedule('* * * * *', async () => {
 
               console.log('booking trip from payment status job__', booking)
 
+              // Get trip details to get title
+              const tripTitle = (booking.trip as any)?.title || 'Trip'
+
+              // Send email to the booking user
               if (booking?.user?._id) {
                 const user = await User.findById(booking.user._id)
                 if (user?.email) {
-                  // Get trip details to get title
-                  const tripTitle = (booking.trip as any)?.title || 'Trip'
-
                   console.log('tripTitle form cron', tripTitle)
 
                   void sendTemplateEmail(
@@ -213,6 +214,24 @@ cron.schedule('* * * * *', async () => {
                     tripTitle, // Pass trip title for template matching
                     { orderId: String(booking._id) }
                   )
+                }
+              }
+
+              // Send email to all participants
+              if (booking?.participants && booking.participants.length > 0) {
+                for (const participant of booking.participants) {
+                  if (participant.email) {
+                    console.log(
+                      `📧 Sending trip email to participant: ${participant.email}`
+                    )
+
+                    void sendTemplateEmail(
+                      participant.email,
+                      'trips',
+                      tripTitle, // Pass trip title for template matching
+                      { orderId: String(booking._id) }
+                    )
+                  }
                 }
               }
             }
