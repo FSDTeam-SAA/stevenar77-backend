@@ -199,6 +199,11 @@ cron.schedule('* * * * *', async () => {
 
               console.log('booking trip from payment status job__', booking)
 
+              if (!booking) {
+                console.log(`⚠️ Booking not found for cart ${cart._id}`)
+                continue
+              }
+
               // Get trip details to get title
               const tripTitle = (booking.trip as any)?.title || 'Trip'
 
