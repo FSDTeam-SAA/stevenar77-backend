@@ -98,6 +98,22 @@ cron.schedule('* * * * *', async () => {
                   //   classTitle, // Pass class title for template matching
                   //   { orderId: String(payment._id) }
                   // )
+
+                  // Send admin notification for course purchase
+                  const adminEmail = process.env.ADMIN_EMAIL
+                  if (adminEmail) {
+                    void sendTemplateEmail(
+                      adminEmail,
+                      'admin-notification',
+                      `Course Purchase - ${classTitle}`,
+                      {
+                        orderId: String(payment._id),
+                        userEmail: userWithEmail.email,
+                        itemType: 'Course',
+                        itemTitle: classTitle || 'Unknown Course',
+                      }
+                    )
+                  }
                 }
               }
             }
@@ -128,6 +144,23 @@ cron.schedule('* * * * *', async () => {
 
                   // Add order ID to the list for consolidated email
                   processedProductOrderIds.push(String(order._id))
+
+                  // Send admin notification for product purchase
+                  const adminEmail = process.env.ADMIN_EMAIL
+                  if (adminEmail) {
+                    void sendTemplateEmail(
+                      adminEmail,
+                      'admin-notification',
+                      `Product Purchase - ${productTitle}`,
+                      {
+                        orderId: String(order._id),
+                        userEmail: user.email,
+                        itemType: 'Product',
+                        itemTitle: productTitle,
+                        quantity: order.quantity || 1,
+                      }
+                    )
+                  }
 
                   // Reduce quantity based on product type
                   if (product?.isVariant) {
@@ -219,11 +252,31 @@ cron.schedule('* * * * *', async () => {
                     tripTitle, // Pass trip title for template matching
                     { orderId: String(booking._id) }
                   )
+
+                  // Send admin notification for trip booking
+                  const adminEmail = process.env.ADMIN_EMAIL
+                  if (adminEmail) {
+                    void sendTemplateEmail(
+                      adminEmail,
+                      'admin-notification',
+                      `Trip Booking - ${tripTitle}`,
+                      {
+                        orderId: String(booking._id),
+                        userEmail: user.email,
+                        itemType: 'Trip',
+                        itemTitle: tripTitle,
+                        participantCount: booking.participants?.length || 0,
+                      }
+                    )
+                  }
                 }
               }
 
               // Send email to all participants
               if (booking?.participants && booking.participants.length > 0) {
+                const adminEmail = process.env.ADMIN_EMAIL
+                const participantEmails: string[] = []
+
                 for (const participant of booking.participants) {
                   if (participant.email) {
                     console.log(
@@ -236,7 +289,25 @@ cron.schedule('* * * * *', async () => {
                       tripTitle, // Pass trip title for template matching
                       { orderId: String(booking._id) }
                     )
+
+                    participantEmails.push(participant.email)
                   }
+                }
+
+                // Send admin summary for all participants
+                if (adminEmail && participantEmails.length > 0) {
+                  void sendTemplateEmail(
+                    adminEmail,
+                    'admin-notification',
+                    `Trip Booking Participants - ${tripTitle}`,
+                    {
+                      orderId: String(booking._id),
+                      itemType: 'Trip Participants',
+                      itemTitle: tripTitle,
+                      participantList: participantEmails.join(', '),
+                      participantCount: participantEmails.length,
+                    }
+                  )
                 }
               }
             }

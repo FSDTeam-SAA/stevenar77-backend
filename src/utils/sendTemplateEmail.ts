@@ -5,15 +5,15 @@ import { MessageTemplate } from '../modules/messageTemplate/messageTemplate.mode
  * Sends an email using an active message template for a given type and title.
  *
  * @param to - Recipient email address
- * @param type - Template type ('trips' | 'product' | 'courses')
+ * @param type - Template type ('trips' | 'product' | 'courses' | 'admin-notification')
  * @param title - Item title to match with tempName
  * @param placeholders - Optional object to replace placeholders in the messageBody or subject
  */
 export const sendTemplateEmail = async (
   to: string,
-  type: 'trips' | 'product' | 'courses',
+  type: 'trips' | 'product' | 'courses' | 'admin-notification',
   title?: string,
-  placeholders: Record<string, string> = {}
+  placeholders: Record<string, string | number> = {}
 ): Promise<void> => {
   try {
     console.log('Email send to ', to)
@@ -22,18 +22,15 @@ export const sendTemplateEmail = async (
     // 1️⃣ First try to find template by type AND tempName matching the title
     let template = null
 
-if (title) {
-  template = await MessageTemplate.findOne({
-    type,
-    tempName: { $regex: new RegExp(`^${title.trim()}$`, 'i') }, // case-insensitive & trim
-    status: 'active',
-  })
-}
+    if (title) {
+      template = await MessageTemplate.findOne({
+        type,
+        tempName: { $regex: new RegExp(`^${title.trim()}$`, 'i') }, // case-insensitive & trim
+        status: 'active',
+      })
+    }
 
-
-console.log('Found template from send templete email:___', template)
-
-
+    console.log('Found template from send templete email:___', template)
 
     // 2️⃣ If no specific template found by title, fall back to generic template by type only
     if (!template) {
@@ -51,8 +48,9 @@ console.log('Found template from send templete email:___', template)
 
     for (const [key, value] of Object.entries(placeholders)) {
       const regex = new RegExp(`{{${key}}}`, 'g')
-      subject = subject.replace(regex, value)
-      html = html.replace(regex, value)
+      const stringValue = String(value) // Convert all values to string for replacement
+      subject = subject.replace(regex, stringValue)
+      html = html.replace(regex, stringValue)
     }
 
     // 4️⃣ Send the email
