@@ -9,6 +9,8 @@ import { BookingClass } from '../modules/bookingClass/bookingClass.model'
 import { User } from '../modules/user/user.model'
 import { Class } from '../modules/class/class.model'
 import Product from '../modules/product/product.model'
+import sendAdminPaymentNotification from '../utils/sendAdminPaymentNotification'
+import sendEmail from '../utils/sendEmail'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: '2025-08-27.basil',
@@ -27,7 +29,7 @@ cron.schedule('* * * * *', async () => {
       try {
         // Retrieve Stripe Checkout Session first
         const session = await stripe.checkout.sessions.retrieve(
-          payment.paymentSeasonId as string
+          payment.paymentSeasonId as string,
         )
 
         // Extract payment intent ID
@@ -35,7 +37,7 @@ cron.schedule('* * * * *', async () => {
 
         if (!paymentIntentId) {
           console.log(
-            `⚠️ No payment_intent found for PaymentRecord ${payment._id}`
+            `⚠️ No payment_intent found for PaymentRecord ${payment._id}`,
           )
           continue
         }
@@ -53,7 +55,14 @@ cron.schedule('* * * * *', async () => {
           // Fetch carts from payment.cartsIds
           const carts = await Cart.find({ _id: { $in: payment.cartsIds } })
 
-          // Track product orders to send single email after processing all carts
+          // Collect admin notification data for ONE consolidated email
+          const adminItems: Array<{
+            type: 'course' | 'product' | 'trip'
+            title: string
+            quantity?: number
+            price: number
+          }> = []
+          let userEmail: string | null = null
           let productUserEmail: string | null = null
           const processedProductOrderIds: string[] = []
 
@@ -74,46 +83,31 @@ cron.schedule('* * * * *', async () => {
               if (user.userId?._id) {
                 const userWithEmail = await User.findById(user.userId._id)
                 if (userWithEmail?.email) {
+                  userEmail = userWithEmail.email
+
                   // Get class details to get title
                   const classBooking = await BookingClass.findById(
-                    cart.bookingId
+                    cart.bookingId,
                   ).populate('classId')
 
-                  console.log(
-                    'classbooking form payment staus job___',
-                    classBooking
-                  )
-
                   const classData = await Class.findById(classBooking?.classId)
-                  const classTitle = classData?.title
+                  const classTitle = classData?.title || 'Unknown Course'
 
-                  console.log(
-                    'class title from the paymetn staus job',
-                    classTitle
+                  // Add to admin items
+                  adminItems.push({
+                    type: 'course',
+                    title: classTitle,
+                    quantity: 1,
+                    price: cart.price,
+                  })
+
+                  // Send user notification for course purchase
+                  void sendTemplateEmail(
+                    userWithEmail.email,
+                    'courses',
+                    classTitle,
+                    { orderId: String(payment._id) },
                   )
-
-                  // void sendTemplateEmail(
-                  //   userWithEmail.email,
-                  //   'courses',
-                  //   classTitle, // Pass class title for template matching
-                  //   { orderId: String(payment._id) }
-                  // )
-
-                  // Send admin notification for course purchase
-                  const adminEmail = process.env.ADMIN_EMAIL
-                  if (adminEmail) {
-                    void sendTemplateEmail(
-                      adminEmail,
-                      'admin-notification',
-                      `Course Purchase - ${classTitle}`,
-                      {
-                        orderId: String(payment._id),
-                        userEmail: userWithEmail.email,
-                        itemType: 'Course',
-                        itemTitle: classTitle || 'Unknown Course',
-                      }
-                    )
-                  }
                 }
               }
             }
@@ -131,7 +125,9 @@ cron.schedule('* * * * *', async () => {
               if (order?.userId?._id) {
                 const user = await User.findById(order.userId._id)
                 if (user?.email) {
-                  // Store user email for sending consolidated email later
+                  if (!userEmail) {
+                    userEmail = user.email
+                  }
                   if (!productUserEmail) {
                     productUserEmail = user.email
                   }
@@ -142,25 +138,15 @@ cron.schedule('* * * * *', async () => {
 
                   console.log('productTitle from cron', productTitle)
 
-                  // Add order ID to the list for consolidated email
-                  processedProductOrderIds.push(String(order._id))
+                  // Add to admin items
+                  adminItems.push({
+                    type: 'product',
+                    title: productTitle,
+                    quantity: order.quantity || 1,
+                    price: cart.price,
+                  })
 
-                  // Send admin notification for product purchase
-                  const adminEmail = process.env.ADMIN_EMAIL
-                  if (adminEmail) {
-                    void sendTemplateEmail(
-                      adminEmail,
-                      'admin-notification',
-                      `Product Purchase - ${productTitle}`,
-                      {
-                        orderId: String(order._id),
-                        userEmail: user.email,
-                        itemType: 'Product',
-                        itemTitle: productTitle,
-                        quantity: order.quantity || 1,
-                      }
-                    )
-                  }
+                  processedProductOrderIds.push(String(order._id))
 
                   // Reduce quantity based on product type
                   if (product?.isVariant) {
@@ -173,14 +159,14 @@ cron.schedule('* * * * *', async () => {
                             'variants.$.quantity': -(order.quantity || 1),
                           },
                         },
-                        { new: true }
+                        { new: true },
                       )
 
                       // Check if all variants are out of stock
                       if (updatedProduct && updatedProduct.variants) {
                         const allVariantsOutOfStock =
                           updatedProduct.variants.every(
-                            (variant: any) => variant.quantity <= 0
+                            (variant: any) => variant.quantity <= 0,
                           )
                         if (allVariantsOutOfStock) {
                           await Product.findByIdAndUpdate(order.productId, {
@@ -190,7 +176,7 @@ cron.schedule('* * * * *', async () => {
                       }
 
                       console.log(
-                        `✅ Reduced variant quantity for product ${order.productId}`
+                        `✅ Reduced variant quantity for product ${order.productId}`,
                       )
                     }
                   } else {
@@ -200,7 +186,7 @@ cron.schedule('* * * * *', async () => {
                       {
                         $inc: { productQuantity: -(order.quantity || 1) },
                       },
-                      { new: true }
+                      { new: true },
                     )
 
                     // Check if product is out of stock
@@ -214,11 +200,9 @@ cron.schedule('* * * * *', async () => {
                     }
 
                     console.log(
-                      `✅ Reduced productQuantity for product ${order.productId}`
+                      `✅ Reduced productQuantity for product ${order.productId}`,
                     )
                   }
-
-                  // DO NOT send email here - we'll send it after all carts are processed
                 }
               }
             }
@@ -244,86 +228,84 @@ cron.schedule('* * * * *', async () => {
               if (booking?.user?._id) {
                 const user = await User.findById(booking.user._id)
                 if (user?.email) {
+                  if (!userEmail) {
+                    userEmail = user.email
+                  }
+
                   console.log('tripTitle form cron', tripTitle)
 
-                  void sendTemplateEmail(
-                    user.email,
-                    'trips',
-                    tripTitle, // Pass trip title for template matching
-                    { orderId: String(booking._id) }
-                  )
+                  // Add to admin items
+                  adminItems.push({
+                    type: 'trip',
+                    title: tripTitle,
+                    quantity: booking.participants?.length || 1,
+                    price: cart.price,
+                  })
 
-                  // Send admin notification for trip booking
-                  const adminEmail = process.env.ADMIN_EMAIL
-                  if (adminEmail) {
-                    void sendTemplateEmail(
-                      adminEmail,
-                      'admin-notification',
-                      `Trip Booking - ${tripTitle}`,
-                      {
-                        orderId: String(booking._id),
-                        userEmail: user.email,
-                        itemType: 'Trip',
-                        itemTitle: tripTitle,
-                        participantCount: booking.participants?.length || 0,
-                      }
-                    )
-                  }
+                  void sendTemplateEmail(user.email, 'trips', tripTitle, {
+                    orderId: String(booking._id),
+                  })
                 }
               }
 
               // Send email to all participants
               if (booking?.participants && booking.participants.length > 0) {
-                const adminEmail = process.env.ADMIN_EMAIL
-                const participantEmails: string[] = []
-
                 for (const participant of booking.participants) {
                   if (participant.email) {
                     console.log(
-                      `📧 Sending trip email to participant: ${participant.email}`
+                      `📧 Sending trip email to participant: ${participant.email}`,
                     )
 
                     void sendTemplateEmail(
                       participant.email,
                       'trips',
-                      tripTitle, // Pass trip title for template matching
-                      { orderId: String(booking._id) }
+                      tripTitle,
+                      { orderId: String(booking._id) },
                     )
-
-                    participantEmails.push(participant.email)
                   }
-                }
-
-                // Send admin summary for all participants
-                if (adminEmail && participantEmails.length > 0) {
-                  void sendTemplateEmail(
-                    adminEmail,
-                    'admin-notification',
-                    `Trip Booking Participants - ${tripTitle}`,
-                    {
-                      orderId: String(booking._id),
-                      itemType: 'Trip Participants',
-                      itemTitle: tripTitle,
-                      participantList: participantEmails.join(', '),
-                      participantCount: participantEmails.length,
-                    }
-                  )
                 }
               }
             }
           }
 
+          // Send ONE consolidated admin email with all purchase details
+          const adminEmail = process.env.ADMIN_EMAIL
+          if (adminEmail && adminItems.length > 0 && userEmail) {
+            const htmlContent = sendAdminPaymentNotification({
+              userEmail,
+              totalAmount: String(payment.totalPrice || '0'),
+              items: adminItems,
+              paymentId: String(payment._id),
+              paymentDate: new Date(payment.createdAt || new Date()).toLocaleDateString(
+                'en-US',
+                {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                },
+              ),
+            })
+
+            console.log(
+              `📧 Sending consolidated admin payment notification to ${adminEmail}`,
+            )
+            void sendEmail({
+              to: adminEmail,
+              subject: `New Payment Received - ${payment._id}`,
+              html: htmlContent,
+            })
+          }
+
           // After processing all carts, send ONE consolidated email for all products
           if (productUserEmail && processedProductOrderIds.length > 0) {
             console.log(
-              `📧 Sending consolidated product email to ${productUserEmail} for ${processedProductOrderIds.length} product order(s)`
+              `📧 Sending consolidated product email to ${productUserEmail} for ${processedProductOrderIds.length} product order(s)`,
             )
-            void sendTemplateEmail(
-              productUserEmail,
-              'product',
-              'Product', // Generic product title for consolidated email
-              { orderId: processedProductOrderIds.join(', ') }
-            )
+            void sendTemplateEmail(productUserEmail, 'product', 'Product', {
+              orderId: processedProductOrderIds.join(', '),
+            })
           }
         }
 
@@ -336,7 +318,7 @@ cron.schedule('* * * * *', async () => {
       } catch (err: any) {
         console.error(
           `⚠️ Error processing PaymentRecord ${payment._id}:`,
-          err.message
+          err.message,
         )
       }
     }
