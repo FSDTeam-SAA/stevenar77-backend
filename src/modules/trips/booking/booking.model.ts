@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, model } from 'mongoose'
 export interface ITripBooking extends Document {
   trip: mongoose.Types.ObjectId
   user: mongoose.Types.ObjectId
+  tripDate: Date
   totalParticipants: number
   participants: {
     firstName: string
@@ -21,6 +22,7 @@ const tripBookingSchema = new Schema<ITripBooking>(
   {
     trip: { type: Schema.Types.ObjectId, ref: 'Trip', required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User' },
+    tripDate: { type: Date, required: true },
     participants: [
       {
         firstName: { type: String, required: true },
@@ -38,7 +40,7 @@ const tripBookingSchema = new Schema<ITripBooking>(
     },
     stripePaymentIntentId: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 const Booking = model<ITripBooking>('TripBooking', tripBookingSchema)

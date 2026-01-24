@@ -16,7 +16,7 @@ export class TripBookingService {
       email: string
       mobile: number
     }[],
-    totalParticipants: number
+    totalParticipants: number,
   ): Promise<{ sessionUrl: string; tripBookingId: string; cart: ICart }> {
     // 1. Check if trip exists
     const trip = await Trip.findById(tripId)
@@ -25,9 +25,23 @@ export class TripBookingService {
     //  Get user
     const user = await User.findById(userId)
 
-    //  Check capacity
-    if (trip.maximumCapacity < participants.length)
-      throw new Error('Not enough spots available')
+    const tripDate = trip.startDate
+
+    const capacityAgg = await Booking.aggregate([
+      {
+        $match: {
+          trip: trip._id,
+          tripDate,
+          status: { $in: ['pending', 'paid'] },
+        },
+      },
+      { $group: { _id: null, total: { $sum: '$totalParticipants' } } },
+    ])
+
+    const currentParticipants = capacityAgg[0]?.total || 0
+    if (currentParticipants + totalParticipants > trip.maximumCapacity) {
+      throw new Error('Trip capacity reached for selected date')
+    }
 
     // Calculate total price
     const totalPrice = Number(trip.price) * totalParticipants
@@ -36,6 +50,7 @@ export class TripBookingService {
     const booking = await Booking.create({
       trip: trip._id,
       user: userId,
+      tripDate,
       participants,
       totalPrice,
       totalParticipants,
@@ -48,6 +63,7 @@ export class TripBookingService {
       bookingId: booking._id,
       type: 'trip',
       price: totalPrice,
+      tripDate,
     }
     const cart = await cartService.createCartItem({
       ...payload,

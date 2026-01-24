@@ -1,5 +1,5 @@
-import { model, Schema } from "mongoose";
-import { CartModel, ICart, IParticipant } from "./cart.interface";
+import { model, Schema } from 'mongoose'
+import { CartModel, ICart, IParticipant } from './cart.interface'
 
 const participantSchema = new Schema<IParticipant>(
   {
@@ -8,37 +8,38 @@ const participantSchema = new Schema<IParticipant>(
     email: { type: String, required: false },
     mobile: { type: Number, required: false },
   },
-  { _id: false } // Optional: avoids creating separate _id for each participant
-);
+  { _id: false }, // Optional: avoids creating separate _id for each participant
+)
 
 const cartSchema = new Schema<ICart>(
   {
     userId: { type: Schema.Types.ObjectId },
-    itemId: { type: Schema.Types.ObjectId, required: true,},
+    itemId: { type: Schema.Types.ObjectId, required: true },
     productId: { type: Schema.Types.ObjectId },
     bookingId: { type: Schema.Types.ObjectId },
     type: {
       type: String,
-      enum: ["product", "trip", "course"],
+      enum: ['product', 'trip', 'course'],
       required: true,
     },
     price: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["pending", "complete"],
-      default: "pending",
+      enum: ['pending', 'complete'],
+      default: 'pending',
     },
     participants: {
       type: [participantSchema],
       default: [],
     },
+    tripDate: { type: Date },
     color: { type: String },
     images: [{ type: String }],
 
     quantity: { type: Number },
   },
 
-  { timestamps: true, versionKey: false }
-);
+  { timestamps: true, versionKey: false },
+)
 
-export const Cart = model<ICart, CartModel>("Cart", cartSchema);
+export const Cart = model<ICart, CartModel>('Cart', cartSchema)

@@ -208,9 +208,15 @@ cron.schedule('* * * * *', async () => {
             }
 
             if (cart.type === 'trip') {
-              await Booking.findByIdAndUpdate(cart.itemId, { status: 'paid' })
+              const bookingId = cart.bookingId || cart.itemId
+              if (!bookingId) {
+                console.log(`⚠️ No bookingId found for trip cart ${cart._id}`)
+                continue
+              }
 
-              const booking = await Booking.findById(cart.bookingId)
+              await Booking.findByIdAndUpdate(bookingId, { status: 'paid' })
+
+              const booking = await Booking.findById(bookingId)
                 .populate('user', 'email')
                 .populate('trip')
 
@@ -276,16 +282,15 @@ cron.schedule('* * * * *', async () => {
               totalAmount: String(payment.totalPrice || '0'),
               items: adminItems,
               paymentId: String(payment._id),
-              paymentDate: new Date(payment.createdAt || new Date()).toLocaleDateString(
-                'en-US',
-                {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                },
-              ),
+              paymentDate: new Date(
+                payment.createdAt || new Date(),
+              ).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
             })
 
             console.log(

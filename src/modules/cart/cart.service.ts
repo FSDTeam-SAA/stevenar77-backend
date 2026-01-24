@@ -20,14 +20,46 @@ const createCartItem = async (payload: ICart) => {
     const participants = payload.participants || []
     const totalParticipants = participants.length
 
+    const trip = await Trip.findById(payload.itemId)
+    if (!trip) {
+      throw new AppError('Trip not found', StatusCodes.NOT_FOUND)
+    }
+
+    const tripDate = payload.tripDate
+      ? new Date(payload.tripDate)
+      : trip.startDate
+
+    const capacityAgg = await Booking.aggregate([
+      {
+        $match: {
+          trip: new Types.ObjectId(String(payload.itemId)),
+          tripDate,
+          status: { $in: ['pending', 'paid'] },
+        },
+      },
+      { $group: { _id: null, total: { $sum: '$totalParticipants' } } },
+    ])
+
+    const currentParticipants = capacityAgg[0]?.total || 0
+    if (currentParticipants + totalParticipants > trip.maximumCapacity) {
+      throw new AppError(
+        'Trip capacity reached for selected date',
+        StatusCodes.BAD_REQUEST,
+      )
+    }
+
     const booking = await Booking.create({
       trip: payload.itemId,
       user: payload.userId,
+      tripDate,
       participants,
-      totalPrice: payload.price,
+      totalPrice: Number(trip.price) * totalParticipants,
       totalParticipants,
       status: 'pending',
     })
+
+    payload.tripDate = tripDate
+    payload.price = booking.totalPrice
 
     payload.bookingId = booking._id as Types.ObjectId
   }
@@ -81,7 +113,7 @@ const getPendingByUser = async (userId: string) => {
 
       if (item.type === 'product') {
         const product = await Product.findById(item.productId).select(
-          'title images price'
+          'title images price',
         )
         if (product) {
           details = {
@@ -103,7 +135,7 @@ const getPendingByUser = async (userId: string) => {
         }
       } else if (item.type === 'course') {
         const course = await Class.findById(itemObjId).select(
-          'title image price formTitle schedule'
+          'title image price formTitle schedule',
         )
         if (course) {
           details = {
@@ -118,7 +150,7 @@ const getPendingByUser = async (userId: string) => {
           // Populate booking for this course using bookingId
           if (item.bookingId) {
             const booking = await BookingClass.findById(item.bookingId).select(
-              'Username email classDate '
+              'Username email classDate ',
             )
             if (booking) {
               details = {
@@ -135,7 +167,7 @@ const getPendingByUser = async (userId: string) => {
         ...item.toObject(),
         details,
       }
-    })
+    }),
   )
 
   return results

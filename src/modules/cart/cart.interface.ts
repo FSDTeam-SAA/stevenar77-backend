@@ -18,6 +18,7 @@ export interface ICart {
   price: number
   status?: 'pending' | 'complete'
   participants?: IParticipant[]
+  tripDate?: Date
   color?: string
   images?: string[]
   quantity: number
