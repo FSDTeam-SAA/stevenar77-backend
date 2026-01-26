@@ -38,6 +38,8 @@ router.get(
 router.get('/all/trips/booking', TripController.allTripBooking)
 router.delete('/delete/tripBookings',TripBookingController.deleteOrders)
 
+router.patch('/is/active/:tripId', TripController.tripActiveDeactivate)
+
 const TripRoutes = router
 
 export default TripRoutes

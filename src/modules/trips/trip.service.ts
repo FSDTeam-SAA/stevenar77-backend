@@ -249,6 +249,17 @@ const allTripBooking = async () => {
   return result
 }
 
+const activeDeactivateTrips = async (tripId: string) => {
+  const trip = await Trip.findById(tripId)
+
+  if (!trip) throw new Error('Trip not found.')
+
+  trip.isActive = !trip.isActive
+  await trip.save()
+
+  return trip
+}
+
 const TripService = {
   createTrip,
   getAllTrips,
@@ -256,6 +267,7 @@ const TripService = {
   updateTrip,
   deleteTrip,
   allTripBooking,
+  activeDeactivateTrips,
 }
 
 export default TripService
