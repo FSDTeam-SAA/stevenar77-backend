@@ -134,7 +134,34 @@ const getAllTrips = async (page = 1, limit = 10) => {
 }
 
 const getSingleTrip = async (tripId: string) => {
-  return await Trip.findById(tripId)
+  const trip = await Trip.findById(tripId)
+  if (!trip) return null
+
+  const bookingAgg = await Booking.aggregate([
+    { $match: { trip: trip._id, status: 'paid' } },
+    {
+      $group: {
+        _id: '$tripDate',
+        totalParticipants: { $sum: '$totalParticipants' },
+      },
+    },
+  ])
+
+  const purchasedParticipants = bookingAgg.reduce(
+    (acc, row) => acc + row.totalParticipants,
+    0,
+  )
+
+  const purchasedByDate = bookingAgg.map((row) => ({
+    tripDate: row._id,
+    totalParticipants: row.totalParticipants,
+  }))
+
+  return {
+    ...trip.toObject(),
+    purchasedParticipants,
+    purchasedByDate,
+  }
 }
 
 const updateTrip = async (
