@@ -85,7 +85,12 @@ const allTripBooking = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getActiveTrips = catchAsync(async (req: Request, res: Response) => {
-  const trips = await TripService.getActiveTrips()
+  const { page = 1, limit = 10, search } = req.query
+  const trips = await TripService.getActiveTrips(
+    Number(page),
+    Number(limit),
+    search as string | undefined,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

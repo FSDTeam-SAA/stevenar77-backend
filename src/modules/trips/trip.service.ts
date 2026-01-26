@@ -249,10 +249,78 @@ const allTripBooking = async () => {
   return result
 }
 
-const getActiveTrips = async () => {
-  // Return only trips marked active
-  const trips = await Trip.find({ isActive: true }).sort({ index: 1 })
-  return trips
+const getActiveTrips = async (page = 1, limit = 10, search?: string) => {
+  const skip = (page - 1) * limit
+
+  const filters: Record<string, unknown> = { isActive: true }
+  if (search) {
+    filters.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { location: { $regex: search, $options: 'i' } },
+    ]
+  }
+
+  const trips = await Trip.find(filters)
+    .sort({ index: 1 })
+    .skip(skip)
+    .limit(limit)
+
+  const tripIds = trips.map((t) => t._id)
+
+  const bookingAgg = tripIds.length
+    ? await Booking.aggregate([
+        {
+          $match: {
+            trip: { $in: tripIds },
+            status: 'paid',
+          },
+        },
+        {
+          $group: {
+            _id: { trip: '$trip', tripDate: '$tripDate' },
+            totalParticipants: { $sum: '$totalParticipants' },
+          },
+        },
+      ])
+    : []
+
+  const totalByTrip = new Map<string, number>()
+  const byDateByTrip = new Map<
+    string,
+    { tripDate: Date; totalParticipants: number }[]
+  >()
+
+  for (const row of bookingAgg) {
+    const tripKey = String(row._id.trip)
+    const currentTotal = totalByTrip.get(tripKey) || 0
+    totalByTrip.set(tripKey, currentTotal + row.totalParticipants)
+
+    const perDate = byDateByTrip.get(tripKey) || []
+    perDate.push({
+      tripDate: row._id.tripDate,
+      totalParticipants: row.totalParticipants,
+    })
+    byDateByTrip.set(tripKey, perDate)
+  }
+
+  const enrichedTrips = trips.map((trip) => {
+    const key = String(trip._id)
+    return {
+      ...trip.toObject(),
+      purchasedParticipants: totalByTrip.get(key) || 0,
+      purchasedByDate: byDateByTrip.get(key) || [],
+    }
+  })
+
+  const total = await Trip.countDocuments(filters)
+
+  return {
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+    totalTrips: total,
+    data: enrichedTrips,
+  }
 }
 
 const activeDeactivateTrips = async (tripId: string) => {
