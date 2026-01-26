@@ -83,7 +83,7 @@ cron.schedule('* * * * *', async () => {
               const existingBooking = await BookingClass.findById(bookingId)
 
               const participants =
-                cart.participants?.length > 0
+                (cart.participants?.length ?? 0) > 0
                   ? cart.participants
                   : existingBooking?.participants || []
 
