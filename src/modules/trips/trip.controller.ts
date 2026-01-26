@@ -84,6 +84,17 @@ const allTripBooking = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getActiveTrips = catchAsync(async (req: Request, res: Response) => {
+  const trips = await TripService.getActiveTrips()
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Active trips fetched successfully',
+    data: trips,
+  })
+})
+
 const tripActiveDeactivate = catchAsync(async (req: Request, res: Response) => {
   const { tripId } = req.params
   const updated = await TripService.activeDeactivateTrips(tripId)
@@ -102,6 +113,7 @@ const TripController = {
   updateTrip,
   deleteTrip,
   allTripBooking,
+  getActiveTrips,
   tripActiveDeactivate,
 }
 

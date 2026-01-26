@@ -14,6 +14,9 @@ router.post('/create', upload.array('images'), TripController.createTrip)
 // Get all Trips
 router.get('/all', TripController.getAllTrips)
 
+// Get active Trips
+router.get('/active', TripController.getActiveTrips)
+
 // Get single Trip
 router.get('/:tripId', TripController.getSingleTrip)
 
@@ -26,17 +29,17 @@ router.delete('/:tripId', TripController.deleteTrip)
 router.post(
   '/:tripId/checkout',
   auth(USER_ROLE.ADMIN, USER_ROLE.USER),
-  TripBookingController.createCheckoutSession
+  TripBookingController.createCheckoutSession,
 )
 
 router.get(
   '/my/paid-bookings/:userId',
   // auth(USER_ROLE.USER),
-  TripBookingController.getMyPaidBookings
+  TripBookingController.getMyPaidBookings,
 )
 
 router.get('/all/trips/booking', TripController.allTripBooking)
-router.delete('/delete/tripBookings',TripBookingController.deleteOrders)
+router.delete('/delete/tripBookings', TripBookingController.deleteOrders)
 
 router.patch('/is/active/:tripId', TripController.tripActiveDeactivate)
 

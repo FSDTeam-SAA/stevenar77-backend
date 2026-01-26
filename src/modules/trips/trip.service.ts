@@ -249,6 +249,12 @@ const allTripBooking = async () => {
   return result
 }
 
+const getActiveTrips = async () => {
+  // Return only trips marked active
+  const trips = await Trip.find({ isActive: true }).sort({ index: 1 })
+  return trips
+}
+
 const activeDeactivateTrips = async (tripId: string) => {
   const trip = await Trip.findById(tripId)
 
@@ -267,6 +273,7 @@ const TripService = {
   updateTrip,
   deleteTrip,
   allTripBooking,
+  getActiveTrips,
   activeDeactivateTrips,
 }
 
