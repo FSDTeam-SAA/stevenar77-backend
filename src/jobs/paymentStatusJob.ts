@@ -74,8 +74,30 @@ cron.schedule('* * * * *', async () => {
 
             // Now update the related booking/order/class based on cart.type
             if (cart.type === 'course') {
-              await BookingClass.findByIdAndUpdate(cart.itemId, {
+              const bookingId = cart.bookingId || cart.itemId
+              if (!bookingId) {
+                console.log(`⚠️ No bookingId found for course cart ${cart._id}`)
+                continue
+              }
+
+              const existingBooking = await BookingClass.findById(bookingId)
+
+              const participants =
+                cart.participants?.length > 0
+                  ? cart.participants
+                  : existingBooking?.participants || []
+
+              const totalParticipants =
+                (cart.participants?.length ?? 0) ||
+                existingBooking?.totalParticipants ||
+                existingBooking?.participant ||
+                0
+
+              await BookingClass.findByIdAndUpdate(bookingId, {
                 status: 'paid',
+                participants,
+                totalParticipants,
+                participant: totalParticipants, // keep legacy field in sync
               })
 
               const user = await payment.populate('userId', 'email')
@@ -86,9 +108,8 @@ cron.schedule('* * * * *', async () => {
                   userEmail = userWithEmail.email
 
                   // Get class details to get title
-                  const classBooking = await BookingClass.findById(
-                    cart.bookingId,
-                  ).populate('classId')
+                  const classBooking =
+                    await BookingClass.findById(bookingId).populate('classId')
 
                   const classData = await Class.findById(classBooking?.classId)
                   const classTitle = classData?.title || 'Unknown Course'
@@ -97,7 +118,7 @@ cron.schedule('* * * * *', async () => {
                   adminItems.push({
                     type: 'course',
                     title: classTitle,
-                    quantity: 1,
+                    quantity: totalParticipants || 1,
                     price: cart.price,
                   })
 

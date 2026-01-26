@@ -1,16 +1,28 @@
 import mongoose, { Schema } from 'mongoose'
 import { IBookingClass } from './bookingClass.interface'
 
+const participantSchema = new Schema(
+  {
+    firstName: { type: String },
+    lastName: { type: String },
+    email: { type: String },
+    mobile: { type: Number },
+  },
+  { _id: false },
+)
+
 const bookingClassSchema = new Schema<IBookingClass>(
   {
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     participant: { type: Number },
+    totalParticipants: { type: Number },
+    participants: { type: [participantSchema], default: [] },
     classDate: [{ type: Date }],
 
     medicalDocuments: [
       {
-   name:String,
+        name: String,
         public_id: String,
         url: String,
       },
@@ -60,10 +72,10 @@ const bookingClassSchema = new Schema<IBookingClass>(
     ],
     addOnTotal: { type: Number, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 export const BookingClass = mongoose.model<IBookingClass>(
   'BookingClass',
-  bookingClassSchema
+  bookingClassSchema,
 )

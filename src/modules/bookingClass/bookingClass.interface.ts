@@ -11,13 +11,22 @@ export interface IMedicalDocument {
   url: string
 }
 
+export interface IClassParticipant {
+  firstName?: string
+  lastName?: string
+  email?: string
+  mobile?: number
+}
+
 export interface IBookingClass {
   _id?: Types.ObjectId
 
   classId: Types.ObjectId
   userId: Types.ObjectId
 
-  participant?: number
+  participant?: number // legacy field, keep for backward compatibility
+  totalParticipants?: number
+  participants?: IClassParticipant[]
   classDate?: Date[]
 
   medicalDocuments?: IMedicalDocument[]

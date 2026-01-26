@@ -18,7 +18,7 @@ import { ICart } from '../cart/cart.interface'
 
 export const createBooking = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     console.log('REQ BODY RAW:', req.body)
@@ -78,7 +78,24 @@ export const createBooking = async (
       req.body.participant = Number(req.body.participant)
     }
 
+    // participants array (optional)
+    req.body.participants = fixJSON(req.body.participants) || []
+    if (!Array.isArray(req.body.participants)) {
+      req.body.participants = []
+    }
+
+    // totalParticipants fallback
+    if (req.body.totalParticipants === undefined) {
+      req.body.totalParticipants =
+        req.body.participant ?? req.body.participants.length ?? 0
+    }
+
     // Create booking
+    // keep legacy participant in sync
+    if (req.body.participant === undefined) {
+      req.body.participant = req.body.totalParticipants
+    }
+
     const booking = await BookingClass.create(req.body)
 
     const payload = {
@@ -112,13 +129,15 @@ export const createBooking = async (
 
 export const updateBooking = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { id } = req.params // Booking ID from URL params
 
     const {
       participant,
+      totalParticipants,
+      participants,
       classDate,
       gender,
       shoeSize,
@@ -144,11 +163,11 @@ export const updateBooking = async (
     // console.log('existing booking', existingBooking)
 
     const classData = await Class.findById(existingBooking.classId)
-    console.log("class data",classData)
+    console.log('class data', classData)
 
     const user = await User.findById(existingBooking.userId)
 
-    console.log("user id",user)
+    console.log('user id', user)
 
     // Validate classDate if provided
     if (classDate && (!Array.isArray(classDate) || classDate.length === 0)) {
@@ -176,7 +195,7 @@ export const updateBooking = async (
     // If files exist, upload to Cloudinary and attach names
     if (files && files.length > 0) {
       const uploadResults = await Promise.all(
-        files.map((file) => uploadToCloudinary(file.path, 'medical_documents'))
+        files.map((file) => uploadToCloudinary(file.path, 'medical_documents')),
       )
 
       medicalDocuments = uploadResults.map((uploaded, idx) => ({
@@ -187,8 +206,17 @@ export const updateBooking = async (
     }
 
     // Prepare update data
+    const resolvedTotalParticipants =
+      totalParticipants ??
+      (Array.isArray(participants) ? participants.length : undefined) ??
+      participant
+
     const updateData: any = {
       ...(participant !== undefined && { participant }),
+      ...(resolvedTotalParticipants !== undefined && {
+        totalParticipants: resolvedTotalParticipants,
+      }),
+      ...(Array.isArray(participants) && { participants }),
       ...(classDate !== undefined && { classDate }),
       ...(gender !== undefined && { gender }),
       ...(shoeSize !== undefined && { shoeSize: Number(shoeSize) }),
@@ -214,23 +242,24 @@ export const updateBooking = async (
     const updatedBooking = await BookingClass.findByIdAndUpdate(
       id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate('classId')
       .populate('userId')
 
     // Handle participant count changes for class statistics
-    if (
-      participant !== undefined &&
-      participant !== existingBooking.participant
-    ) {
-      const classId = existingBooking.classId
-      const participantDiff = participant - (existingBooking.participant || 0)
+    const previousCount =
+      existingBooking.totalParticipants ?? existingBooking.participant ?? 0
+    const nextCount = resolvedTotalParticipants ?? participant ?? previousCount
 
-      const updatedClass = await Class.findByIdAndUpdate(
+    if (nextCount !== previousCount) {
+      const classId = existingBooking.classId
+      const participantDiff = nextCount - previousCount
+
+      await Class.findByIdAndUpdate(
         classId,
         { $inc: { totalBookings: participantDiff } },
-        { new: true }
+        { new: true },
       )
     }
 
@@ -301,7 +330,7 @@ export const getSingleBooking = catchAsync(
     const classData = booking.classId as unknown as mongoose.Document & IClass
 
     const scheduleData = classData.schedule?.find(
-      (s: any) => s._id.toString() === booking.scheduleId?.toString()
+      (s: any) => s._id.toString() === booking.scheduleId?.toString(),
     )
 
     const responseData = {
@@ -315,7 +344,7 @@ export const getSingleBooking = catchAsync(
       message: 'Booking fetched successfully',
       data: responseData,
     })
-  }
+  },
 )
 
 export const changeBookingStatus = catchAsync(
@@ -330,7 +359,7 @@ export const changeBookingStatus = catchAsync(
     const booking = await BookingClass.findByIdAndUpdate(
       id,
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
 
     if (!booking) throw new AppError('Booking not found', httpStatus.NOT_FOUND)
@@ -341,12 +370,12 @@ export const changeBookingStatus = catchAsync(
       message: 'Booking status updated successfully',
       data: booking,
     })
-  }
+  },
 )
 
 export const getSuccessfulPayments = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     // const userId = req.user?.id // if you want to filter by current user
@@ -399,13 +428,13 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
     if (!userId || !formLink) {
       throw new AppError(
         'userId and formLink are required',
-        httpStatus.BAD_REQUEST
+        httpStatus.BAD_REQUEST,
       )
     }
 
     // find user email
     const user = await User.findById(
-      new mongoose.Types.ObjectId(userId)
+      new mongoose.Types.ObjectId(userId),
     ).select('email name')
     if (!user) throw new AppError('User not found', httpStatus.NOT_FOUND)
 
@@ -426,7 +455,7 @@ export const sendFormLinkToUser = async (req: Request, res: Response) => {
     if (!result.success) {
       throw new AppError(
         result.error || 'Failed to send email',
-        httpStatus.INTERNAL_SERVER_ERROR
+        httpStatus.INTERNAL_SERVER_ERROR,
       )
     }
 
@@ -457,7 +486,7 @@ export const submitBookingForm = async (req: Request, res: Response) => {
     if (!booking) {
       throw new AppError(
         'Booking not found for this user',
-        httpStatus.NOT_FOUND
+        httpStatus.NOT_FOUND,
       )
     }
 
@@ -468,7 +497,7 @@ export const submitBookingForm = async (req: Request, res: Response) => {
       for (const file of files) {
         const uploadResult = await uploadToCloudinary(
           file.path,
-          'booking_forms'
+          'booking_forms',
         )
         if (uploadResult) {
           uploadedFiles.push({
@@ -528,7 +557,7 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
   if (oldScheduleId === newSchedObjId) {
     throw new AppError(
       'Booking is already assigned to this schedule',
-      httpStatus.BAD_REQUEST
+      httpStatus.BAD_REQUEST,
     )
   }
 
@@ -541,15 +570,15 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
     const updatedBooking = await BookingClass.findByIdAndUpdate(
       bookingId,
       { scheduleId: newScheduleId },
-      { new: true, runValidators: true, session }
+      { new: true, runValidators: true, session },
     )
 
     // Find schedules (if available)
     const oldSchedule = classData.schedule?.find(
-      (s) => s._id?.toString() === oldScheduleId
+      (s) => s._id?.toString() === oldScheduleId,
     )
     const newSchedule = classData.schedule?.find(
-      (s) => s._id?.toString() === newSchedObjId
+      (s) => s._id?.toString() === newSchedObjId,
     )
 
     // Update counts only if schedules exist
@@ -557,7 +586,7 @@ export const reAssignAnotherSchedule = catchAsync(async (req, res) => {
       oldSchedule.participents = Math.max(0, oldSchedule.participents! + 1)
       oldSchedule.totalParticipents = Math.max(
         0,
-        oldSchedule.totalParticipents! - 1
+        oldSchedule.totalParticipents! - 1,
       )
     }
 
@@ -607,7 +636,7 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
         } else {
           throw new AppError(
             `Invalid booking ID: ${id}`,
-            StatusCodes.BAD_REQUEST
+            StatusCodes.BAD_REQUEST,
           )
         }
       }
@@ -636,7 +665,7 @@ export const deleteAllBookingClass = catchAsync(async (req, res) => {
     } else {
       throw new AppError(
         'Please provide bookingIds or set deleteAll=true',
-        StatusCodes.BAD_REQUEST
+        StatusCodes.BAD_REQUEST,
       )
     }
 
