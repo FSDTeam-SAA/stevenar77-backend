@@ -40,21 +40,23 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
     model: any,
     id: string,
     ratingField: string,
-    reviewsField: string
+    reviewsField: string,
   ) => {
     const item = await model.findById(id)
     if (!item) return
-    const totalReviews = item[reviewsField] + 1
-    const avgRating =
-      (item[ratingField] * item[reviewsField] + star) / totalReviews
+
+    const currentReviews = item[reviewsField] || 0
+    const currentRating = item[ratingField] || 0
+    const totalReviews = currentReviews + 1
+    const avgRating = (currentRating * currentReviews + star) / totalReviews
 
     await model.findByIdAndUpdate(
       id,
       {
         [reviewsField]: totalReviews,
-        [ratingField]: avgRating,
+        [ratingField]: parseFloat(avgRating.toFixed(2)),
       },
-      { new: true }
+      { new: true },
     )
   }
 
@@ -62,7 +64,7 @@ export const createReview = catchAsync(async (req: Request, res: Response) => {
   if (classId) {
     await updateRating(Class, classId, 'avgRating', 'totalReviews')
   } else if (tripId) {
-    await updateRating(Trip, tripId, 'avgRating', 'maximumCapacity') // For Trip, you can choose a field if needed
+    await updateRating(Trip, tripId, 'avgRating', 'totalReviews')
   } else if (productId) {
     await updateRating(Product, productId, 'averageRating', 'totalReviews')
   }
@@ -87,6 +89,63 @@ export const deleteReview = catchAsync(async (req: Request, res: Response) => {
     throw new AppError('Review not found', httpStatus.NOT_FOUND)
   }
 
+  // Function to update rating after deletion
+  const updateRatingOnDelete = async (
+    model: any,
+    itemId: string,
+    ratingField: string,
+    reviewsField: string,
+    deletedStar: number,
+  ) => {
+    const item = await model.findById(itemId)
+    if (!item || item[reviewsField] === 0) return
+
+    const currentReviews = item[reviewsField]
+    const currentRating = item[ratingField]
+    const newReviews = currentReviews - 1
+
+    let newRating = 0
+    if (newReviews > 0) {
+      newRating = (currentRating * currentReviews - deletedStar) / newReviews
+    }
+
+    await model.findByIdAndUpdate(
+      itemId,
+      {
+        [reviewsField]: newReviews,
+        [ratingField]: parseFloat(newRating.toFixed(2)),
+      },
+      { new: true },
+    )
+  }
+
+  // Update the corresponding model
+  if (deletedReview.classId) {
+    await updateRatingOnDelete(
+      Class,
+      deletedReview.classId.toString(),
+      'avgRating',
+      'totalReviews',
+      deletedReview.star,
+    )
+  } else if (deletedReview.tripId) {
+    await updateRatingOnDelete(
+      Trip,
+      deletedReview.tripId.toString(),
+      'avgRating',
+      'totalReviews',
+      deletedReview.star,
+    )
+  } else if (deletedReview.productId) {
+    await updateRatingOnDelete(
+      Product,
+      deletedReview.productId.toString(),
+      'averageRating',
+      'totalReviews',
+      deletedReview.star,
+    )
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -104,7 +163,7 @@ export const getReviewsByClassId = catchAsync(
 
     const reviews = await ReviewRating.find({ classId }).populate(
       'userId',
-      'firstName lastName image'
+      'firstName lastName image',
     )
 
     sendResponse(res, {
@@ -113,7 +172,7 @@ export const getReviewsByClassId = catchAsync(
       message: 'Reviews fetched successfully by classId',
       data: reviews,
     })
-  }
+  },
 )
 
 /*****************
@@ -125,7 +184,7 @@ export const getReviewsByTripId = catchAsync(
 
     const reviews = await ReviewRating.find({ productId }).populate(
       'userId',
-      'firstName lastName image'
+      'firstName lastName image',
     )
 
     sendResponse(res, {
@@ -134,7 +193,7 @@ export const getReviewsByTripId = catchAsync(
       message: 'Reviews fetched successfully by productId',
       data: reviews,
     })
-  }
+  },
 )
 
 export const getAllClassReviews = catchAsync(
@@ -167,5 +226,91 @@ export const getAllClassReviews = catchAsync(
 
       data: { reviews, meta },
     })
-  }
+  },
+)
+
+/*****************
+ * RECALCULATE RATINGS (Admin utility to fix data)
+ *****************/
+export const recalculateAllRatings = catchAsync(
+  async (req: Request, res: Response) => {
+    // Recalculate Class ratings
+    const classes = await Class.find({})
+    for (const classItem of classes) {
+      const reviews = await ReviewRating.find({ classId: classItem._id })
+      const totalReviews = reviews.length
+      const avgRating =
+        totalReviews > 0
+          ? parseFloat(
+              (
+                reviews.reduce((sum, r) => sum + r.star, 0) / totalReviews
+              ).toFixed(2),
+            )
+          : 0
+
+      await Class.findByIdAndUpdate(
+        classItem._id,
+        {
+          totalReviews,
+          avgRating,
+        },
+        { new: true },
+      )
+    }
+
+    // Recalculate Trip ratings
+    const trips = await Trip.find({})
+    for (const trip of trips) {
+      const reviews = await ReviewRating.find({ tripId: trip._id })
+      const totalReviews = reviews.length
+      const avgRating =
+        totalReviews > 0
+          ? parseFloat(
+              (
+                reviews.reduce((sum, r) => sum + r.star, 0) / totalReviews
+              ).toFixed(2),
+            )
+          : 0
+
+      await Trip.findByIdAndUpdate(
+        trip._id,
+        {
+          totalReviews,
+          avgRating,
+        },
+        { new: true },
+      )
+    }
+
+    // Recalculate Product ratings
+    const products = await Product.find({})
+    for (const product of products) {
+      const reviews = await ReviewRating.find({ productId: product._id })
+      const totalReviews = reviews.length
+      const averageRating =
+        totalReviews > 0
+          ? parseFloat(
+              (
+                reviews.reduce((sum, r) => sum + r.star, 0) / totalReviews
+              ).toFixed(2),
+            )
+          : 0
+
+      await Product.findByIdAndUpdate(
+        product._id,
+        {
+          totalReviews,
+          averageRating,
+        },
+        { new: true },
+      )
+    }
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'All ratings recalculated successfully',
+      data: {},
+    })
+  },
 )
